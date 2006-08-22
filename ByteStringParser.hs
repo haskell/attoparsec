@@ -76,6 +76,10 @@ p <?> msg =
           (Left _) -> Left (st, [msg])
           ok -> ok
 
+-- |get remaining input
+getInput :: Parser C.ByteString C.ByteString
+getInput = Parser (\st -> Right (st,st))
+
 
 -- * Things like in @Parsec.Char@
 
@@ -147,6 +151,13 @@ notEmpty (Parser p) =
                          then Left (a, ["notEmpty"])
                          else o
                      x -> x
+
+-- | parse some input with the given parser and return that input without copying it
+pMatch :: Parser C.ByteString a -> Parser C.ByteString C.ByteString
+pMatch p = do start <- getInput
+              p
+              end <- getInput
+              return (C.take (C.length start - C.length end) start)
 
 
 -- * Running parsers

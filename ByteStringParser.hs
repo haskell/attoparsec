@@ -76,6 +76,9 @@ p <?> msg =
           (Left _) -> Left (st, [msg])
           ok -> ok
 
+
+-- * Things like in @Parsec.Char@
+
 -- |character parser
 satisfy :: (Char -> Bool) -> Parser C.ByteString Char
 satisfy f =
@@ -90,6 +93,9 @@ satisfy f =
 -- |satisfy a specific character
 pChar :: Char -> Parser C.ByteString Char
 pChar c = satisfy (== c) <?> [c]
+
+
+-- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
 
 -- |detect 'end of file'
 pEOF :: Parser C.ByteString ()
@@ -141,6 +147,9 @@ notEmpty (Parser p) =
                          then Left (a, ["notEmpty"])
                          else o
                      x -> x
+
+
+-- * Running parsers
 
 -- |'parse' - run a parser
 parse :: Parser state a -> state -> Either (ParserError state) (a, state)

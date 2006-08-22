@@ -1,8 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  ByteStringParser
--- Copyright   :  (c) Jeremy Shaw 2006
--- Copyright   :  (c) Daan Leijen 1999-2001
+-- Copyright   :  (c) Daan Leijen 1999-2001, Jeremy Shaw 2006
 -- License     :  BSD-style (see the file libraries/parsec/LICENSE)
 -- 
 -- Maintainer  :  jeremy@n-heptane.com

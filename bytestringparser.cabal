@@ -1,0 +1,10 @@
+name:            bytestringparser
+version:         0.1
+license:         BSD3
+license-file:    LICENSE
+author:          Bryan O'Sullivan <bos@serpentine.com>
+synopsis:        Combinator parsing with Data.ByteString.Lazy
+build-depends:   base
+exposed-modules: Text.ParserCombinators.ByteStringParser
+hs-source-dirs:  src
+ghc-options:     -O -Wall -Werror

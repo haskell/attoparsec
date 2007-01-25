@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  ByteStringParser
--- Copyright   :  (c) Daan Leijen 1999-2001, Jeremy Shaw 2006
+-- Copyright   :  (c) Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007
 -- License     :  BSD-style (see the file libraries/parsec/LICENSE)
 -- 
 -- Maintainer  :  jeremy@n-heptane.com
@@ -11,7 +11,7 @@
 -- Primitive parser combinators for ByteStrings loosely based on Parsec.
 -- 
 -----------------------------------------------------------------------------
-module ByteStringParser where
+module Text.ParserCombinators.ByteStringParser where
 
 import Data.Char
 import Data.Word

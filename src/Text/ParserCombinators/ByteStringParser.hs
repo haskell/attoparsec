@@ -14,7 +14,6 @@
 module Text.ParserCombinators.ByteStringParser where
 
 import Data.Char
-import Data.Word
 import Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as C
 
@@ -190,7 +189,7 @@ skipMany1 p = p >> skipMany p
 notEmpty :: Parser C.ByteString C.ByteString -> Parser C.ByteString C.ByteString 
 notEmpty (Parser p) =
     Parser $ \s -> case p s of
-                     o@(Right (a, s_)) ->
+                     o@(Right (a, _)) ->
                          if C.null a
                          then Left (a, ["notEmpty"])
                          else o
@@ -222,7 +221,7 @@ parse p s =
       showError [msg] = "Parser error, expected:\n" ++ msg ++ "\n"
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
 
-parseTest :: Parser st a -> st -> IO ()
+parseTest :: (Show st, Show a) => Parser st a -> st -> IO ()
 
 parseTest p s =
     case parse p s of

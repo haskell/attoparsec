@@ -139,8 +139,8 @@ try (Parser p)
                           ok -> ok
 
 -- |detect 'end of file'
-eOF :: Parser C.ByteString ()
-eOF =
+eof :: Parser C.ByteString ()
+eof =
     Parser $ \bs -> if C.null bs then Right ((),bs) else (Left (bs, ["EOF"]))
 
 -- |takeWhile take characters while the predicate is true

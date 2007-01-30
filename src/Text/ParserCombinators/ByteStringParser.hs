@@ -122,7 +122,8 @@ char c = satisfy (== c) <?> [c]
 
 string :: String -> Parser C.ByteString String
 
-string = mapM char
+string s = mapM char s
+         <?> show s
 
 count :: Int -> Parser st a -> Parser st [a]
 

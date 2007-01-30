@@ -7,4 +7,4 @@ synopsis:        Combinator parsing with Data.ByteString.Lazy
 build-depends:   base
 exposed-modules: Text.ParserCombinators.ByteStringParser
 hs-source-dirs:  src
-ghc-options:     -O -Wall
+ghc-options:     -O2 -Wall

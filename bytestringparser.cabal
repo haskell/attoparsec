@@ -9,6 +9,7 @@ synopsis:        Combinator parsing with Data.ByteString.Lazy
 cabal-version:   >= 1.2
 
 flag bytestring-in-base
+flag applicative-in-base
 
 library
   if flag(bytestring-in-base)
@@ -17,6 +18,13 @@ library
   else
     -- in base 1.0 and 3.0 bytestring is a separate package
     build-depends: base < 2.0 || >= 3, bytestring >= 0.9
+
+  if flag(applicative-in-base)
+    build-depends: base >= 2.0
+    cpp-options: -DAPPLICATIVE_IN_BASE
+  else
+    build-depends: base < 2.0
+
   exposed-modules: Text.ParserCombinators.ByteStringParser
   hs-source-dirs:  src
   ghc-options:     -O2 -Wall -Werror

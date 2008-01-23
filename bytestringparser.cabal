@@ -1,10 +1,22 @@
 name:            bytestringparser
-version:         0.1
+version:         0.2
 license:         BSD3
 license-file:    LICENSE
+category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
+stability:       experimental
 synopsis:        Combinator parsing with Data.ByteString.Lazy
-build-depends:   base
-exposed-modules: Text.ParserCombinators.ByteStringParser
-hs-source-dirs:  src
-ghc-options:     -O2 -Wall
+cabal-version:   >= 1.2
+
+flag bytestring-in-base
+
+library
+  if flag(bytestring-in-base)
+    -- bytestring was in base-2.0 and 2.1.1
+    build-depends: base >= 2.0 && < 2.2
+  else
+    -- in base 1.0 and 3.0 bytestring is a separate package
+    build-depends: base < 2.0 || >= 3, bytestring >= 0.9
+  exposed-modules: Text.ParserCombinators.ByteStringParser
+  hs-source-dirs:  src
+  ghc-options:     -O2 -Wall -Werror

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Text.ParserCombinators.ByteStringParser
@@ -9,7 +8,8 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Primitive parser combinators for ByteStrings loosely based on Parsec.
+-- Simple, efficient parser combinators for lazy 'C.ByteString'
+-- values, loosely based on 'Text.ParserCombinators.Parsec'.
 -- 
 -----------------------------------------------------------------------------
 module Text.ParserCombinators.ByteStringParser
@@ -20,6 +20,7 @@ module Text.ParserCombinators.ByteStringParser
 
     -- * Running parsers
     , parse
+    , parseAt
     , parseTest
 
     -- * Combinators
@@ -35,6 +36,10 @@ module Text.ParserCombinators.ByteStringParser
     , eof
     , skipMany
     , skipMany1
+    , count
+    , lookAhead
+    , sepBy
+    , sepBy1
 
     -- * Things like in @Parsec.Char@
     , satisfy
@@ -44,22 +49,30 @@ module Text.ParserCombinators.ByteStringParser
     , space
     , char
     , string
+    , stringCI
+    , byteString
+    , byteStringCI
 
     -- * Miscellaneous functions.
     , getInput
     , getConsumed
     , takeWhile
+    , takeWhile1
+    , takeAll
     , skipWhile
+    , skipSpace
+    , notEmpty
+    , match
+    , inClass
+    , notInClass
     ) where
 
-#ifdef APPLICATIVE_IN_BASE
 import Control.Applicative (Applicative(..))
-#endif
-
-import Control.Monad (MonadPlus(..), ap)
+import Control.Monad (MonadPlus(..), ap, liftM2)
 import qualified Data.ByteString.Lazy.Char8 as C
-import Data.Char (isDigit, isLetter, isSpace)
+import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Int (Int64)
+import qualified Data.Set as S
 import Prelude hiding (takeWhile)
 
 type ParseError = (C.ByteString, String)
@@ -114,6 +127,7 @@ infixr 1 <|>
 -- | Choice.
 (<|>) :: Parser a -> Parser a -> Parser a
 (<|>) = mplus
+{-# INLINE (<|>) #-}
 
 -- | Name the parser.
 (<?>) :: Parser a -> String -> Parser a
@@ -122,35 +136,31 @@ p <?> msg =
         case unParser p s of
           (Left _) -> Left (bs, [msg])
           ok -> ok
+{-# INLINE (<?>) #-}
 
 -- | Get remaining input.
 getInput :: Parser C.ByteString
 getInput = Parser $ \s@(S bs _) -> Right (bs, s)
 
--- | Get remaining input.
+-- | Get number of bytes consumed so far.
 getConsumed :: Parser Int64
 getConsumed = Parser $ \s@(S _ n) -> Right (n, s)
-
 
 -- | Character parser.
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy f =
     Parser $ \(S bs n) ->
-        if C.null bs
-        then Left (bs, [])
-        else let Just (s, bs') = C.uncons bs in
-             if f s
-                then Right (s, S bs' (n + 1))
-                else Left (bs, [])
+           case C.uncons bs of
+             Just (s, bs') | f s -> Right (s, S bs' (n + 1))
+             _                   -> Left (bs, [])
 {-# INLINE satisfy #-}
 
-
 letter :: Parser Char
-letter = satisfy isLetter
+letter = satisfy isLetter <?> "letter"
 {-# INLINE letter #-}
 
 digit :: Parser Char
-digit = satisfy isDigit
+digit = satisfy isDigit <?> "digit"
 {-# INLINE digit #-}
 
 anyChar :: Parser Char
@@ -158,19 +168,64 @@ anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
 
 space :: Parser Char
-space = satisfy isSpace
+space = satisfy isSpace <?> "space"
 {-# INLINE space #-}
 
 -- | Satisfy a specific character.
-
 char :: Char -> Parser Char
 char c = satisfy (== c) <?> [c]
 {-# INLINE char #-}
 
+charClass :: String -> S.Set Char
+charClass s = S.fromList (go s)
+    where go (a:'-':b:xs) = [a..b] ++ go xs
+          go (x:xs) = x : go xs
+          go _ = ""
+
+inClass :: String -> Char -> Bool
+inClass s = (`S.member` set)
+    where set = charClass s
+
+notInClass :: String -> Char -> Bool
+notInClass s = (`S.notMember` set)
+    where set = charClass s
+
+sepBy :: Parser a -> Parser s -> Parser [a]
+sepBy p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return []) <|> return []
+
+sepBy1 :: Parser a -> Parser s -> Parser [a]
+sepBy1 p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return [])
+
+-- | Satisfy a literal string.
+byteString :: C.ByteString -> Parser C.ByteString
+byteString s = Parser $ \(S bs n) ->
+               let l = C.length s
+                   (h, t) = C.splitAt l bs
+               in if s == h
+                  then Right (s, S t (n + l))
+                  else Left (bs, [])
+{-# INLINE byteString #-}
+
+-- | Satisfy a literal string.
+byteStringCI :: C.ByteString -> Parser C.ByteString
+byteStringCI s = Parser $ \(S bs n) ->
+               let l = C.length s
+                   (h, t) = C.splitAt l bs
+               in if ls == C.map toLower h
+                  then Right (s, S t (n + l))
+                  else Left (bs, [])
+    where ls = C.map toLower s
+{-# INLINE byteStringCI #-}
+
 string :: String -> Parser String
-string s = mapM char s <?> show s
+string s = byteString (C.pack s) >> return s
 {-# INLINE string #-}
 
+stringCI :: String -> Parser String
+stringCI s = byteStringCI (C.pack s) >> return s
+{-# INLINE stringCI #-}
+
+-- | Apply the given parser repeatedly, returning every parse result.
 count :: Int -> Parser a -> Parser [a]
 count n p = sequence (replicate n p)
 {-# INLINE count #-}
@@ -187,15 +242,33 @@ eof = Parser $ \s@(S bs _) -> if C.null bs
                               then Right ((), s)
                               else Left (bs, ["EOF"])
 
+takeAll :: Parser C.ByteString
+takeAll = Parser $ \(S bs n) -> Right (bs, S C.empty (n + C.length bs))
+
 -- | Consume characters while the predicate is true.
 takeWhile :: (Char -> Bool) -> Parser C.ByteString
 takeWhile f = Parser $ \(S bs n) ->
               let (h, bs') = C.span f bs
               in Right (h, S bs' (n + C.length h))
+{-# INLINE takeWhile #-}
+
+takeWhile1 :: (Char -> Bool) -> Parser C.ByteString
+takeWhile1 f = Parser $ \(S bs n) ->
+              let (h, bs') = C.span f bs
+              in if C.null h
+                 then Left (bs, [])
+                 else Right (h, S bs' (n + C.length h))
+{-# INLINE takeWhile1 #-}
 
 -- | Skip over characters while the predicate is true.
 skipWhile :: (Char -> Bool) -> Parser ()
 skipWhile p = takeWhile p >> return ()
+{-# INLINE skipWhile #-}
+
+-- | Skip over white space.
+skipSpace :: Parser ()
+skipSpace = takeWhile isSpace >> return ()
+{-# INLINE skipSpace #-}
 
 -- | Take zero or more instances of the parser.
 many ::  Parser a -> Parser [a]
@@ -206,24 +279,16 @@ many p = scan id
 
 -- | Take one or more instances of the parser.
 many1 :: Parser a -> Parser [a]
-many1 p =
-    do x <- p
-       xs <- many p
-       return (x:xs)
+many1 p = liftM2 (:) p (many p)
 
 manyTill :: Parser a -> Parser b -> Parser [a]
 manyTill p end = scan
-    where scan = do end; return []
-               <|>
-                 do x <- p
-                    xs <- scan
-                    return (x:xs)
+    where scan = (end >> return []) <|> liftM2 (:) p scan
 
 -- |'skipMany' - skip zero or many instances of the parser
 skipMany :: Parser a -> Parser ()
 skipMany p = scan
-    where
-      scan = (p >> scan) <|> return ()
+    where scan = (p >> scan) <|> return ()
 
 -- |'skipMany1' - skip one or many instances of the parser       
 skipMany1 :: Parser  a -> Parser ()
@@ -248,23 +313,26 @@ match p = do bs <- getInput
              end <- getConsumed
              return (C.take (end - start) bs)
 
-lookAhead :: Parser a -> Parser a
-
-lookAhead p = Parser $ \s@(S bs _) ->
+lookAhead :: Parser a -> Parser (Maybe a)
+lookAhead p = Parser $ \s ->
               case unParser p s of
-                Left (_, msgs) -> Left (bs, msgs)
-                Right (m, _) -> Right (m, s)
+                Right (m, _) -> Right (Just m, s)
+                _ -> Right (Nothing, s)
 
--- | Run a parser.
-parse :: Parser a -> C.ByteString
-      -> Either ParseError (a, C.ByteString)
-parse p bs = 
-    case unParser p (S bs 0) of
+parseAt :: Parser a -> C.ByteString -> Int64
+        -> Either ParseError (a, C.ByteString)
+parseAt p bs n = 
+    case unParser p (S bs n) of
       Left (bs', msg) -> Left (bs', showError msg)
       Right (a, S bs' _) -> Right (a, bs')
     where
       showError [msg] = "Parser error, expected:\n" ++ msg ++ "\n"
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
+
+-- | Run a parser.
+parse :: Parser a -> C.ByteString
+      -> Either ParseError (a, C.ByteString)
+parse p bs = parseAt p bs 0
 
 parseTest :: (Show a) => Parser a -> C.ByteString -> IO ()
 parseTest p s =

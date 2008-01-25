@@ -38,6 +38,7 @@ module Text.ParserCombinators.ByteStringParser
     , skipMany1
     , count
     , lookAhead
+    , peek
     , sepBy
     , sepBy1
 
@@ -48,16 +49,22 @@ module Text.ParserCombinators.ByteStringParser
     , anyChar
     , space
     , char
+    , notChar
     , string
     , stringCI
     , byteString
     , byteStringCI
+
+    -- * Parser converters.
+    , maybeP
+    , eitherP
 
     -- * Miscellaneous functions.
     , getInput
     , getConsumed
     , takeWhile
     , takeWhile1
+    , takeTill
     , takeAll
     , skipWhile
     , skipSpace
@@ -67,7 +74,7 @@ module Text.ParserCombinators.ByteStringParser
     , notInClass
     ) where
 
-import Control.Applicative (Applicative(..))
+import Control.Applicative (Applicative(..), (<$>), (<*))
 import Control.Monad (MonadPlus(..), ap, liftM2)
 import qualified Data.ByteString.Lazy.Char8 as C
 import Data.Char (isDigit, isLetter, isSpace, toLower)
@@ -75,7 +82,7 @@ import Data.Int (Int64)
 import qualified Data.Set as S
 import Prelude hiding (takeWhile)
 
-type ParseError = (C.ByteString, String)
+type ParseError = String
 
 -- * Parser Monad
 
@@ -176,6 +183,11 @@ char :: Char -> Parser Char
 char c = satisfy (== c) <?> [c]
 {-# INLINE char #-}
 
+-- | Satisfy a specific character.
+notChar :: Char -> Parser Char
+notChar c = satisfy (/= c) <?> "not " ++ [c]
+{-# INLINE notChar #-}
+
 charClass :: String -> S.Set Char
 charClass s = S.fromList (go s)
     where go (a:'-':b:xs) = [a..b] ++ go xs
@@ -252,6 +264,10 @@ takeWhile f = Parser $ \(S bs n) ->
               in Right (h, S bs' (n + C.length h))
 {-# INLINE takeWhile #-}
 
+takeTill :: (Char -> Bool) -> Parser C.ByteString
+takeTill p = takeWhile (not . p) <* satisfy p
+{-# INLINE takeTill #-}
+
 takeWhile1 :: (Char -> Bool) -> Parser C.ByteString
 takeWhile1 f = Parser $ \(S bs n) ->
               let (h, bs') = C.span f bs
@@ -313,29 +329,43 @@ match p = do bs <- getInput
              end <- getConsumed
              return (C.take (end - start) bs)
 
-lookAhead :: Parser a -> Parser (Maybe a)
+maybeP :: Parser a -> Parser (Maybe a)
+maybeP p = (Just <$> p) <|> pure Nothing
+{-# INLINE maybeP #-}
+
+eitherP :: Parser a -> Parser b -> Parser (Either a b)
+eitherP a b = (Left <$> a) <|> (Right <$> b)
+{-# INLINE eitherP #-}
+
+peek :: Parser a -> Parser (Maybe a)
+peek p = Parser $ \s ->
+         case unParser p s of
+           Right (m, _) -> Right (Just m, s)
+           _ -> Right (Nothing, s)
+
+lookAhead :: Parser a -> Parser a
 lookAhead p = Parser $ \s ->
-              case unParser p s of
-                Right (m, _) -> Right (Just m, s)
-                _ -> Right (Nothing, s)
+         case unParser p s of
+           Right (m, _) -> Right (m, s)
+           Left (e, bs) -> Left (e, bs)
 
 parseAt :: Parser a -> C.ByteString -> Int64
-        -> Either ParseError (a, C.ByteString)
+        -> (C.ByteString, Either ParseError a)
 parseAt p bs n = 
     case unParser p (S bs n) of
-      Left (bs', msg) -> Left (bs', showError msg)
-      Right (a, S bs' _) -> Right (a, bs')
+      Left (bs', msg) -> (bs', Left $ showError msg)
+      Right (a, S bs' _) -> (bs', Right a)
     where
       showError [msg] = "Parser error, expected:\n" ++ msg ++ "\n"
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
 
 -- | Run a parser.
 parse :: Parser a -> C.ByteString
-      -> Either ParseError (a, C.ByteString)
+      -> (C.ByteString, Either ParseError a)
 parse p bs = parseAt p bs 0
 
 parseTest :: (Show a) => Parser a -> C.ByteString -> IO ()
 parseTest p s =
     case parse p s of
-      Left (st, msg) -> putStrLn $ msg ++ "\nGot:\n" ++ show st
-      Right (r,_) -> print r
+      (st, Left msg) -> putStrLn $ msg ++ "\nGot:\n" ++ show st
+      (_, Right r) -> print r

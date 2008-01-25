@@ -1,5 +1,5 @@
 name:            bytestringparser
-version:         0.2
+version:         0.2.1
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -27,5 +27,6 @@ library
 
   extensions:      CPP
   exposed-modules: Text.ParserCombinators.ByteStringParser
+                   Text.ParserCombinators.ByteStringParser.FastSet
   hs-source-dirs:  src
   ghc-options:     -O2 -Wall -Werror

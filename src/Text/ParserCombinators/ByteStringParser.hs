@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Text.ParserCombinators.ByteStringParser
--- Copyright   :  (c) Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007
--- License     :  BSD-style (see the file libraries/parsec/LICENSE)
+-- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2008
+-- License     :  BSD3
 -- 
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
@@ -75,7 +75,7 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.ByteString.Lazy.Internal as LB
 import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Int (Int64)
-import qualified Data.Set as S
+import Text.ParserCombinators.ByteStringParser.FastSet (FastSet, member, set)
 import Prelude hiding (takeWhile)
 
 type ParseError = String
@@ -209,19 +209,20 @@ notChar :: Char -> Parser Char
 notChar c = satisfy (/= c) <?> "not " ++ [c]
 {-# INLINE notChar #-}
 
-charClass :: String -> S.Set Char
-charClass s = S.fromList (go s)
+charClass :: String -> FastSet
+charClass = set . SB.pack . go
     where go (a:'-':b:xs) = [a..b] ++ go xs
           go (x:xs) = x : go xs
           go _ = ""
 
 inClass :: String -> Char -> Bool
-inClass s = (`S.member` set)
-    where set = charClass s
+inClass s = (`member` myset)
+    where myset = charClass s
+{-# INLINE inClass #-}
 
 notInClass :: String -> Char -> Bool
-notInClass s = (`S.notMember` set)
-    where set = charClass s
+notInClass s = not . inClass s
+{-# INLINE notInClass #-}
 
 sepBy :: Parser a -> Parser s -> Parser [a]
 sepBy p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return []) <|> return []

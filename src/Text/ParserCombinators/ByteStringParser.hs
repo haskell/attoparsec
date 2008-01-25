@@ -76,7 +76,7 @@ module Text.ParserCombinators.ByteStringParser
 
 import Control.Applicative (Applicative(..), (<$>), (<*))
 import Control.Monad (MonadPlus(..), ap, liftM2)
-import qualified Data.ByteString.Lazy.Char8 as C
+import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Int (Int64)
 import qualified Data.Set as S
@@ -86,11 +86,11 @@ type ParseError = String
 
 -- * Parser Monad
 
-data S = S C.ByteString
+data S = S LB.ByteString
            {-# UNPACK #-} !Int64
 
 newtype Parser a = Parser {
-      unParser :: S -> Either (C.ByteString, [String]) (a, S)
+      unParser :: S -> Either (LB.ByteString, [String]) (a, S)
     }
 
 instance Functor Parser where
@@ -146,7 +146,7 @@ p <?> msg =
 {-# INLINE (<?>) #-}
 
 -- | Get remaining input.
-getInput :: Parser C.ByteString
+getInput :: Parser LB.ByteString
 getInput = Parser $ \s@(S bs _) -> Right (bs, s)
 
 -- | Get number of bytes consumed so far.
@@ -157,7 +157,7 @@ getConsumed = Parser $ \s@(S _ n) -> Right (n, s)
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy f =
     Parser $ \(S bs n) ->
-           case C.uncons bs of
+           case LB.uncons bs of
              Just (s, bs') | f s -> Right (s, S bs' (n + 1))
              _                   -> Left (bs, [])
 {-# INLINE satisfy #-}
@@ -209,32 +209,32 @@ sepBy1 :: Parser a -> Parser s -> Parser [a]
 sepBy1 p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return [])
 
 -- | Satisfy a literal string.
-byteString :: C.ByteString -> Parser C.ByteString
+byteString :: LB.ByteString -> Parser LB.ByteString
 byteString s = Parser $ \(S bs n) ->
-               let l = C.length s
-                   (h, t) = C.splitAt l bs
+               let l = LB.length s
+                   (h, t) = LB.splitAt l bs
                in if s == h
                   then Right (s, S t (n + l))
                   else Left (bs, [])
 {-# INLINE byteString #-}
 
 -- | Satisfy a literal string.
-byteStringCI :: C.ByteString -> Parser C.ByteString
+byteStringCI :: LB.ByteString -> Parser LB.ByteString
 byteStringCI s = Parser $ \(S bs n) ->
-               let l = C.length s
-                   (h, t) = C.splitAt l bs
-               in if ls == C.map toLower h
+               let l = LB.length s
+                   (h, t) = LB.splitAt l bs
+               in if ls == LB.map toLower h
                   then Right (s, S t (n + l))
                   else Left (bs, [])
-    where ls = C.map toLower s
+    where ls = LB.map toLower s
 {-# INLINE byteStringCI #-}
 
 string :: String -> Parser String
-string s = byteString (C.pack s) >> return s
+string s = byteString (LB.pack s) >> return s
 {-# INLINE string #-}
 
 stringCI :: String -> Parser String
-stringCI s = byteStringCI (C.pack s) >> return s
+stringCI s = byteStringCI (LB.pack s) >> return s
 {-# INLINE stringCI #-}
 
 -- | Apply the given parser repeatedly, returning every parse result.
@@ -250,30 +250,30 @@ try p = Parser $ \s@(S bs _) ->
 
 -- | Detect 'end of file'.
 eof :: Parser ()
-eof = Parser $ \s@(S bs _) -> if C.null bs
+eof = Parser $ \s@(S bs _) -> if LB.null bs
                               then Right ((), s)
                               else Left (bs, ["EOF"])
 
-takeAll :: Parser C.ByteString
-takeAll = Parser $ \(S bs n) -> Right (bs, S C.empty (n + C.length bs))
+takeAll :: Parser LB.ByteString
+takeAll = Parser $ \(S bs n) -> Right (bs, S LB.empty (n + LB.length bs))
 
 -- | Consume characters while the predicate is true.
-takeWhile :: (Char -> Bool) -> Parser C.ByteString
+takeWhile :: (Char -> Bool) -> Parser LB.ByteString
 takeWhile f = Parser $ \(S bs n) ->
-              let (h, bs') = C.span f bs
-              in Right (h, S bs' (n + C.length h))
+              let (h, bs') = LB.span f bs
+              in Right (h, S bs' (n + LB.length h))
 {-# INLINE takeWhile #-}
 
-takeTill :: (Char -> Bool) -> Parser C.ByteString
+takeTill :: (Char -> Bool) -> Parser LB.ByteString
 takeTill p = takeWhile (not . p) <* satisfy p
 {-# INLINE takeTill #-}
 
-takeWhile1 :: (Char -> Bool) -> Parser C.ByteString
+takeWhile1 :: (Char -> Bool) -> Parser LB.ByteString
 takeWhile1 f = Parser $ \(S bs n) ->
-              let (h, bs') = C.span f bs
-              in if C.null h
+              let (h, bs') = LB.span f bs
+              in if LB.null h
                  then Left (bs, [])
-                 else Right (h, S bs' (n + C.length h))
+                 else Right (h, S bs' (n + LB.length h))
 {-# INLINE takeWhile1 #-}
 
 -- | Skip over characters while the predicate is true.
@@ -311,23 +311,23 @@ skipMany1 :: Parser  a -> Parser ()
 skipMany1 p = p >> skipMany p
 
 -- | Test that a parser returned a non-null ByteString.
-notEmpty :: Parser C.ByteString -> Parser C.ByteString 
+notEmpty :: Parser LB.ByteString -> Parser LB.ByteString 
 notEmpty p = Parser $ \s ->
              case unParser p s of
                o@(Right (a, _)) ->
-                   if C.null a
+                   if LB.null a
                    then Left (a, ["notEmpty"])
                    else o
                x -> x
 
 -- | Parse some input with the given parser and return that input
 -- without copying it.
-match :: Parser a -> Parser C.ByteString
+match :: Parser a -> Parser LB.ByteString
 match p = do bs <- getInput
              start <- getConsumed
              p
              end <- getConsumed
-             return (C.take (end - start) bs)
+             return (LB.take (end - start) bs)
 
 maybeP :: Parser a -> Parser (Maybe a)
 maybeP p = (Just <$> p) <|> pure Nothing
@@ -349,8 +349,8 @@ lookAhead p = Parser $ \s ->
            Right (m, _) -> Right (m, s)
            Left (e, bs) -> Left (e, bs)
 
-parseAt :: Parser a -> C.ByteString -> Int64
-        -> (C.ByteString, Either ParseError a)
+parseAt :: Parser a -> LB.ByteString -> Int64
+        -> (LB.ByteString, Either ParseError a)
 parseAt p bs n = 
     case unParser p (S bs n) of
       Left (bs', msg) -> (bs', Left $ showError msg)
@@ -360,11 +360,11 @@ parseAt p bs n =
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
 
 -- | Run a parser.
-parse :: Parser a -> C.ByteString
-      -> (C.ByteString, Either ParseError a)
+parse :: Parser a -> LB.ByteString
+      -> (LB.ByteString, Either ParseError a)
 parse p bs = parseAt p bs 0
 
-parseTest :: (Show a) => Parser a -> C.ByteString -> IO ()
+parseTest :: (Show a) => Parser a -> LB.ByteString -> IO ()
 parseTest p s =
     case parse p s of
       (st, Left msg) -> putStrLn $ msg ++ "\nGot:\n" ++ show st

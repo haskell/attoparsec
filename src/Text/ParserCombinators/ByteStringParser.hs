@@ -70,6 +70,7 @@ module Text.ParserCombinators.ByteStringParser
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>), (<*), (*>))
 import Control.Monad (MonadPlus(..), ap, liftM2)
+import Control.Monad.Fix (MonadFix(..))
 import qualified Data.ByteString.Char8 as SB
 import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.ByteString.Lazy.Internal as LB
@@ -114,6 +115,13 @@ instance Monad Parser where
                 Right (a, s') -> unParser (f a) s'
                 Left (s', msgs) -> Left (s', msgs)
     fail err = Parser $ \(S sb lb _) -> Left (sb +: lb, [err])
+
+instance MonadFix Parser where
+    mfix f = Parser $ \s ->
+             let r = case r of
+                       Right (a, _) -> unParser (f a) s
+                       err -> err
+             in r
 
 zero :: Parser a
 zero = Parser $ \(S sb lb _) -> Left (sb +: lb, [])

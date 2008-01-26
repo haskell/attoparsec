@@ -24,7 +24,6 @@ module Text.ParserCombinators.ByteStringParser
     , parseTest
 
     -- * Combinators
-    , succeed
     , (<?>)
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
@@ -81,16 +80,9 @@ import Prelude hiding (takeWhile)
 
 type ParseError = String
 
--- * Parser Monad
-
 data S = S {-# UNPACK #-} !SB.ByteString
            LB.ByteString
            {-# UNPACK #-} !Int64
-
-mkState :: LB.ByteString -> Int64 -> S
-mkState s = case s of
-              LB.Empty -> S SB.empty s
-              LB.Chunk x xs -> S x xs
 
 newtype Parser a = Parser {
       unParser :: S -> Either (LB.ByteString, [String]) (a, S)
@@ -102,11 +94,6 @@ instance Functor Parser where
             case unParser p s of
               Right (a, s') -> Right (f a, s')
               Left err -> Left err
-
-(+:) :: SB.ByteString -> LB.ByteString -> LB.ByteString
-sb +: lb | SB.null sb = lb
-         | otherwise = LB.Chunk sb lb
-{-# INLINE (+:) #-}
 
 instance Monad Parser where
     return a = Parser $ \s -> Right (a, s)
@@ -142,7 +129,6 @@ instance MonadPlus Parser where
     mzero = zero
     mplus = plus
 
-#ifdef APPLICATIVE_IN_BASE
 instance Applicative Parser where
     pure = return
     (<*>) = ap
@@ -150,11 +136,18 @@ instance Applicative Parser where
 instance Alternative Parser where
     empty = zero
     (<|>) = plus
-#endif
 
--- | Always succeed.
-succeed :: a -> Parser a
-succeed = return
+mkState :: LB.ByteString -> Int64 -> S
+mkState s = case s of
+              LB.Empty -> S SB.empty s
+              LB.Chunk x xs -> S x xs
+
+-- | Turn our chunked representation back into a normal lazy
+-- ByteString.
+(+:) :: SB.ByteString -> LB.ByteString -> LB.ByteString
+sb +: lb | SB.null sb = lb
+         | otherwise = LB.Chunk sb lb
+{-# INLINE (+:) #-}
 
 infix 0 <?>
 
@@ -241,23 +234,23 @@ sepBy1 p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return [])
 -- | Satisfy a literal string.
 string :: LB.ByteString -> Parser LB.ByteString
 string s = Parser $ \(S sb lb n) ->
-               let bs = sb +: lb
-                   l = LB.length s
-                   (h, t) = LB.splitAt l bs
-               in if s == h
-                  then Right (s, mkState t (n + l))
-                  else Left (bs, [])
+           let bs = sb +: lb
+               l = LB.length s
+               (h, t) = LB.splitAt l bs
+           in if s == h
+              then Right (s, mkState t (n + l))
+              else Left (bs, [])
 {-# INLINE string #-}
 
 -- | Satisfy a literal string, ignoring case.
 stringCI :: LB.ByteString -> Parser LB.ByteString
 stringCI s = Parser $ \(S sb lb n) ->
-               let bs = sb +: lb
-                   l = LB.length s
-                   (h, t) = LB.splitAt l bs
-               in if ls == LB.map toLower h
-                  then Right (s, mkState t (n + l))
-                  else Left (bs, [])
+             let bs = sb +: lb
+                 l = LB.length s
+                 (h, t) = LB.splitAt l bs
+             in if ls == LB.map toLower h
+                then Right (s, mkState t (n + l))
+                else Left (bs, [])
     where ls = LB.map toLower s
 {-# INLINE stringCI #-}
 
@@ -306,7 +299,7 @@ takeWhile1 :: (Char -> Bool) -> Parser LB.ByteString
 takeWhile1 p = Parser $ \s@(S sb lb n) ->
                let (h, t) = SB.span p sb
                in if SB.null t
-                  then case unParser (nextChunk >> takeWhile p) s of
+                  then case unParser (nextChunk *> takeWhile p) s of
                          Left err -> Left err
                          Right (xs, s') ->
                              let bs = h +: xs
@@ -375,11 +368,11 @@ lookAhead p = Parser $ \s ->
            Left (e, bs) -> Left (e, bs)
 
 parseAt :: Parser a -> LB.ByteString -> Int64
-        -> (LB.ByteString, Either ParseError a)
+        -> (LB.ByteString, Either ParseError (a, Int64))
 parseAt p bs n = 
     case unParser p (mkState bs n) of
       Left (bs', msg) -> (bs', Left $ showError msg)
-      Right (a, S sb lb _) -> (sb +: lb, Right a)
+      Right (a, S sb lb n') -> (sb +: lb, Right (a, n'))
     where
       showError [msg] = "Parser error, expected:\n" ++ msg ++ "\n"
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
@@ -387,7 +380,9 @@ parseAt p bs n =
 -- | Run a parser.
 parse :: Parser a -> LB.ByteString
       -> (LB.ByteString, Either ParseError a)
-parse p bs = parseAt p bs 0
+parse p bs = case parseAt p bs 0 of
+               (bs', Right (a, _)) -> (bs', Right a)
+               (bs', Left err) -> (bs', Left err)
 
 parseTest :: (Show a) => Parser a -> LB.ByteString -> IO ()
 parseTest p s =

@@ -29,4 +29,4 @@ library
   exposed-modules: Text.ParserCombinators.ByteStringParser
                    Text.ParserCombinators.ByteStringParser.FastSet
   hs-source-dirs:  src
-  ghc-options:     -O2 -Wall -Werror
+  ghc-options:     -O2 -Wall -Werror -funbox-strict-fields

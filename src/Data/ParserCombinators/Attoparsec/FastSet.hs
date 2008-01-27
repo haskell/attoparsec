@@ -10,7 +10,10 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Fast 8-bit character set membership.
+-- Fast set membership tests for 'Word8' and 8-bit 'Char' values.  The
+-- set representation is unboxed for efficiency.  For sets of fewer
+-- than 32 elements, we test for membership using a binary search.
+-- For larger sets, we use a lookup table.
 -- 
 -----------------------------------------------------------------------------
 module Data.ParserCombinators.Attoparsec.FastSet
@@ -46,16 +49,12 @@ instance Show FastSet where
 tableCutoff :: Int
 tableCutoff = 32
 
--- | Create a character set.
+-- | Create a set.
 set :: B.ByteString -> FastSet
 set s | B.length s < tableCutoff = Sorted . B.sort $ s
       | otherwise                = Table . mkTable $ s
 
--- | Check the table for membership.
-memberChar :: Char -> FastSet -> Bool
-memberChar c = memberWord8 (I.c2w c)
-
--- | Check the table for membership.
+-- | Check the set for membership.
 memberWord8 :: Word8 -> FastSet -> Bool
 memberWord8 w (Table t)  = U.unsafeIndex t (fromIntegral w) == entry
 memberWord8 w (Sorted s) = search 0 (B.length s - 1)
@@ -67,6 +66,11 @@ memberWord8 w (Sorted s) = search 0 (B.length s - 1)
                        GT -> search lo (mid - 1)
                        LT -> search (mid + 1) hi
                        _ -> True
+
+-- | Check the set for membership.  Only works with 8-bit characters:
+-- characters above code point 255 will give wrong answers.
+memberChar :: Char -> FastSet -> Bool
+memberChar c = memberWord8 (I.c2w c)
 
 -- | The value in a table that indicates that a character is not
 -- present.  We avoid NUL to make the table representation printable.

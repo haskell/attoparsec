@@ -27,6 +27,7 @@ library
 
   extensions:      CPP
   exposed-modules: Data.ParserCombinators.ByteStringParser
+                   Data.ParserCombinators.ByteStringParser.Char8
                    Data.ParserCombinators.ByteStringParser.FastSet
                    Data.ParserCombinators.ByteStringParser.Internal
   hs-source-dirs:  src

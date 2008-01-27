@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.ParserCombinators.ByteStringParser
+-- Module      :  Data.ParserCombinators.Attoparsec
 -- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2008
 -- License     :  BSD3
 -- 
@@ -12,7 +12,7 @@
 -- strings, loosely based on 'Text.ParserCombinators.Parsec'.
 -- 
 -----------------------------------------------------------------------------
-module Data.ParserCombinators.ByteStringParser
+module Data.ParserCombinators.Attoparsec
     (
     -- * Parser
       ParseError
@@ -61,5 +61,5 @@ module Data.ParserCombinators.ByteStringParser
     , match
     ) where
 
-import Data.ParserCombinators.ByteStringParser.Internal
+import Data.ParserCombinators.Attoparsec.Internal
 import Prelude hiding (takeWhile)

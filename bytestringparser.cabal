@@ -26,9 +26,9 @@ library
     build-depends: base < 2.0
 
   extensions:      CPP
-  exposed-modules: Data.ParserCombinators.ByteStringParser
-                   Data.ParserCombinators.ByteStringParser.Char8
-                   Data.ParserCombinators.ByteStringParser.FastSet
-                   Data.ParserCombinators.ByteStringParser.Internal
+  exposed-modules: Data.ParserCombinators.Attoparsec
+                   Data.ParserCombinators.Attoparsec.Char8
+                   Data.ParserCombinators.Attoparsec.FastSet
+                   Data.ParserCombinators.Attoparsec.Internal
   hs-source-dirs:  src
   ghc-options:     -O2 -Wall -Werror -funbox-strict-fields

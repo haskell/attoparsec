@@ -40,9 +40,9 @@ module Data.ParserCombinators.ByteStringParser.Internal
 
     -- * Things like in @Parsec.Char@
     , satisfy
-    , anyChar
-    , char
-    , notChar
+    , anyWord8
+    , word8
+    , notWord8
     , string
     , stringTransform
 
@@ -178,19 +178,19 @@ satisfy p =
              Nothing -> unParser (nextChunk >> satisfy p) s
 {-# INLINE satisfy #-}
 
-anyChar :: Parser Word8
-anyChar = satisfy $ const True
-{-# INLINE anyChar #-}
+anyWord8 :: Parser Word8
+anyWord8 = satisfy $ const True
+{-# INLINE anyWord8 #-}
 
 -- | Satisfy a specific character.
-char :: Word8 -> Parser Word8
-char c = satisfy (== c) <?> show c
-{-# INLINE char #-}
+word8 :: Word8 -> Parser Word8
+word8 c = satisfy (== c) <?> show c
+{-# INLINE word8 #-}
 
 -- | Satisfy a specific character.
-notChar :: Word8 -> Parser Word8
-notChar c = satisfy (/= c) <?> "not " ++ show c
-{-# INLINE notChar #-}
+notWord8 :: Word8 -> Parser Word8
+notWord8 c = satisfy (/= c) <?> "not " ++ show c
+{-# INLINE notWord8 #-}
 
 sepBy :: Parser a -> Parser s -> Parser [a]
 sepBy p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return []) <|> return []

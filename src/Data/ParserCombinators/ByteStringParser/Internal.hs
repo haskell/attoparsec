@@ -40,14 +40,11 @@ module Data.ParserCombinators.ByteStringParser.Internal
 
     -- * Things like in @Parsec.Char@
     , satisfy
-    , letter
-    , digit
     , anyChar
-    , space
     , char
     , notChar
     , string
-    , stringCI
+    , stringTransform
 
     -- * Parser converters.
     , eitherP
@@ -60,24 +57,19 @@ module Data.ParserCombinators.ByteStringParser.Internal
     , takeTill
     , takeAll
     , skipWhile
-    , skipSpace
     , notEmpty
     , match
-    , inClass
-    , notInClass
     ) where
 
 import Control.Applicative
     (Alternative(..), Applicative(..), (<$>), (<*), (*>))
 import Control.Monad (MonadPlus(..), ap, liftM2)
 import Control.Monad.Fix (MonadFix(..))
-import qualified Data.ByteString.Char8 as SB
-import qualified Data.ByteString.Lazy.Char8 as LB
+import qualified Data.ByteString as SB
+import qualified Data.ByteString.Lazy as LB
 import qualified Data.ByteString.Lazy.Internal as LB
-import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Int (Int64)
-import Data.ParserCombinators.ByteStringParser.FastSet
-    (FastSet, memberChar, set)
+import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 
 type ParseError = String
@@ -177,7 +169,7 @@ getConsumed :: Parser Int64
 getConsumed = Parser $ \s@(S _ _ n) -> Right (n, s)
 
 -- | Character parser.
-satisfy :: (Char -> Bool) -> Parser Char
+satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p =
     Parser $ \s@(S sb lb n) ->
            case SB.uncons sb of
@@ -186,46 +178,19 @@ satisfy p =
              Nothing -> unParser (nextChunk >> satisfy p) s
 {-# INLINE satisfy #-}
 
-letter :: Parser Char
-letter = satisfy isLetter <?> "letter"
-{-# INLINE letter #-}
-
-digit :: Parser Char
-digit = satisfy isDigit <?> "digit"
-{-# INLINE digit #-}
-
-anyChar :: Parser Char
+anyChar :: Parser Word8
 anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
 
-space :: Parser Char
-space = satisfy isSpace <?> "space"
-{-# INLINE space #-}
-
 -- | Satisfy a specific character.
-char :: Char -> Parser Char
-char c = satisfy (== c) <?> [c]
+char :: Word8 -> Parser Word8
+char c = satisfy (== c) <?> show c
 {-# INLINE char #-}
 
 -- | Satisfy a specific character.
-notChar :: Char -> Parser Char
-notChar c = satisfy (/= c) <?> "not " ++ [c]
+notChar :: Word8 -> Parser Word8
+notChar c = satisfy (/= c) <?> "not " ++ show c
 {-# INLINE notChar #-}
-
-charClass :: String -> FastSet
-charClass = set . SB.pack . go
-    where go (a:'-':b:xs) = [a..b] ++ go xs
-          go (x:xs) = x : go xs
-          go _ = ""
-
-inClass :: String -> Char -> Bool
-inClass s = (`memberChar` myset)
-    where myset = charClass s
-{-# INLINE inClass #-}
-
-notInClass :: String -> Char -> Bool
-notInClass s = not . inClass s
-{-# INLINE notInClass #-}
 
 sepBy :: Parser a -> Parser s -> Parser [a]
 sepBy p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return []) <|> return []
@@ -244,17 +209,19 @@ string s = Parser $ \(S sb lb n) ->
               else Left (bs, [])
 {-# INLINE string #-}
 
--- | Satisfy a literal string, ignoring case.
-stringCI :: LB.ByteString -> Parser LB.ByteString
-stringCI s = Parser $ \(S sb lb n) ->
+-- | Satisfy a literal string, after applying a transformation to both
+-- it and the matching text.
+stringTransform :: (LB.ByteString -> LB.ByteString) -> LB.ByteString
+                -> Parser LB.ByteString
+stringTransform f s = Parser $ \(S sb lb n) ->
              let bs = sb +: lb
                  l = LB.length s
                  (h, t) = LB.splitAt l bs
-             in if ls == LB.map toLower h
+             in if fs == f h
                 then Right (s, mkState t (n + l))
                 else Left (bs, [])
-    where ls = LB.map toLower s
-{-# INLINE stringCI #-}
+    where fs = f s
+{-# INLINE stringTransform #-}
 
 -- | Apply the given parser repeatedly, returning every parse result.
 count :: Int -> Parser a -> Parser [a]
@@ -285,7 +252,7 @@ length64 :: SB.ByteString -> Int64
 length64 = fromIntegral . SB.length
 
 -- | Consume characters while the predicate is true.
-takeWhile :: (Char -> Bool) -> Parser LB.ByteString
+takeWhile :: (Word8 -> Bool) -> Parser LB.ByteString
 takeWhile p = Parser $ \s@(S sb lb n) ->
               let (h, t) = SB.span p sb
               in if SB.null t
@@ -293,11 +260,11 @@ takeWhile p = Parser $ \s@(S sb lb n) ->
                  else Right (oneChunk h, S t lb (n + length64 h))
 {-# INLINE takeWhile #-}
 
-takeTill :: (Char -> Bool) -> Parser LB.ByteString
+takeTill :: (Word8 -> Bool) -> Parser LB.ByteString
 takeTill p = takeWhile (not . p) <* satisfy p
 {-# INLINE takeTill #-}
 
-takeWhile1 :: (Char -> Bool) -> Parser LB.ByteString
+takeWhile1 :: (Word8 -> Bool) -> Parser LB.ByteString
 takeWhile1 p = Parser $ \s@(S sb lb n) ->
                let (h, t) = SB.span p sb
                in if SB.null t
@@ -312,14 +279,9 @@ takeWhile1 p = Parser $ \s@(S sb lb n) ->
 {-# INLINE takeWhile1 #-}
 
 -- | Skip over characters while the predicate is true.
-skipWhile :: (Char -> Bool) -> Parser ()
+skipWhile :: (Word8 -> Bool) -> Parser ()
 skipWhile p = takeWhile p >> return ()
 {-# INLINE skipWhile #-}
-
--- | Skip over white space.
-skipSpace :: Parser ()
-skipSpace = takeWhile isSpace >> return ()
-{-# INLINE skipSpace #-}
 
 manyTill :: Parser a -> Parser b -> Parser [a]
 manyTill p end = scan

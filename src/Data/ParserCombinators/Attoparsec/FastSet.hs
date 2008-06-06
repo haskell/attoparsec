@@ -29,8 +29,8 @@ module Data.ParserCombinators.Attoparsec.FastSet
     , fromSet
     ) where
 
+import Data.Bits ((.&.), (.|.), shiftR)
 import qualified Data.ByteString as B
--- import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Internal as I
 import qualified Data.ByteString.Unsafe as U
 import Data.Word (Word8)
@@ -41,13 +41,12 @@ data FastSet = Sorted { fromSet :: {-# UNPACK #-} !B.ByteString }
     deriving (Eq, Ord)
 
 instance Show FastSet where
-    show (Sorted s) = "FastSet " ++ show s
-    show (Table t)  = "FastSet " ++ fromTable t
+    show _ = "FastSet"
 
 -- | The lower bound on the size of a lookup table.  We choose this to
 -- balance table density against performance.
 tableCutoff :: Int
-tableCutoff = 32
+tableCutoff = 8
 
 -- | Create a set.
 set :: B.ByteString -> FastSet
@@ -56,7 +55,9 @@ set s | B.length s < tableCutoff = Sorted . B.sort $ s
 
 -- | Check the set for membership.
 memberWord8 :: Word8 -> FastSet -> Bool
-memberWord8 w (Table t)  = U.unsafeIndex t (fromIntegral w) == entry
+memberWord8 w (Table t)  =
+    let i = fromIntegral w
+    in U.unsafeIndex t (i `shiftR` 3) .&. fromIntegral (i .&. 7) == 1
 memberWord8 w (Sorted s) = search 0 (B.length s - 1)
     where search lo hi
               | hi < lo = False
@@ -72,29 +73,16 @@ memberWord8 w (Sorted s) = search 0 (B.length s - 1)
 memberChar :: Char -> FastSet -> Bool
 memberChar c = memberWord8 (I.c2w c)
 
--- | The value in a table that indicates that a character is not
--- present.  We avoid NUL to make the table representation printable.
-noEntry :: Word8
-noEntry = 0x5f
-
--- | The value in a table that indicates that a character is present.
--- We use a printable character for readability.
-entry :: Word8
-entry = 0x21
-
 mkTable :: B.ByteString -> B.ByteString
-mkTable s = I.unsafeCreate 256 $ \t -> do
-            I.memset t noEntry 256
+mkTable s = I.unsafeCreate 32 $ \t -> do
+            I.memset t 0 32
             U.unsafeUseAsCStringLen s $ \(p, l) ->
               let loop n | n == l = return ()
                          | otherwise = do
                     c <- peekByteOff p n :: IO Word8
-                    pokeByteOff t (fromIntegral c) entry
+                    let i = fromIntegral c
+                        o = i `shiftR` 3
+                    prev <- peekByteOff t o
+                    pokeByteOff t o (prev .|. (i .&. 7))
                     loop (n + 1)
               in loop 0
-
--- | Turn the table representation into a string, for debugging.
-fromTable :: B.ByteString -> String
-fromTable = snd . B.foldr go (0xff, [])
-    where go c (n, cs) | c == noEntry = flip (,) cs $! n - 1
-                       | otherwise    = flip (,) (I.w2c n:cs) $! n - 1

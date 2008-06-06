@@ -1,5 +1,5 @@
-name:            bytestringparser
-version:         0.3
+name:            attoparsec
+version:         0.4
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -31,4 +31,5 @@ library
                    Data.ParserCombinators.Attoparsec.FastSet
                    Data.ParserCombinators.Attoparsec.Internal
   hs-source-dirs:  src
-  ghc-options:     -O2 -Wall -Werror -funbox-strict-fields
+  ghc-options:     -O2 -Wall -funbox-strict-fields
+                   -fliberate-case-threshold=1000

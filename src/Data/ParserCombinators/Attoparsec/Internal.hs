@@ -61,13 +61,12 @@ module Data.ParserCombinators.Attoparsec.Internal
     , match
     ) where
 
-import Control.Applicative
-    (Alternative(..), Applicative(..), (<$>), (<*), (*>))
+import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.Monad (MonadPlus(..), ap, liftM2)
 import Control.Monad.Fix (MonadFix(..))
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
-import qualified Data.ByteString.Lazy.Internal as LB
+import qualified Data.ByteString.Lazy.Internal as I
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
@@ -133,14 +132,14 @@ instance Alternative Parser where
 
 mkState :: LB.ByteString -> Int64 -> S
 mkState s = case s of
-              LB.Empty -> S SB.empty s
-              LB.Chunk x xs -> S x xs
+              I.Empty -> S SB.empty s
+              I.Chunk x xs -> S x xs
 
 -- | Turn our chunked representation back into a normal lazy
 -- ByteString.
 (+:) :: SB.ByteString -> LB.ByteString -> LB.ByteString
 sb +: lb | SB.null sb = lb
-         | otherwise = LB.Chunk sb lb
+         | otherwise = I.Chunk sb lb
 {-# INLINE (+:) #-}
 
 infix 0 <?>
@@ -157,8 +156,8 @@ p <?> msg =
 nextChunk :: Parser ()
 nextChunk = Parser $ \(S _ lb n) ->
             case lb of
-              LB.Chunk sb' lb' -> Right ((), S sb' lb' n)
-              LB.Empty -> Left (lb, [])
+              I.Chunk sb' lb' -> Right ((), S sb' lb' n)
+              I.Empty -> Left (lb, [])
 
 -- | Get remaining input.
 getInput :: Parser LB.ByteString
@@ -245,37 +244,28 @@ takeAll = Parser $ \(S sb lb n) ->
           let bs = sb +: lb
           in Right (bs, mkState LB.empty (n + LB.length bs))
 
-oneChunk :: SB.ByteString -> LB.ByteString
-oneChunk s = LB.Chunk s LB.Empty
-
-length64 :: SB.ByteString -> Int64
-length64 = fromIntegral . SB.length
-
 -- | Consume characters while the predicate is true.
 takeWhile :: (Word8 -> Bool) -> Parser LB.ByteString
-takeWhile p = Parser $ \s@(S sb lb n) ->
-              let (h, t) = SB.span p sb
-              in if SB.null t
-                 then unParser ((h +:) <$> (nextChunk *> takeWhile p)) s
-                 else Right (oneChunk h, S t lb (n + length64 h))
+takeWhile p =
+    Parser $ \(S sb lb n) ->
+    case LB.span p (sb +: lb) of
+      (h,t) -> Right (h, mkState t (n + LB.length h))
 {-# INLINE takeWhile #-}
 
 takeTill :: (Word8 -> Bool) -> Parser LB.ByteString
-takeTill p = takeWhile (not . p) <* satisfy p
+takeTill p =
+  Parser $ \(S sb lb n) ->
+  case LB.span (not . p) (sb +: lb) of
+    (h,t) | LB.null t -> Left (h, [])
+          | otherwise -> Right (h, mkState t (n + LB.length h))
 {-# INLINE takeTill #-}
 
 takeWhile1 :: (Word8 -> Bool) -> Parser LB.ByteString
-takeWhile1 p = Parser $ \s@(S sb lb n) ->
-               let (h, t) = SB.span p sb
-               in if SB.null t
-                  then case unParser (nextChunk *> takeWhile p) s of
-                         Left err -> Left err
-                         Right (xs, s') ->
-                             let bs = h +: xs
-                             in if LB.null bs
-                               then Left (sb +: lb, [])
-                               else Right (bs, s')
-                  else Right (oneChunk h, S t lb (n + length64 h))
+takeWhile1 p =
+    Parser $ \(S sb lb n) ->
+    case LB.span p (sb +: lb) of
+      (h,t) | LB.null h -> Left (t, [])
+            | otherwise -> Right (h, mkState t (n + LB.length h))
 {-# INLINE takeWhile1 #-}
 
 -- | Skip over characters while the predicate is true.
@@ -338,7 +328,9 @@ parseAt p bs n =
       Left (bs', msg) -> (bs', Left $ showError msg)
       Right (a, S sb lb n') -> (sb +: lb, Right (a, n'))
     where
+      showError [""] = "Parser error\n"
       showError [msg] = "Parser error, expected:\n" ++ msg ++ "\n"
+      showError [] = "Parser error\n"
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
 
 -- | Run a parser.

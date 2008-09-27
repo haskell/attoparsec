@@ -10,6 +10,7 @@ synopsis:        Fast combinator parsing with Data.ByteString.Lazy
 description:     Fast combinator parsing with Data.ByteString.Lazy
 cabal-version:   >= 1.2
 build-type:      Simple
+description:     Fast, flexible text-oriented parsing of lazy ByteStrings.
 
 flag split-base
 flag applicative-in-base

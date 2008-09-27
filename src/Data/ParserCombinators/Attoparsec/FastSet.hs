@@ -21,6 +21,7 @@ module Data.ParserCombinators.Attoparsec.FastSet
     -- * Data type
       FastSet
     -- * Construction
+    , fromList
     , set
     -- * Lookup
     , memberChar
@@ -29,7 +30,7 @@ module Data.ParserCombinators.Attoparsec.FastSet
     , fromSet
     ) where
 
-import Data.Bits ((.&.), (.|.), shiftR)
+import Data.Bits ((.&.), (.|.), shiftL, shiftR)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as I
@@ -55,11 +56,17 @@ set :: B.ByteString -> FastSet
 set s | B.length s < tableCutoff = Sorted . B.sort $ s
       | otherwise                = Table . mkTable $ s
 
+fromList :: [Word8] -> FastSet
+fromList = set . B.pack
+
+index :: Int -> (Int, Word8)
+index i = (i `shiftR` 3, 1 `shiftL` (i .&. 7))
+
 -- | Check the set for membership.
 memberWord8 :: Word8 -> FastSet -> Bool
 memberWord8 w (Table t)  =
-    let i = fromIntegral w
-    in U.unsafeIndex t (i `shiftR` 3) .&. fromIntegral (i .&. 7) == 1
+    let (byte,bit) = index (fromIntegral w)
+    in U.unsafeIndex t byte .&. bit /= 0
 memberWord8 w (Sorted s) = search 0 (B.length s - 1)
     where search lo hi
               | hi < lo = False
@@ -82,9 +89,8 @@ mkTable s = I.unsafeCreate 32 $ \t -> do
               let loop n | n == l = return ()
                          | otherwise = do
                     c <- peekByteOff p n :: IO Word8
-                    let i = fromIntegral c
-                        o = i `shiftR` 3
-                    prev <- peekByteOff t o
-                    pokeByteOff t o (prev .|. (i .&. 7))
+                    let (byte,bit) = index (fromIntegral c)
+                    prev <- peekByteOff t byte :: IO Word8
+                    pokeByteOff t byte (prev .|. bit)
                     loop (n + 1)
               in loop 0

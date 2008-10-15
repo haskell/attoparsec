@@ -28,6 +28,8 @@ module Data.ParserCombinators.Attoparsec
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
+    , many
+    , many1
     , manyTill
     , eof
     , skipMany

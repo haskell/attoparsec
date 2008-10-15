@@ -28,6 +28,8 @@ module Data.ParserCombinators.Attoparsec.Char8
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
+    , many
+    , many1
     , manyTill
     , eof
     , skipMany
@@ -52,6 +54,11 @@ module Data.ParserCombinators.Attoparsec.Char8
     -- * Parser converters.
     , eitherP
 
+    -- * Numeric parsers.
+    , int
+    , integer
+    , double
+
     -- * Miscellaneous functions.
     , getInput
     , getConsumed
@@ -65,6 +72,7 @@ module Data.ParserCombinators.Attoparsec.Char8
     , match
     , inClass
     , notInClass
+    , endOfLine
     ) where
 
 import Control.Applicative ((<$>))
@@ -78,7 +86,9 @@ import qualified Data.ParserCombinators.Attoparsec.Internal as I
 import Data.ParserCombinators.Attoparsec.Internal
     (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, manyTill, eof,
      skipMany, skipMany1, count, lookAhead, peek, sepBy, sepBy1, string,
-     eitherP, getInput, getConsumed, takeAll, notEmpty, match)
+     eitherP, getInput, getConsumed, takeAll, notEmpty, match, endOfLine,
+     setInput, many, many1)
+import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)
 
 -- | Character parser.
@@ -154,3 +164,22 @@ skipWhile p = I.skipWhile (p . w2c)
 skipSpace :: Parser ()
 skipSpace = takeWhile isSpace >> return ()
 {-# INLINE skipSpace #-}
+
+numeric :: (LB.ByteString -> Maybe (a,LB.ByteString)) -> Parser a
+numeric f = do
+  s <- getInput
+  case f s of
+    Nothing -> fail "integer"
+    Just (i,s') -> setInput s' >> return i
+                   
+-- | Parse an integer.  The position counter is not updated.
+int :: Parser Int
+int = numeric LB.readInt
+
+-- | Parse an integer.  The position counter is not updated.
+integer :: Parser Integer
+integer = numeric LB.readInteger
+
+-- | Parse a Double.  The position counter is not updated.
+double :: Parser Double
+double = numeric readDouble

@@ -26,6 +26,8 @@ library
   else
     build-depends: base < 2.0
 
+  build-depends: bytestring-lexing >= 0.2
+
   extensions:      CPP
   exposed-modules: Data.ParserCombinators.Attoparsec
                    Data.ParserCombinators.Attoparsec.Char8

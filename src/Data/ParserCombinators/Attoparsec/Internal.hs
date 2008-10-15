@@ -28,6 +28,8 @@ module Data.ParserCombinators.Attoparsec.Internal
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
+    , many
+    , many1
     , manyTill
     , eof
     , skipMany
@@ -52,6 +54,7 @@ module Data.ParserCombinators.Attoparsec.Internal
     -- * Miscellaneous functions.
     , getInput
     , getConsumed
+    , setInput
     , takeWhile
     , takeWhile1
     , takeTill
@@ -59,6 +62,7 @@ module Data.ParserCombinators.Attoparsec.Internal
     , skipWhile
     , notEmpty
     , match
+    , endOfLine
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
@@ -66,13 +70,20 @@ import Control.Monad (MonadPlus(..), ap, liftM2)
 import Control.Monad.Fix (MonadFix(..))
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
-import qualified Data.ByteString.Lazy.Internal as I
+import qualified Data.ByteString.Lazy.Char8 as L8
+import qualified Data.ByteString.Unsafe as U
+import qualified Data.ByteString.Internal as I
+import qualified Data.ByteString.Lazy.Internal as LB
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 
 type ParseError = String
 
+-- State invariants:
+-- * If the strict bytestring is empty, the entire input is considered
+--   to be empty.
+-- * Otherwise, the strict bytestring must not be empty.
 data S = S {-# UNPACK #-} !SB.ByteString
            LB.ByteString
            {-# UNPACK #-} !Int64
@@ -132,14 +143,14 @@ instance Alternative Parser where
 
 mkState :: LB.ByteString -> Int64 -> S
 mkState s = case s of
-              I.Empty -> S SB.empty s
-              I.Chunk x xs -> S x xs
+              LB.Empty -> S SB.empty s
+              LB.Chunk x xs -> S x xs
 
 -- | Turn our chunked representation back into a normal lazy
 -- ByteString.
 (+:) :: SB.ByteString -> LB.ByteString -> LB.ByteString
 sb +: lb | SB.null sb = lb
-         | otherwise = I.Chunk sb lb
+         | otherwise = LB.Chunk sb lb
 {-# INLINE (+:) #-}
 
 infix 0 <?>
@@ -156,12 +167,16 @@ p <?> msg =
 nextChunk :: Parser ()
 nextChunk = Parser $ \(S _ lb n) ->
             case lb of
-              I.Chunk sb' lb' -> Right ((), S sb' lb' n)
-              I.Empty -> Left (lb, [])
+              LB.Chunk sb' lb' -> Right ((), S sb' lb' n)
+              LB.Empty -> Left (lb, [])
 
 -- | Get remaining input.
 getInput :: Parser LB.ByteString
 getInput = Parser $ \s@(S sb lb _) -> Right (sb +: lb, s)
+
+-- | Set the remaining input.
+setInput :: LB.ByteString -> Parser ()
+setInput bs = Parser $ \(S _ _ n) -> Right ((), mkState bs n)
 
 -- | Get number of bytes consumed so far.
 getConsumed :: Parser Int64
@@ -202,11 +217,23 @@ string :: LB.ByteString -> Parser LB.ByteString
 string s = Parser $ \(S sb lb n) ->
            let bs = sb +: lb
                l = LB.length s
-               (h, t) = LB.splitAt l bs
+               (h,t) = LB.splitAt l bs
            in if s == h
               then Right (s, mkState t (n + l))
               else Left (bs, [])
 {-# INLINE string #-}
+
+endOfLine :: Parser ()
+endOfLine = Parser $ \(S sb lb n) ->
+            let bs = sb +: lb
+            in case I.w2c (U.unsafeHead sb) of
+                 '\n' -> Right ((), mkState (LB.tail bs) (n + 1))
+                 '\r' -> let (h,t) = LB.splitAt 2 bs
+                             rn = L8.pack "\r\n"
+                         in if h == rn
+                            then Right ((), mkState t (n + 2))
+                            else Right ((), mkState (LB.tail bs) (n + 1))
+                 _ -> Left (bs, ["EOL"])
 
 -- | Satisfy a literal string, after applying a transformation to both
 -- it and the matching text.
@@ -255,7 +282,7 @@ takeWhile p =
 takeTill :: (Word8 -> Bool) -> Parser LB.ByteString
 takeTill p =
   Parser $ \(S sb lb n) ->
-  case LB.span (not . p) (sb +: lb) of
+  case LB.break p (sb +: lb) of
     (h,t) | LB.null t -> Left (h, [])
           | otherwise -> Right (h, mkState t (n + LB.length h))
 {-# INLINE takeTill #-}
@@ -276,6 +303,12 @@ skipWhile p = takeWhile p >> return ()
 manyTill :: Parser a -> Parser b -> Parser [a]
 manyTill p end = scan
     where scan = (end >> return []) <|> liftM2 (:) p scan
+
+many :: Parser a -> Parser [a]
+many p = ((:) <$> p <*> many p) <|> return []
+
+many1 :: Parser a -> Parser [a]
+many1 p = (:) <$> p <*> many p
 
 -- |'skipMany' - skip zero or many instances of the parser
 skipMany :: Parser a -> Parser ()

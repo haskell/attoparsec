@@ -4,8 +4,10 @@ license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
+maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
-synopsis:        Combinator parsing with Data.ByteString.Lazy
+synopsis:        Fast combinator parsing with Data.ByteString.Lazy
+description:     Fast combinator parsing with Data.ByteString.Lazy
 cabal-version:   >= 1.2
 build-type:      Simple
 

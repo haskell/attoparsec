@@ -187,7 +187,7 @@ satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p =
     Parser $ \s@(S sb lb n) ->
            case SB.uncons sb of
-             Just (c, sb') | p c -> Right (c, S sb' lb (n + 1))
+             Just (c, sb') | p c -> Right (c, mkState (sb' +: lb) (n + 1))
                            | otherwise -> Left (sb +: lb, [])
              Nothing -> unParser (nextChunk >> satisfy p) s
 {-# INLINE satisfy #-}

@@ -166,21 +166,21 @@ skipSpace :: Parser ()
 skipSpace = takeWhile isSpace >> return ()
 {-# INLINE skipSpace #-}
 
-numeric :: (LB.ByteString -> Maybe (a,LB.ByteString)) -> Parser a
-numeric f = do
+numeric :: String -> (LB.ByteString -> Maybe (a,LB.ByteString)) -> Parser a
+numeric desc f = do
   s <- getInput
   case f s of
-    Nothing -> fail "integer"
+    Nothing -> fail desc
     Just (i,s') -> setInput s' >> return i
                    
 -- | Parse an integer.  The position counter is not updated.
 int :: Parser Int
-int = numeric LB.readInt
+int = numeric "Int" LB.readInt
 
 -- | Parse an integer.  The position counter is not updated.
 integer :: Parser Integer
-integer = numeric LB.readInteger
+integer = numeric "Integer" LB.readInteger
 
 -- | Parse a Double.  The position counter is not updated.
 double :: Parser Double
-double = numeric readDouble
+double = numeric "Double" readDouble

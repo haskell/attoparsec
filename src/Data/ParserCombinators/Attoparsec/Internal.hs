@@ -59,6 +59,7 @@ module Data.ParserCombinators.Attoparsec.Internal
     , takeWhile1
     , takeTill
     , takeAll
+    , takeCount
     , skipWhile
     , notEmpty
     , match
@@ -270,6 +271,15 @@ takeAll :: Parser LB.ByteString
 takeAll = Parser $ \(S sb lb n) ->
           let bs = sb +: lb
           in Right (bs, mkState LB.empty (n + LB.length bs))
+
+takeCount :: Int64 -> Parser LB.ByteString
+takeCount k =
+  Parser $ \(S sb lb n) ->
+      let bs = sb +: lb
+          (h,t) = LB.splitAt k bs
+      in if LB.length h == k
+         then Right (h, mkState t (n + k))
+         else Left (bs, [show k ++ " bytes"])
 
 -- | Consume characters while the predicate is true.
 takeWhile :: (Word8 -> Bool) -> Parser LB.ByteString

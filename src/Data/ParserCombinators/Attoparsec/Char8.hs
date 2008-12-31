@@ -66,6 +66,7 @@ module Data.ParserCombinators.Attoparsec.Char8
     , takeWhile1
     , takeTill
     , takeAll
+    , takeCount
     , skipWhile
     , skipSpace
     , notEmpty
@@ -86,8 +87,8 @@ import qualified Data.ParserCombinators.Attoparsec.Internal as I
 import Data.ParserCombinators.Attoparsec.Internal
     (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, manyTill, eof,
      skipMany, skipMany1, count, lookAhead, peek, sepBy, sepBy1, string,
-     eitherP, getInput, getConsumed, takeAll, notEmpty, match, endOfLine,
-     setInput, many, many1)
+     eitherP, getInput, getConsumed, takeAll, takeCount, notEmpty, match,
+     endOfLine, setInput, many, many1)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)
 

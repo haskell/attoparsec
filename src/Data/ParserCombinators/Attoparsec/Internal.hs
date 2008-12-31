@@ -82,9 +82,8 @@ import Prelude hiding (takeWhile)
 type ParseError = String
 
 -- State invariants:
--- * If the strict bytestring is empty, the entire input is considered
---   to be empty.
--- * Otherwise, the strict bytestring must not be empty.
+-- * If both strict and lazy bytestrings are empty, the entire input
+--   is considered to be empty.
 data S = S {-# UNPACK #-} !SB.ByteString
            LB.ByteString
            {-# UNPACK #-} !Int64

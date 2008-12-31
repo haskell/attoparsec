@@ -368,7 +368,7 @@ parseAt :: Parser a -> LB.ByteString -> Int64
 parseAt p bs n = 
     case unParser p (mkState bs n) of
       Left (bs', msg) -> (bs', Left $ showError msg)
-      Right (a, S sb lb n') -> (sb +: lb, Right (a, n'))
+      Right (a, ~(S sb lb n')) -> (sb +: lb, Right (a, n'))
     where
       showError [""] = "Parser error\n"
       showError [msg] = "Parser error, expected:\n" ++ msg ++ "\n"

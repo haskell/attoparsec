@@ -226,14 +226,16 @@ string s = Parser $ \(S sb lb n) ->
 endOfLine :: Parser ()
 endOfLine = Parser $ \(S sb lb n) ->
             let bs = sb +: lb
-            in case I.w2c (U.unsafeHead sb) of
-                 '\n' -> Right ((), mkState (LB.tail bs) (n + 1))
-                 '\r' -> let (h,t) = LB.splitAt 2 bs
-                             rn = L8.pack "\r\n"
-                         in if h == rn
-                            then Right ((), mkState t (n + 2))
-                            else Right ((), mkState (LB.tail bs) (n + 1))
-                 _ -> Left (bs, ["EOL"])
+            in if SB.null sb
+               then Left (bs, ["EOL"])
+               else case I.w2c (U.unsafeHead sb) of
+                     '\n' -> Right ((), mkState (LB.tail bs) (n + 1))
+                     '\r' -> let (h,t) = LB.splitAt 2 bs
+                                 rn = L8.pack "\r\n"
+                             in if h == rn
+                                then Right ((), mkState t (n + 2))
+                                else Right ((), mkState (LB.tail bs) (n + 1))
+                     _ -> Left (bs, ["EOL"])
 
 -- | Satisfy a literal string, after applying a transformation to both
 -- it and the matching text.

@@ -34,6 +34,7 @@ library
   extensions:      CPP
   exposed-modules: Data.ParserCombinators.Attoparsec
                    Data.ParserCombinators.Attoparsec.Char8
+                   Data.ParserCombinators.Attoparsec.Incremental
                    Data.ParserCombinators.Attoparsec.FastSet
                    Data.ParserCombinators.Attoparsec.Internal
   hs-source-dirs:  src

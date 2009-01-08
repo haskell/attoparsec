@@ -64,6 +64,9 @@ module Data.ParserCombinators.Attoparsec.Internal
     , notEmpty
     , match
     , endOfLine
+
+    -- * Utilities.
+    , (+:)
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
@@ -146,8 +149,7 @@ mkState s = case s of
               LB.Empty -> S SB.empty s
               LB.Chunk x xs -> S x xs
 
--- | Turn our chunked representation back into a normal lazy
--- ByteString.
+-- | Turn our split representation back into a normal lazy ByteString.
 (+:) :: SB.ByteString -> LB.ByteString -> LB.ByteString
 sb +: lb | SB.null sb = lb
          | otherwise = LB.Chunk sb lb
@@ -286,8 +288,8 @@ takeCount k =
 takeWhile :: (Word8 -> Bool) -> Parser LB.ByteString
 takeWhile p =
     Parser $ \(S sb lb n) ->
-    case LB.span p (sb +: lb) of
-      (h,t) -> Right (h, mkState t (n + LB.length h))
+    let (h,t) = LB.span p (sb +: lb)
+    in Right (h, mkState t (n + LB.length h))
 {-# INLINE takeWhile #-}
 
 takeTill :: (Word8 -> Bool) -> Parser LB.ByteString

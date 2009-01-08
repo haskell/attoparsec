@@ -1,0 +1,7 @@
+^dist$
+
+syntax: glob
+*.hi
+*.o
+*~
+.*.swp

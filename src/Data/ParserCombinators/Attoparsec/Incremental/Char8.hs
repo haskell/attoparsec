@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.ParserCombinators.Attoparsec.Char8
+-- Module      :  Data.ParserCombinators.Attoparsec.Incremental.Char8
 -- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2008
 -- License     :  BSD3
 -- 
@@ -13,32 +13,27 @@
 -- strings, loosely based on 'Text.ParserCombinators.Parsec'.
 -- 
 -----------------------------------------------------------------------------
-module Data.ParserCombinators.Attoparsec.Char8
+module Data.ParserCombinators.Attoparsec.Incremental.Char8
     (
     -- * Parser
-      ParseError
-    , Parser
+      Parser
+    , Result(..)
 
     -- * Running parsers
     , parse
-    , parseAt
-    , parseTest
 
     -- * Combinators
     , (<?>)
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
-    , try
     , many1
     , manyTill
-    , eof
     , skipMany
     , skipMany1
     , count
-    , lookAhead
-    , peek
     , sepBy
     , sepBy1
+    , pushBack
 
     -- * Things like in @Parsec.Char@
     , satisfy
@@ -49,10 +44,6 @@ module Data.ParserCombinators.Attoparsec.Char8
     , char
     , notChar
     , string
-    , stringCI
-
-    -- * Parser converters.
-    , eitherP
 
     -- * Numeric parsers.
     , int
@@ -60,65 +51,53 @@ module Data.ParserCombinators.Attoparsec.Char8
     , double
 
     -- * Miscellaneous functions.
-    , getInput
-    , getConsumed
     , takeWhile
-    , takeWhile1
     , takeTill
-    , takeAll
     , takeCount
     , skipWhile
     , skipSpace
-    , notEmpty
-    , match
     , inClass
     , notInClass
-    , endOfLine
     ) where
 
 import Control.Applicative ((<$>))
 import qualified Data.ByteString.Char8 as SB
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Internal (w2c)
-import Data.Char (isDigit, isLetter, isSpace, toLower)
+import Data.Char (isDigit, isLetter, isSpace)
 import Data.ParserCombinators.Attoparsec.FastSet
     (FastSet, memberChar, set)
-import qualified Data.ParserCombinators.Attoparsec.Internal as I
-import Data.ParserCombinators.Attoparsec.Internal
-    (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, manyTill, eof,
-     skipMany, skipMany1, count, lookAhead, peek, sepBy, sepBy1, string,
-     eitherP, getInput, getConsumed, takeAll, takeCount, notEmpty, match,
-     endOfLine, setInput, many1)
+import qualified Data.ParserCombinators.Attoparsec.Incremental as I
+import Data.ParserCombinators.Attoparsec.Incremental
+    (Parser, Result(..), (<?>), parse, manyTill, pushBack,
+     skipMany, skipMany1, count, sepBy, sepBy1, string,
+     takeCount, many1)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)
 
--- | Satisfy a literal string, ignoring case.
-stringCI :: LB.ByteString -> Parser LB.ByteString
-stringCI = I.stringTransform (LB.map toLower)
-{-# INLINE stringCI #-}
-
-takeWhile1 :: (Char -> Bool) -> Parser LB.ByteString
-takeWhile1 p = I.takeWhile1 (p . w2c)
-{-# INLINE takeWhile1 #-}
-
-numeric :: String -> (LB.ByteString -> Maybe (a,LB.ByteString)) -> Parser a
-numeric desc f = do
-  s <- getInput
+numeric :: String -> (Char -> Bool)
+         -> (LB.ByteString -> Maybe (a,LB.ByteString)) -> Parser r a
+numeric desc p f = do
+  s <- takeWhile p
   case f s of
-    Nothing -> fail desc
-    Just (i,s') -> setInput s' >> return i
+    Nothing -> pushBack s >> fail desc
+    Just (i,s') -> pushBack s' >> return i
                    
--- | Parse an integer.  The position counter is not updated.
-int :: Parser Int
-int = numeric "Int" LB.readInt
+isIntegral :: Char -> Bool
+isIntegral c = isDigit c || c == '-'
 
 -- | Parse an integer.  The position counter is not updated.
-integer :: Parser Integer
-integer = numeric "Integer" LB.readInteger
+int :: Parser r Int
+int = numeric "Int" isIntegral LB.readInt
+
+-- | Parse an integer.  The position counter is not updated.
+integer :: Parser r Integer
+integer = numeric "Integer" isIntegral LB.readInteger
 
 -- | Parse a Double.  The position counter is not updated.
-double :: Parser Double
-double = numeric "Double" readDouble
+double :: Parser r Double
+double = numeric "Double" isDouble readDouble
+    where isDouble c = isIntegral c || c == 'e' || c == '+'
 
-#define PARSER Parser
-#include "Char8Boilerplate.h"
+#define PARSER Parser r
+#include "../Char8Boilerplate.h"

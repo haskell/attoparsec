@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.ParserCombinators.Attoparsec.Internal
@@ -28,7 +29,6 @@ module Data.ParserCombinators.Attoparsec.Internal
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , many
     , many1
     , manyTill
     , eof
@@ -69,8 +69,8 @@ module Data.ParserCombinators.Attoparsec.Internal
     , (+:)
     ) where
 
-import Control.Applicative (Alternative(..), Applicative(..), (<$>))
-import Control.Monad (MonadPlus(..), ap, liftM2)
+import Control.Applicative
+import Control.Monad (MonadPlus(..), ap)
 import Control.Monad.Fix (MonadFix(..))
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
@@ -132,18 +132,6 @@ plus p1 p2 =
           ok -> ok
 {-# INLINE plus #-}
 
-instance MonadPlus Parser where
-    mzero = zero
-    mplus = plus
-
-instance Applicative Parser where
-    pure = return
-    (<*>) = ap
-
-instance Alternative Parser where
-    empty = zero
-    (<|>) = plus
-
 mkState :: LB.ByteString -> Int64 -> S
 mkState s = case s of
               LB.Empty -> S SB.empty s
@@ -194,26 +182,6 @@ satisfy p =
              Nothing -> unParser (nextChunk >> satisfy p) s
 {-# INLINE satisfy #-}
 
-anyWord8 :: Parser Word8
-anyWord8 = satisfy $ const True
-{-# INLINE anyWord8 #-}
-
--- | Satisfy a specific character.
-word8 :: Word8 -> Parser Word8
-word8 c = satisfy (== c) <?> show c
-{-# INLINE word8 #-}
-
--- | Satisfy a specific character.
-notWord8 :: Word8 -> Parser Word8
-notWord8 c = satisfy (/= c) <?> "not " ++ show c
-{-# INLINE notWord8 #-}
-
-sepBy :: Parser a -> Parser s -> Parser [a]
-sepBy p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return []) <|> return []
-
-sepBy1 :: Parser a -> Parser s -> Parser [a]
-sepBy1 p s = liftM2 (:) p ((s >> sepBy1 p s) <|> return [])
-
 -- | Satisfy a literal string.
 string :: LB.ByteString -> Parser LB.ByteString
 string s = Parser $ \(S sb lb n) ->
@@ -253,11 +221,6 @@ stringTransform f s = Parser $ \(S sb lb n) ->
     where fs = f s
 {-# INLINE stringTransform #-}
 
--- | Apply the given parser repeatedly, returning every parse result.
-count :: Int -> Parser a -> Parser [a]
-count n p = sequence (replicate n p)
-{-# INLINE count #-}
-
 try :: Parser a -> Parser a
 try p = Parser $ \s@(S sb lb _) ->
         case unParser p s of
@@ -275,13 +238,14 @@ takeAll = Parser $ \(S sb lb n) ->
           let bs = sb +: lb
           in Right (bs, mkState LB.empty (n + LB.length bs))
 
-takeCount :: Int64 -> Parser LB.ByteString
+takeCount :: Int -> Parser LB.ByteString
 takeCount k =
   Parser $ \(S sb lb n) ->
       let bs = sb +: lb
-          (h,t) = LB.splitAt k bs
-      in if LB.length h == k
-         then Right (h, mkState t (n + k))
+          k' = fromIntegral k
+          (h,t) = LB.splitAt k' bs
+      in if LB.length h == k'
+         then Right (h, mkState t (n + k'))
          else Left (bs, [show k ++ " bytes"])
 
 -- | Consume characters while the predicate is true.
@@ -307,30 +271,6 @@ takeWhile1 p =
       (h,t) | LB.null h -> Left (t, [])
             | otherwise -> Right (h, mkState t (n + LB.length h))
 {-# INLINE takeWhile1 #-}
-
--- | Skip over characters while the predicate is true.
-skipWhile :: (Word8 -> Bool) -> Parser ()
-skipWhile p = takeWhile p >> return ()
-{-# INLINE skipWhile #-}
-
-manyTill :: Parser a -> Parser b -> Parser [a]
-manyTill p end = scan
-    where scan = (end >> return []) <|> liftM2 (:) p scan
-
-many :: Parser a -> Parser [a]
-many p = ((:) <$> p <*> many p) <|> return []
-
-many1 :: Parser a -> Parser [a]
-many1 p = (:) <$> p <*> many p
-
--- |'skipMany' - skip zero or many instances of the parser
-skipMany :: Parser a -> Parser ()
-skipMany p = scan
-    where scan = (p >> scan) <|> return ()
-
--- |'skipMany1' - skip one or many instances of the parser       
-skipMany1 :: Parser  a -> Parser ()
-skipMany1 p = p >> skipMany p
 
 -- | Test that a parser returned a non-null ByteString.
 notEmpty :: Parser LB.ByteString -> Parser LB.ByteString 
@@ -391,3 +331,6 @@ parseTest p s =
     case parse p s of
       (st, Left msg) -> putStrLn $ msg ++ "\nGot:\n" ++ show st
       (_, Right r) -> print r
+
+#define PARSER Parser
+#include "Word8Boilerplate.h"

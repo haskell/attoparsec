@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns, CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.ParserCombinators.Attoparsec.Incremental
@@ -11,8 +12,8 @@
 -- Simple, efficient parser combinators for lazy 'LB.ByteString'
 -- strings, loosely based on 'Text.ParserCombinators.Parsec'.
 --
--- Heavily influenced by Adam Langley's incremental parser in the
--- binary-strict package.
+-- This module is heavily influenced by Adam Langley's incremental
+-- parser in his binary-strict package.
 -- 
 -----------------------------------------------------------------------------
 module Data.ParserCombinators.Attoparsec.Incremental
@@ -21,14 +22,31 @@ module Data.ParserCombinators.Attoparsec.Incremental
     , Result(..)
     , parse
 
+    , (<?>)
     , takeWhile
     , takeTill
+    , takeCount
     , string
+    , satisfy
+    , pushBack
+
+    , word8
+    , notWord8
+    , anyWord8
+
+    , many1
+    , skipWhile
+    , skipMany
+    , skipMany1
+    , sepBy
+    , sepBy1
+    , manyTill
+    , count
 
     , yield
     ) where
 
-import Control.Applicative (Alternative(..), Applicative(..))
+import Control.Applicative
 import Control.Monad (MonadPlus(..), ap)
 import Data.ParserCombinators.Attoparsec.Internal ((+:))
 import Data.Word (Word8)
@@ -121,17 +139,16 @@ plus p1 p2 =
 instance Functor (Parser r) where
     fmap f m = Parser $ \s cont -> unParser m s (cont . f)
 
-instance MonadPlus (Parser r) where
-    mzero = zero
-    mplus = plus
+infix 0 <?>
 
-instance Applicative (Parser r) where
-    pure = return
-    (<*>) = ap
-
-instance Alternative (Parser r) where
-    empty = zero
-    (<|>) = plus
+-- | Name the parser.
+(<?>) :: Parser r a -> String -> Parser r a
+{-# INLINE (<?>) #-}
+p <?> msg =
+  Parser $ \st k ->
+    case unParser p st k of
+      IFailed st' _ -> IFailed st' msg
+      ok -> ok
 
 initState :: S.ByteString -> S
 initState input = S input L.empty [] 0
@@ -158,38 +175,61 @@ takeWith :: (L.ByteString -> (L.ByteString, L.ByteString))
          -> Parser r L.ByteString
 takeWith splitf =
   Parser $ \(S sb lb adds failDepth) k ->
-    let bs = sb +: lb
-        (left,rest) = splitf bs
-    in case rest of
-         L.Empty -> IPartial $ \s ->
-                    let s' = S s L.empty (addX s adds) failDepth
-                        k' a = k (appL left a)
-                    in unParser (takeWith splitf) s' k'
-         L.Chunk h t -> k left (S h t adds failDepth)
-
-string :: L.ByteString -> Parser r L.ByteString
-string s = string' s
- where
-  string' r =
-   Parser $ \st@(S sb lb adds failDepth) k ->
-     let bs = sb +: lb
-         l = L.length r
-     in case L.splitAt l bs of
-          (h,t)
-            | h == r -> k s (mkState t adds failDepth)
-          (h,L.Empty)
-            | h `L.isPrefixOf` r ->
-                IPartial $ \s' ->
-                let st' = S s' L.empty (addX s' adds) failDepth
-                    k' a = k (appL h a)
-                in unParser (string (L.drop (L.length h) r)) st' k'
-          _ -> IFailed st "string failed to match"
-
+  let (left,rest) = splitf (sb +: lb)
+  in case rest of
+       L.Empty -> IPartial $ \s ->
+                  let s' = S s L.empty (addX s adds) failDepth
+                      k' a = k (appL left a)
+                  in unParser (takeWith splitf) s' k'
+       L.Chunk h t -> k left (S h t adds failDepth)
+    
 takeWhile :: (Word8 -> Bool) -> Parser r L.ByteString
 takeWhile = takeWith . L.span
 
 takeTill :: (Word8 -> Bool) -> Parser r L.ByteString
 takeTill = takeWith . L.break
+
+takeCount :: Int -> Parser r L.ByteString
+takeCount = tc . fromIntegral where
+ tc (!n) = Parser $ \(S sb lb adds failDepth) k ->
+           let (h,t) = L.splitAt n (sb +: lb)
+               l = L.length h
+           in if L.length h == n
+              then k h (mkState t adds failDepth)
+              else IPartial $ \s ->
+                   let st = S s L.empty (addX s adds) failDepth
+                       k' a = k (appL h a)
+                   in unParser (tc (n - l)) st k'
+
+string :: L.ByteString -> Parser r L.ByteString
+string s =
+  Parser $ \st@(S sb lb adds failDepth) k ->
+    case L.splitAt (L.length s) (sb +: lb) of
+      (h,t)
+        | h == s -> k s (mkState t adds failDepth)
+      (h,L.Empty)
+        | h `L.isPrefixOf` s ->
+            IPartial $ \s' ->
+            let st'  = S s' L.empty (addX s' adds) failDepth
+                k' a = k (appL h a)
+                r'   = L.drop (L.length h) s
+            in unParser (string r') st' k'
+      _ -> IFailed st "string failed to match"
+
+satisfy :: (Word8 -> Bool) -> Parser r Word8
+satisfy p =
+  Parser $ \st@(S sb lb adds failDepth) k ->
+    case L.uncons (sb +: lb) of
+      Just (w, lb') | p w -> k w (mkState lb' adds failDepth)
+                    | otherwise -> IFailed st "failed to match"
+      Nothing -> IPartial $ \s ->
+                 let st' = S s L.empty (addX s adds) failDepth
+                 in unParser (satisfy p) st' k
+
+pushBack :: L.ByteString -> Parser r ()
+pushBack bs =
+    Parser $ \(S sb lb adds failDepth) k ->
+        k () (mkState (bs `appL` (sb +: lb)) adds failDepth)
 
 toplevelTranslate :: IResult a -> Result a
 toplevelTranslate (IFailed _ err) = Failed err
@@ -202,3 +242,6 @@ terminalContinuation v s = IDone s v
 parse :: Parser r r -> S.ByteString -> Result r
 parse m input =
   toplevelTranslate $ unParser m (initState input) terminalContinuation
+
+#define PARSER Parser r
+#include "Word8Boilerplate.h"

@@ -6,11 +6,15 @@ category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
+tested-with:     GHC == 6.8.3, GHC == 6.10.1
 synopsis:        Fast combinator parsing with Data.ByteString.Lazy
 description:     Fast combinator parsing with Data.ByteString.Lazy
 cabal-version:   >= 1.2
 build-type:      Simple
 description:     Fast, flexible text-oriented parsing of lazy ByteStrings.
+extra-source-files:
+                 src/Data/ParserCombinators/Attoparsec/Char8Boilerplate.h
+                 src/Data/ParserCombinators/Attoparsec/Word8Boilerplate.h
 
 flag split-base
 flag applicative-in-base
@@ -35,6 +39,7 @@ library
   exposed-modules: Data.ParserCombinators.Attoparsec
                    Data.ParserCombinators.Attoparsec.Char8
                    Data.ParserCombinators.Attoparsec.Incremental
+                   Data.ParserCombinators.Attoparsec.Incremental.Char8
                    Data.ParserCombinators.Attoparsec.FastSet
                    Data.ParserCombinators.Attoparsec.Internal
   hs-source-dirs:  src

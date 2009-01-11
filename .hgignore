@@ -6,3 +6,5 @@ syntax: glob
 *~
 .*.swp
 *.orig
+\#*
+.\#*

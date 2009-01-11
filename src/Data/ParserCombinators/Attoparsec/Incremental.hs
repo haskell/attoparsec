@@ -21,6 +21,7 @@ module Data.ParserCombinators.Attoparsec.Incremental
       Parser
     , Result(..)
     , parse
+    , parseWith
 
     , (<?>)
     , takeWhile
@@ -57,7 +58,7 @@ import Prelude hiding (takeWhile)
 
 data S = S {-# UNPACK #-} !S.ByteString -- ^ first chunk of input
            L.ByteString                 -- ^ rest of input
-           [S.ByteString]               -- ^ input acquired during backtracks
+           [L.ByteString]               -- ^ input acquired during backtracks
            {-# UNPACK #-} !Int          -- ^ failure depth
 
 -- | The result of a partial parse
@@ -66,7 +67,7 @@ data Result a = Failed String
               | Done L.ByteString a
                 -- ^ the parse finished and produced the given list of
                 --   results doing so. Any unparsed data is returned.
-              | Partial (S.ByteString -> Result a)
+              | Partial (L.ByteString -> Result a)
                 -- ^ the parse ran out of data before finishing, but produced
                 --   the given list of results before doing so. To continue the
                 --   parse pass more data to the given continuation
@@ -82,7 +83,7 @@ instance (Show a) => Show (Result a) where
 --   type just before giving it to the outside world.
 data IResult a = IFailed S String
                | IDone S a
-               | IPartial (S.ByteString -> IResult a)
+               | IPartial (L.ByteString -> IResult a)
 
 instance Show (IResult a) where
   show (IFailed _ err) = "IFailed " ++ err
@@ -128,7 +129,7 @@ plus p1 p2 =
     let
       filt f@(IFailed (S _ _ adds' failDepth') _)
         | failDepth' == failDepth + 1 =
-            let lb' = lb `appL` L.fromChunks (reverse adds')
+            let lb' = lb `appL` L.concat (reverse adds')
             in  unParser p2 (S sb lb' (adds' ++ adds) failDepth) k
         | otherwise = f
       filt (IPartial cont) = IPartial (filt . cont)
@@ -150,26 +151,23 @@ p <?> msg =
       IFailed st' _ -> IFailed st' msg
       ok -> ok
 
-initState :: S.ByteString -> S
-initState input = S input L.empty [] 0
+initState :: L.ByteString -> S
+initState (L.Chunk sb lb) = S sb lb [] 0
+initState _               = S S.empty L.empty [] 0
 
-mkState :: L.ByteString -> [S.ByteString] -> Int -> S
+mkState :: L.ByteString -> [L.ByteString] -> Int -> S
 mkState bs adds failDepth =
     case bs of
       L.Empty -> S S.empty L.empty adds failDepth
       L.Chunk sb lb -> S sb lb adds failDepth
 
-toLazy :: S.ByteString -> L.ByteString
-toLazy s | S.null s = L.Empty
-         | otherwise = L.Chunk s L.Empty
-
-addX :: S.ByteString -> [S.ByteString] -> [S.ByteString]
-addX s adds | S.null s = adds
+addX :: L.ByteString -> [L.ByteString] -> [L.ByteString]
+addX s adds | L.null s = adds
             | otherwise = s : adds
 
 yield :: Parser r ()
 yield = Parser $ \(S sb lb adds failDepth) k ->
-  IPartial $ \s -> k () (S sb (lb `appL` toLazy s) (addX s adds) failDepth)
+  IPartial $ \s -> k () (S sb (lb `appL` s) (addX s adds) failDepth)
 
 takeWith :: (L.ByteString -> (L.ByteString, L.ByteString))
          -> Parser r L.ByteString
@@ -178,7 +176,7 @@ takeWith splitf =
   let (left,rest) = splitf (sb +: lb)
   in case rest of
        L.Empty -> IPartial $ \s ->
-                  let s' = S s L.empty (addX s adds) failDepth
+                  let s' = mkState s (addX s adds) failDepth
                       k' a = k (appL left a)
                   in unParser (takeWith splitf) s' k'
        L.Chunk h t -> k left (S h t adds failDepth)
@@ -197,7 +195,7 @@ takeCount = tc . fromIntegral where
            in if L.length h == n
               then k h (mkState t adds failDepth)
               else IPartial $ \s ->
-                   let st = S s L.empty (addX s adds) failDepth
+                   let st = mkState s (addX s adds) failDepth
                        k' a = k (appL h a)
                    in unParser (tc (n - l)) st k'
 
@@ -210,21 +208,28 @@ string s =
       (h,L.Empty)
         | h `L.isPrefixOf` s ->
             IPartial $ \s' ->
-            let st'  = S s' L.empty (addX s' adds) failDepth
+            let st'  = mkState s' (addX s' adds) failDepth
                 k' a = k (appL h a)
                 r'   = L.drop (L.length h) s
             in unParser (string r') st' k'
       _ -> IFailed st "string failed to match"
 
+emptyState = S S.empty L.empty
+
 satisfy :: (Word8 -> Bool) -> Parser r Word8
 satisfy p =
   Parser $ \st@(S sb lb adds failDepth) k ->
-    case L.uncons (sb +: lb) of
-      Just (w, lb') | p w -> k w (mkState lb' adds failDepth)
+    case S.uncons sb of
+      Just (w, sb') | p w -> k w (S sb' lb adds failDepth)
                     | otherwise -> IFailed st "failed to match"
-      Nothing -> IPartial $ \s ->
-                 let st' = S s L.empty (addX s adds) failDepth
-                 in unParser (satisfy p) st' k
+      Nothing -> case L.uncons lb of
+                   Just (w, lb') | p w -> k w (mkState lb' adds failDepth)
+                                 | otherwise -> IFailed st "failed to match"
+                   Nothing -> IPartial $ \s ->
+                              let st' = emptyState adds failDepth
+                              in if L.null s
+                                 then IFailed st "barf"
+                                 else unParser (satisfy p) st' k
 
 pushBack :: L.ByteString -> Parser r ()
 pushBack bs =
@@ -239,9 +244,16 @@ toplevelTranslate (IPartial k) = Partial $ toplevelTranslate . k
 terminalContinuation :: a -> S -> IResult a
 terminalContinuation v s = IDone s v
 
-parse :: Parser r r -> S.ByteString -> Result r
+parse :: Parser r r -> L.ByteString -> Result r
 parse m input =
   toplevelTranslate $ unParser m (initState input) terminalContinuation
+
+parseWith :: Applicative f => f L.ByteString -> Parser r r -> L.ByteString
+          -> f (Result r)
+parseWith refill p s =
+  case parse p s of
+    Partial k -> k <$> refill
+    ok        -> pure ok
 
 #define PARSER Parser r
 #include "Word8Boilerplate.h"

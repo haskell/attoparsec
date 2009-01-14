@@ -28,16 +28,9 @@ module Data.ParserCombinators.Attoparsec
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , many1
-    , manyTill
     , eof
-    , skipMany
-    , skipMany1
-    , count
     , lookAhead
     , peek
-    , sepBy
-    , sepBy1
 
     -- * Things like in @Parsec.Char@
     , satisfy

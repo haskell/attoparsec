@@ -29,16 +29,9 @@ module Data.ParserCombinators.Attoparsec.Char8
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , many1
-    , manyTill
     , eof
-    , skipMany
-    , skipMany1
-    , count
     , lookAhead
     , peek
-    , sepBy
-    , sepBy1
 
     -- * Things like in @Parsec.Char@
     , satisfy
@@ -85,10 +78,10 @@ import Data.ParserCombinators.Attoparsec.FastSet
     (FastSet, memberChar, set)
 import qualified Data.ParserCombinators.Attoparsec.Internal as I
 import Data.ParserCombinators.Attoparsec.Internal
-    (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, manyTill, eof,
-     skipMany, skipMany1, count, lookAhead, peek, sepBy, sepBy1, string,
+    (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, eof,
+     lookAhead, peek, string,
      eitherP, getInput, getConsumed, takeAll, takeCount, notEmpty, match,
-     endOfLine, setInput, many1)
+     endOfLine, setInput)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)
 

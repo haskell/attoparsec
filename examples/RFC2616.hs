@@ -12,9 +12,6 @@ import Prelude hiding (takeWhile)
 
 date = rfc1123Date -- <|> rfc850Date <|> asctimeDate
 
-oneOf :: Alternative f => [f a] -> f a
-oneOf = foldr (<|>) empty
-
 rfc1123Date =
     liftA3 (,,) (wkday <* string ", ") (date <* char ' ') (time <* string " GMT") <?> "RFC1123 date"
   where wkday = oneWord "Mon Tue Wed Thu Fri Sat Sun"

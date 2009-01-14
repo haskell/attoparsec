@@ -26,13 +26,6 @@ module Data.ParserCombinators.Attoparsec.Incremental.Char8
     , (<?>)
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
-    , many1
-    , manyTill
-    , skipMany
-    , skipMany1
-    , count
-    , sepBy
-    , sepBy1
     , pushBack
 
     -- * Things like in @Parsec.Char@
@@ -69,9 +62,8 @@ import Data.ParserCombinators.Attoparsec.FastSet
     (FastSet, memberChar, set)
 import qualified Data.ParserCombinators.Attoparsec.Incremental as I
 import Data.ParserCombinators.Attoparsec.Incremental
-    (Parser, Result(..), (<?>), parse, manyTill, pushBack,
-     skipMany, skipMany1, count, sepBy, sepBy1, string,
-     takeCount, many1)
+    (Parser, Result(..), (<?>), parse, pushBack,
+     string, takeCount)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)
 

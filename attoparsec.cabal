@@ -38,6 +38,7 @@ library
   extensions:      CPP
   exposed-modules: Data.ParserCombinators.Attoparsec
                    Data.ParserCombinators.Attoparsec.Char8
+                   Data.ParserCombinators.Attoparsec.Combinator
                    Data.ParserCombinators.Attoparsec.Incremental
                    Data.ParserCombinators.Attoparsec.Incremental.Char8
                    Data.ParserCombinators.Attoparsec.FastSet

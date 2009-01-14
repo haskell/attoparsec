@@ -2,7 +2,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.ParserCombinators.Attoparsec.FastSet
+-- Module      :  Data.Attoparsec.FastSet
 -- Copyright   :  Bryan O'Sullivan 2008
 -- License     :  BSD3
 -- 
@@ -16,7 +16,7 @@
 -- For larger sets, we use a lookup table.
 -- 
 -----------------------------------------------------------------------------
-module Data.ParserCombinators.Attoparsec.FastSet
+module Data.Attoparsec.FastSet
     (
     -- * Data type
       FastSet

@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.ParserCombinators.Attoparsec
+-- Module      :  Data.Attoparsec
 -- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2008
 -- License     :  BSD3
 -- 
@@ -12,7 +12,7 @@
 -- strings, loosely based on 'Text.ParserCombinators.Parsec'.
 -- 
 -----------------------------------------------------------------------------
-module Data.ParserCombinators.Attoparsec
+module Data.Attoparsec
     (
     -- * Parser
       ParseError
@@ -55,5 +55,5 @@ module Data.ParserCombinators.Attoparsec
     , match
     ) where
 
-import Data.ParserCombinators.Attoparsec.Internal
+import Data.Attoparsec.Internal
 import Prelude hiding (takeWhile)

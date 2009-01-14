@@ -13,8 +13,8 @@ cabal-version:   >= 1.2
 build-type:      Simple
 description:     Fast, flexible text-oriented parsing of lazy ByteStrings.
 extra-source-files:
-                 src/Data/ParserCombinators/Attoparsec/Char8Boilerplate.h
-                 src/Data/ParserCombinators/Attoparsec/Word8Boilerplate.h
+                 Data/Attoparsec/Char8Boilerplate.h
+                 Data/Attoparsec/Word8Boilerplate.h
 
 flag split-base
 flag applicative-in-base
@@ -36,13 +36,12 @@ library
   build-depends: bytestring-lexing >= 0.2
 
   extensions:      CPP
-  exposed-modules: Data.ParserCombinators.Attoparsec
-                   Data.ParserCombinators.Attoparsec.Char8
-                   Data.ParserCombinators.Attoparsec.Combinator
-                   Data.ParserCombinators.Attoparsec.Incremental
-                   Data.ParserCombinators.Attoparsec.Incremental.Char8
-                   Data.ParserCombinators.Attoparsec.FastSet
-                   Data.ParserCombinators.Attoparsec.Internal
-  hs-source-dirs:  src
+  exposed-modules: Data.Attoparsec
+                   Data.Attoparsec.Char8
+                   Data.Attoparsec.Combinator
+                   Data.Attoparsec.Incremental
+                   Data.Attoparsec.Incremental.Char8
+                   Data.Attoparsec.FastSet
+                   Data.Attoparsec.Internal
   ghc-options:     -O2 -Wall -funbox-strict-fields
                    -fliberate-case-threshold=1000

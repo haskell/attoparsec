@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.ParserCombinators.Attoparsec.Incremental
+-- Module      :  Data.Attoparsec.Incremental
 -- Copyright   :  Bryan O'Sullivan 2009
 -- License     :  BSD3
 -- 
@@ -16,7 +16,7 @@
 -- parser in his binary-strict package.
 -- 
 -----------------------------------------------------------------------------
-module Data.ParserCombinators.Attoparsec.Incremental
+module Data.Attoparsec.Incremental
     (
       Parser
     , Result(..)
@@ -43,7 +43,7 @@ module Data.ParserCombinators.Attoparsec.Incremental
 
 import Control.Applicative
 import Control.Monad (MonadPlus(..), ap)
-import Data.ParserCombinators.Attoparsec.Internal ((+:))
+import Data.Attoparsec.Internal ((+:))
 import Data.Word (Word8)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as L

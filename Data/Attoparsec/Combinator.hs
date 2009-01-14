@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.ParserCombinators.Attoparsec.Combinator
+-- Module      :  Data.Attoparsec.Combinator
 -- Copyright   :  Bryan O'Sullivan 2009
 -- License     :  BSD3
 -- 
@@ -12,7 +12,7 @@
 -- Useful parser combinators, similar to Parsec.
 -- 
 -----------------------------------------------------------------------------
-module Data.ParserCombinators.Attoparsec.Combinator
+module Data.Attoparsec.Combinator
     (
       choice
     , count

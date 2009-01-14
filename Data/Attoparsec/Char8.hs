@@ -29,7 +29,7 @@ module Data.Attoparsec.Char8
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , eof
+    , endOfInput
     , lookAhead
     , peek
 
@@ -67,9 +67,10 @@ module Data.Attoparsec.Char8
     , inClass
     , notInClass
     , endOfLine
+
+    , module Data.Attoparsec.Combinator
     ) where
 
-import Control.Applicative ((<$>))
 import qualified Data.ByteString.Char8 as SB
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Internal (w2c)
@@ -77,8 +78,9 @@ import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Attoparsec.FastSet
     (FastSet, memberChar, set)
 import qualified Data.Attoparsec.Internal as I
+import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal
-    (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, eof,
+    (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, endOfInput,
      lookAhead, peek, string,
      eitherP, getInput, getConsumed, takeAll, takeCount, notEmpty, match,
      endOfLine, setInput)

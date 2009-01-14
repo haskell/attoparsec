@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.Incremental.Char8
--- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2008
+-- Copyright   :  Bryan O'Sullivan 2009
 -- License     :  BSD3
 -- 
 -- Maintainer  :  bos@serpentine.com
@@ -51,9 +51,10 @@ module Data.Attoparsec.Incremental.Char8
     , skipSpace
     , inClass
     , notInClass
+
+    , module Data.Attoparsec.Combinator
     ) where
 
-import Control.Applicative ((<$>))
 import qualified Data.ByteString.Char8 as SB
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Internal (w2c)
@@ -66,6 +67,7 @@ import Data.Attoparsec.Incremental
      string, takeCount)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)
+import Data.Attoparsec.Combinator
 
 numeric :: String -> (Char -> Bool)
          -> (LB.ByteString -> Maybe (a,LB.ByteString)) -> Parser r a

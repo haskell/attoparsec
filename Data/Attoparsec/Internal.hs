@@ -29,7 +29,7 @@ module Data.Attoparsec.Internal
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , eof
+    , endOfInput
     , lookAhead
     , peek
 
@@ -221,10 +221,10 @@ try p = Parser $ \s@(S sb lb _) ->
           ok -> ok
 
 -- | Detect 'end of file'.
-eof :: Parser ()
-eof = Parser $ \s@(S sb lb _) -> if SB.null sb && LB.null lb
-                                 then Right ((), s)
-                                 else Left (sb +: lb, ["EOF"])
+endOfInput :: Parser ()
+endOfInput = Parser $ \s@(S sb lb _) -> if SB.null sb && LB.null lb
+                                        then Right ((), s)
+                                        else Left (sb +: lb, ["EOF"])
 
 takeAll :: Parser LB.ByteString
 takeAll = Parser $ \(S sb lb n) ->

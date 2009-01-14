@@ -25,11 +25,13 @@ module Data.Attoparsec.Incremental
     , parseTest
 
     , (<?>)
+    , try
     , takeWhile
     , takeTill
     , takeCount
     , string
     , satisfy
+    , endOfInput
     , pushBack
 
     , word8
@@ -39,9 +41,11 @@ module Data.Attoparsec.Incremental
     , skipWhile
 
     , yield
+
+    , module Data.Attoparsec.Combinator
     ) where
 
-import Control.Applicative
+import Data.Attoparsec.Combinator
 import Control.Monad (MonadPlus(..), ap)
 import Data.Attoparsec.Internal ((+:))
 import Data.Word (Word8)
@@ -132,6 +136,9 @@ plus p1 p2 =
       filt v@(IDone _ _) = v
     in
       filt $ unParser p1 (S sb lb [] eof (failDepth + 1)) (cutContinuation k)
+
+try :: Parser r a -> Parser r a
+try p = p
 
 instance Functor (Parser r) where
     fmap f m = Parser $ \s cont -> unParser m s (cont . f)
@@ -233,6 +240,12 @@ pushBack :: L.ByteString -> Parser r ()
 pushBack bs =
     Parser $ \(S sb lb adds eof failDepth) k ->
         k () (mkState (bs `appL` (sb +: lb)) adds eof failDepth)
+
+endOfInput :: Parser r ()
+endOfInput = Parser $ \st@(S sb lb _adds _eof _failDepth) k ->
+             if not (S.null sb) || not (L.null lb)
+             then IFailed st "endOfInput: not EOF"
+             else continue (k ()) endOfInput k st
 
 toplevelTranslate :: IResult a -> Result a
 toplevelTranslate (IFailed _ err) = Failed err

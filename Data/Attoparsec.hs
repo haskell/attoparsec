@@ -28,7 +28,7 @@ module Data.Attoparsec
 
     -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , eof
+    , endOfInput
     , lookAhead
     , peek
 
@@ -53,7 +53,10 @@ module Data.Attoparsec
     , skipWhile
     , notEmpty
     , match
+
+    , module Data.Attoparsec.Combinator
     ) where
 
+import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal
 import Prelude hiding (takeWhile)

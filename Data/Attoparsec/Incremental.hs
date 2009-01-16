@@ -18,6 +18,9 @@
 -----------------------------------------------------------------------------
 module Data.Attoparsec.Incremental
     (
+    -- * Incremental parsing
+    -- $incremental
+
     -- * Parser types
       Parser
     , Result(..)
@@ -61,6 +64,18 @@ import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Internal as L
 import Prelude hiding (takeWhile)
+
+-- $incremental
+-- Incremental parsing makes it possible to supply a parser with only
+-- a limited amount of input.  If the parser cannot complete due to
+-- lack of data, it will return a 'Partial' result with a continuation
+-- to which more input can be supplied, as follows:
+--
+-- >   case parse myParser someInput of
+-- >     Partial k -> k moreInput
+--
+-- To signal that no more input is available, pass an empty
+-- string to this continuation.
 
 data S = S {-# UNPACK #-} !S.ByteString -- first chunk of input
            L.ByteString                 -- rest of input

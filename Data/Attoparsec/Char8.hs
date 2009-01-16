@@ -79,12 +79,10 @@ module Data.Attoparsec.Char8
     , module Data.Attoparsec.Combinator
     ) where
 
-import qualified Data.ByteString.Char8 as SB
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Internal (w2c)
 import Data.Char (isDigit, isLetter, isSpace, toLower)
-import Data.Attoparsec.FastSet
-    (FastSet, charClass, memberChar, set)
+import Data.Attoparsec.FastSet (charClass, memberChar)
 import qualified Data.Attoparsec.Internal as I
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal

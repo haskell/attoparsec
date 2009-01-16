@@ -8,3 +8,5 @@ syntax: glob
 *.orig
 \#*
 .\#*
+tests/*.out
+*.exe

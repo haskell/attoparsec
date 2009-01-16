@@ -28,6 +28,8 @@ module Data.Attoparsec.FastSet
     , memberWord8
     -- * Debugging
     , fromSet
+    -- * Handy interface
+    , charClass
     ) where
 
 import Data.Bits ((.&.), (.|.), shiftL, shiftR)
@@ -94,3 +96,9 @@ mkTable s = I.unsafeCreate 32 $ \t -> do
                     pokeByteOff t byte (prev .|. bit)
                     loop (n + 1)
               in loop 0
+
+charClass :: String -> FastSet
+charClass = set . B8.pack . go
+    where go (a:'-':b:xs) = [a..b] ++ go xs
+          go (x:xs) = x : go xs
+          go _ = ""

@@ -8,13 +8,13 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for lazy 'LB.ByteString'
+-- Simple, efficient parser combinators for lazy 'ByteString'
 -- strings, loosely based on 'Text.ParserCombinators.Parsec'.
 -- 
 -----------------------------------------------------------------------------
 module Data.Attoparsec
     (
-    -- * Parser
+    -- * Parser types
       ParseError
     , Parser
 
@@ -25,36 +25,33 @@ module Data.Attoparsec
 
     -- * Combinators
     , (<?>)
-
-    -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , endOfInput
-    , lookAhead
-    , peek
+    , module Data.Attoparsec.Combinator
 
-    -- * Things like in @Parsec.Char@
-    , satisfy
+    -- * Parsing individual bytes
     , anyWord8
-    , word8
     , notWord8
+    , word8
+    , satisfy
+
+    -- * Efficient string handling
     , string
+    , skipWhile
     , stringTransform
-
-    -- * Parser converters.
-    , eitherP
-
-    -- * Miscellaneous functions.
-    , getInput
-    , getConsumed
+    , takeAll
+    , takeTill
     , takeWhile
     , takeWhile1
-    , takeTill
-    , takeAll
-    , skipWhile
-    , notEmpty
-    , match
 
-    , module Data.Attoparsec.Combinator
+    -- ** Combinators
+    , match
+    , notEmpty
+
+    -- * State observation functions
+    , endOfInput
+    , getConsumed
+    , getInput
+    , lookAhead
     ) where
 
 import Data.Attoparsec.Combinator

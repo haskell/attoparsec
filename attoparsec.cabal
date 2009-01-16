@@ -42,6 +42,6 @@ library
                    Data.Attoparsec.Incremental
                    Data.Attoparsec.Incremental.Char8
                    Data.Attoparsec.FastSet
-                   Data.Attoparsec.Internal
+  other-modules:   Data.Attoparsec.Internal
   ghc-options:     -O2 -Wall -funbox-strict-fields
                    -fliberate-case-threshold=1000

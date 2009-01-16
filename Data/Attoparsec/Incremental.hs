@@ -9,39 +9,47 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for lazy 'LB.ByteString'
--- strings, loosely based on 'Text.ParserCombinators.Parsec'.
+-- Simple, efficient, and incremental parser combinators for lazy
+-- 'L.ByteString' strings, loosely based on the Parsec library.
 --
 -- This module is heavily influenced by Adam Langley's incremental
--- parser in his binary-strict package.
+-- parser in his @binary-strict@ package.
 -- 
 -----------------------------------------------------------------------------
 module Data.Attoparsec.Incremental
     (
+    -- * Parser types
       Parser
     , Result(..)
+
+    -- * Running parsers
     , parse
     , parseWith
     , parseTest
 
+    -- * Combinators
     , (<?>)
     , try
-    , takeWhile
-    , takeTill
-    , takeCount
-    , string
-    , satisfy
-    , endOfInput
-    , pushBack
 
+    -- * Parsing individual bytes
     , word8
     , notWord8
     , anyWord8
+    , satisfy
 
+    -- * Efficient string handling
+    , string
     , skipWhile
+    , takeCount
+    , takeTill
+    , takeWhile
 
+    -- * State observation and manipulation functions
+    , endOfInput
+    , pushBack
     , yield
 
+    -- * Combinators
     , module Data.Attoparsec.Combinator
     ) where
 
@@ -54,22 +62,23 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Internal as L
 import Prelude hiding (takeWhile)
 
-data S = S {-# UNPACK #-} !S.ByteString -- ^ first chunk of input
-           L.ByteString                 -- ^ rest of input
-           [L.ByteString]               -- ^ input acquired during backtracks
-           !Bool                        -- ^ have we hit EOF yet?
-           {-# UNPACK #-} !Int          -- ^ failure depth
+data S = S {-# UNPACK #-} !S.ByteString -- first chunk of input
+           L.ByteString                 -- rest of input
+           [L.ByteString]               -- input acquired during backtracks
+           !Bool                        -- have we hit EOF yet?
+           {-# UNPACK #-} !Int          -- failure depth
 
--- | The result of a partial parse
+-- | The result of a partial parse.
 data Result a = Failed String
-                -- ^ the parse failed with the given error message
+                -- ^ The parse failed, with the given error message.
               | Done L.ByteString a
-                -- ^ the parse finished and produced the given list of
-                --   results doing so. Any unparsed data is returned.
+                -- ^ The parse succeeded, producing the given
+                -- result. The 'L.ByteString' contains any unconsumed
+                -- input.
               | Partial (L.ByteString -> Result a)
-                -- ^ the parse ran out of data before finishing, but produced
-                --   the given list of results before doing so. To continue the
-                --   parse pass more data to the given continuation
+                -- ^ The parse ran out of data before finishing. To
+                -- resume the parse, pass more data to the given
+                -- continuation.
 
 instance (Show a) => Show (Result a) where
   show (Failed err)      = "Failed " ++ show err
@@ -77,10 +86,10 @@ instance (Show a) => Show (Result a) where
   show (Done rest rs)    = "Done (" ++ show rest ++ ") " ++ show rs
   show (Partial _)       = "Partial"
 
--- | This is the internal version of the above. This is the type which is
---   actually used by the code, as it has the extra information needed
---   for backtracking. This is converted to an external friendly @Result@
---   type just before giving it to the outside world.
+-- | This is the internal version of the above. This is the type which
+-- is actually used by the code, as it has the extra information
+-- needed for backtracking. This is converted to a friendly 'Result'
+-- type just before giving it to the outside world.
 data IResult a = IFailed S String
                | IDone S a
                | IPartial (L.ByteString -> IResult a)
@@ -90,6 +99,7 @@ instance Show (IResult a) where
   show (IDone _ _)     = "IDone"
   show (IPartial _)    = "IPartial"
 
+-- | The parser type.
 newtype Parser r a = Parser {
       unParser :: S -> (a -> S -> IResult r) -> IResult r
     }
@@ -137,6 +147,7 @@ plus p1 p2 =
     in
       filt $ unParser p1 (S sb lb [] eof (failDepth + 1)) (cutContinuation k)
 
+-- | This is a no-op combinator for compatibility.
 try :: Parser r a -> Parser r a
 try p = p
 
@@ -145,8 +156,10 @@ instance Functor (Parser r) where
 
 infix 0 <?>
 
--- | Name the parser.
-(<?>) :: Parser r a -> String -> Parser r a
+-- | Name the parser, in case failure occurs.
+(<?>) :: Parser r a
+      -> String                 -- ^ the name to use if parsing fails
+      -> Parser r a
 {-# INLINE (<?>) #-}
 p <?> msg =
   Parser $ \st k ->
@@ -168,6 +181,8 @@ addX :: L.ByteString -> [L.ByteString] -> [L.ByteString]
 addX s adds | L.null s = adds
             | otherwise = s : adds
 
+-- | Resume our caller, handing back a 'Partial' result. This function
+-- is probably not useful, but provided for completeness.
 yield :: Parser r ()
 yield = Parser $ \(S sb lb adds eof failDepth) k ->
   IPartial $ \s -> k () (S sb (lb `appL` s) (addX s adds) eof failDepth)
@@ -189,12 +204,17 @@ takeWith splitf =
      then continue (k left) (takeWith splitf) (k . appL left) st
      else k left (mkState rest adds eof failDepth)
     
+-- | Consume bytes while the predicate succeeds.
 takeWhile :: (Word8 -> Bool) -> Parser r L.ByteString
 takeWhile = takeWith . L.span
 
+-- | Consume bytes while the predicate fails.  If the predicate never
+-- succeeds, the entire input string is returned.
 takeTill :: (Word8 -> Bool) -> Parser r L.ByteString
 takeTill = takeWith . L.break
 
+-- | Return exactly the given number of bytes.  If not enough are
+-- available, fail.
 takeCount :: Int -> Parser r L.ByteString
 takeCount = tc . fromIntegral where
  tc n = Parser $ \st@(S sb lb adds eof failDepth) k ->
@@ -205,6 +225,7 @@ takeCount = tc . fromIntegral where
            else continue (`IFailed` "takeCount: EOF")
                          (tc (n - l)) (k . appL h) st
 
+-- | Match a literal string exactly.
 string :: L.ByteString -> Parser r L.ByteString
 string s =
   Parser $ \st@(S sb lb adds eof failDepth) k ->
@@ -224,6 +245,7 @@ contState s adds failDepth
     | L.null s  = S S.empty L.empty [] True failDepth
     | otherwise = mkState s (addX s adds) False failDepth
 
+-- | Match a single byte based on the given predicate.
 satisfy :: (Word8 -> Bool) -> Parser r Word8
 satisfy p =
   Parser $ \st@(S sb lb adds eof failDepth) k ->
@@ -236,11 +258,13 @@ satisfy p =
                    Nothing -> continue (`IFailed` "satisfy: EOF")
                                        (satisfy p) k st
 
+-- | Force the given string to appear next in the input stream.
 pushBack :: L.ByteString -> Parser r ()
 pushBack bs =
     Parser $ \(S sb lb adds eof failDepth) k ->
         k () (mkState (bs `appL` (sb +: lb)) adds eof failDepth)
 
+-- | Succeed if we have reached the end of the input string.
 endOfInput :: Parser r ()
 endOfInput = Parser $ \st@(S sb lb _adds _eof _failDepth) k ->
              if not (S.null sb) || not (L.null lb)
@@ -255,17 +279,33 @@ toplevelTranslate (IPartial k) = Partial $ toplevelTranslate . k
 terminalContinuation :: a -> S -> IResult a
 terminalContinuation v s = IDone s v
 
+-- | Run a parser.
 parse :: Parser r r -> L.ByteString -> Result r
 parse m input =
   toplevelTranslate $ unParser m (initState input) terminalContinuation
 
-parseWith :: Applicative f => f L.ByteString -> Parser r r -> L.ByteString
+-- | Run a parser, using the given function to resupply it with input.
+--
+-- Here's an example that shows how to parse data from a socket, using
+-- Johan Tibbell's @network-bytestring@ package.
+--
+-- >  import qualified Data.ByteString.Lazy as L
+-- >  import Data.Attoparsec.Incremental (Parser, Result, parseWith)
+-- >  import Network.Socket.ByteString.Lazy (recv_)
+-- >  import Network.Socket (Socket)
+-- >
+-- >  netParse :: Parser r r -> Socket -> IO (Result r)
+-- >  netParse p sock = parseWith (recv_ sock 65536) p L.empty
+parseWith :: Applicative f => f L.ByteString -- ^ resupply parser with input
+          -> Parser r r                      -- ^ parser to run
+          -> L.ByteString                    -- ^ initial input
           -> f (Result r)
 parseWith refill p s =
   case parse p s of
     Partial k -> k <$> refill
     ok        -> pure ok
 
+-- | Try out a parser, and print its result.
 parseTest :: (Show r) => Parser r r -> L.ByteString -> IO ()
 parseTest p s = print (parse p s)
 

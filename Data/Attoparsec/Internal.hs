@@ -15,7 +15,7 @@
 -----------------------------------------------------------------------------
 module Data.Attoparsec.Internal
     (
-    -- * Parser
+    -- * Parser types
       ParseError
     , Parser
 
@@ -26,43 +26,40 @@ module Data.Attoparsec.Internal
 
     -- * Combinators
     , (<?>)
-
-    -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , endOfInput
-    , lookAhead
-    , peek
 
-    -- * Things like in @Parsec.Char@
+    -- * Parsing individual bytes
     , satisfy
     , anyWord8
     , word8
     , notWord8
+
+    -- * Efficient string handling
+    , match
+    , notEmpty
+    , skipWhile
     , string
     , stringTransform
-
-    -- * Parser converters.
-    , eitherP
-
-    -- * Miscellaneous functions.
-    , getInput
-    , getConsumed
-    , setInput
-    , takeWhile
-    , takeWhile1
-    , takeTill
     , takeAll
     , takeCount
-    , skipWhile
-    , notEmpty
-    , match
-    , endOfLine
+    , takeTill
+    , takeWhile
+    , takeWhile1
 
-    -- * Utilities.
+    -- * State observation functions
+    , endOfInput
+    , getConsumed
+    , getInput
+    , lookAhead
+    , setInput
+
+    -- * Utilities
+    , endOfLine
     , (+:)
     ) where
 
 import Control.Applicative
+    (Alternative(..), Applicative(..), (*>))
 import Control.Monad (MonadPlus(..), ap)
 import Control.Monad.Fix (MonadFix(..))
 import qualified Data.ByteString as SB
@@ -75,6 +72,7 @@ import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 
+-- ^ A description of a parsing error.
 type ParseError = String
 
 -- State invariants:
@@ -84,6 +82,7 @@ data S = S {-# UNPACK #-} !SB.ByteString
            LB.ByteString
            {-# UNPACK #-} !Int64
 
+-- ^ A parser that produces a result of type @a@.
 newtype Parser a = Parser {
       unParser :: S -> Either (LB.ByteString, [String]) (a, S)
     }
@@ -138,8 +137,10 @@ sb +: lb | SB.null sb = lb
 
 infix 0 <?>
 
--- | Name the parser.
-(<?>) :: Parser a -> String -> Parser a
+-- | Name the parser, in case failure occurs.
+(<?>) :: Parser a
+      -> String                 -- ^ the name to use if parsing fails
+      -> Parser a
 p <?> msg =
     Parser $ \s@(S sb lb _) ->
         case unParser p s of
@@ -165,7 +166,7 @@ setInput bs = Parser $ \(S _ _ n) -> Right ((), mkState bs n)
 getConsumed :: Parser Int64
 getConsumed = Parser $ \s@(S _ _ n) -> Right (n, s)
 
--- | Character parser.
+-- | Match a single byte based on the given predicate.
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p =
     Parser $ \s@(S sb lb n) ->
@@ -175,7 +176,7 @@ satisfy p =
              Nothing -> unParser (nextChunk >> satisfy p) s
 {-# INLINE satisfy #-}
 
--- | Satisfy a literal string.
+-- | Match a literal string exactly.
 string :: LB.ByteString -> Parser LB.ByteString
 string s = Parser $ \(S sb lb n) ->
            let bs = sb +: lb
@@ -186,6 +187,8 @@ string s = Parser $ \(S sb lb n) ->
               else Left (bs, [])
 {-# INLINE string #-}
 
+-- | Match the end of a line.  This may be any of a newline character,
+-- a carriage return character, or a carriage return followed by a newline.
 endOfLine :: Parser ()
 endOfLine = Parser $ \(S sb lb n) ->
             let bs = sb +: lb
@@ -200,8 +203,9 @@ endOfLine = Parser $ \(S sb lb n) ->
                                 else Right ((), mkState (LB.tail bs) (n + 1))
                      _ -> Left (bs, ["EOL"])
 
--- | Satisfy a literal string, after applying a transformation to both
--- it and the matching text.
+-- | Match a literal string, after applying a transformation to both
+-- it and the matching text.  Useful for e.g. case insensitive string
+-- comparison.
 stringTransform :: (LB.ByteString -> LB.ByteString) -> LB.ByteString
                 -> Parser LB.ByteString
 stringTransform f s = Parser $ \(S sb lb n) ->
@@ -214,23 +218,27 @@ stringTransform f s = Parser $ \(S sb lb n) ->
     where fs = f s
 {-# INLINE stringTransform #-}
 
+-- | Attempt a parse, but do not consume any input if the parse fails.
 try :: Parser a -> Parser a
 try p = Parser $ \s@(S sb lb _) ->
         case unParser p s of
           Left (_, msgs) -> Left (sb +: lb, msgs)
           ok -> ok
 
--- | Detect 'end of file'.
+-- | Succeed if we have reached the end of the input string.
 endOfInput :: Parser ()
 endOfInput = Parser $ \s@(S sb lb _) -> if SB.null sb && LB.null lb
                                         then Right ((), s)
                                         else Left (sb +: lb, ["EOF"])
 
+-- | Return all of the remaining input as a single string.
 takeAll :: Parser LB.ByteString
 takeAll = Parser $ \(S sb lb n) ->
           let bs = sb +: lb
           in Right (bs, mkState LB.empty (n + LB.length bs))
 
+-- | Return exactly the given number of bytes.  If not enough are
+-- available, fail.
 takeCount :: Int -> Parser LB.ByteString
 takeCount k =
   Parser $ \(S sb lb n) ->
@@ -241,7 +249,7 @@ takeCount k =
          then Right (h, mkState t (n + k'))
          else Left (bs, [show k ++ " bytes"])
 
--- | Consume characters while the predicate is true.
+-- | Consume bytes while the predicate succeeds.
 takeWhile :: (Word8 -> Bool) -> Parser LB.ByteString
 takeWhile p =
     Parser $ \(S sb lb n) ->
@@ -249,14 +257,17 @@ takeWhile p =
     in Right (h, mkState t (n + LB.length h))
 {-# INLINE takeWhile #-}
 
+-- | Consume bytes while the predicate fails.  If the predicate never
+-- succeeds, the entire input string is returned.
 takeTill :: (Word8 -> Bool) -> Parser LB.ByteString
 takeTill p =
   Parser $ \(S sb lb n) ->
-  case LB.break p (sb +: lb) of
-    (h,t) | LB.null t -> Left (h, [])
-          | otherwise -> Right (h, mkState t (n + LB.length h))
+  let (h,t) = LB.break p (sb +: lb)
+  in Right (h, mkState t (n + LB.length h))
 {-# INLINE takeTill #-}
 
+-- | Consume bytes while the predicate is true.  Fails if the
+-- predicate fails on the first byte.
 takeWhile1 :: (Word8 -> Bool) -> Parser LB.ByteString
 takeWhile1 p =
     Parser $ \(S sb lb n) ->
@@ -265,7 +276,7 @@ takeWhile1 p =
             | otherwise -> Right (h, mkState t (n + LB.length h))
 {-# INLINE takeWhile1 #-}
 
--- | Test that a parser returned a non-null ByteString.
+-- | Test that a parser returned a non-null 'LB.ByteString'.
 notEmpty :: Parser LB.ByteString -> Parser LB.ByteString 
 notEmpty p = Parser $ \s ->
              case unParser p s of
@@ -275,8 +286,8 @@ notEmpty p = Parser $ \s ->
                    else o
                x -> x
 
--- | Parse some input with the given parser and return that input
--- without copying it.
+-- | Parse some input with the given parser, and return the input it
+-- consumed as a string.
 match :: Parser a -> Parser LB.ByteString
 match p = do bs <- getInput
              start <- getConsumed
@@ -284,23 +295,18 @@ match p = do bs <- getInput
              end <- getConsumed
              return (LB.take (end - start) bs)
 
-eitherP :: Parser a -> Parser b -> Parser (Either a b)
-eitherP a b = (Left <$> a) <|> (Right <$> b)
-{-# INLINE eitherP #-}
-
-peek :: Parser a -> Parser (Maybe a)
-peek p = Parser $ \s ->
-         case unParser p s of
-           Right (m, _) -> Right (Just m, s)
-           _ -> Right (Nothing, s)
-
+-- | Apply a parser without consuming any input.
 lookAhead :: Parser a -> Parser a
 lookAhead p = Parser $ \s ->
          case unParser p s of
            Right (m, _) -> Right (m, s)
-           Left (e, bs) -> Left (e, bs)
+           err -> err
 
-parseAt :: Parser a -> LB.ByteString -> Int64
+-- | Run a parser. The 'Int64' value is used as a base to count the
+-- number of bytes consumed.
+parseAt :: Parser a             -- ^ parser to run
+        -> LB.ByteString        -- ^ input to parse
+        -> Int64                -- ^ offset to count input from
         -> (LB.ByteString, Either ParseError (a, Int64))
 parseAt p bs n = 
     case unParser p (mkState bs n) of
@@ -313,12 +319,14 @@ parseAt p bs n =
       showError msgs = "Parser error, expected one of:\n" ++ unlines msgs
 
 -- | Run a parser.
-parse :: Parser a -> LB.ByteString
+parse :: Parser a               -- ^ parser to run
+      -> LB.ByteString          -- ^ input to parse
       -> (LB.ByteString, Either ParseError a)
 parse p bs = case parseAt p bs 0 of
                (bs', Right (a, _)) -> (bs', Right a)
                (bs', Left err) -> (bs', Left err)
 
+-- | Try out a parser, and print its result.
 parseTest :: (Show a) => Parser a -> LB.ByteString -> IO ()
 parseTest p s =
     case parse p s of

@@ -2,20 +2,25 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.Char8
--- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2008
+-- Copyright   :  Daan Leijen 1999-2001, Jeremy Shaw 2006, Bryan O'Sullivan 2007-2009
 -- License     :  BSD3
 -- 
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for lazy 'LB.ByteString'
--- strings, loosely based on 'Text.ParserCombinators.Parsec'.
+-- Simple, efficient, character-oriented parser combinators for lazy
+-- 'LB.ByteString' strings, loosely based on the Parsec library.
 -- 
+-- /Note/: This module is intended for parsing text that is
+-- represented using an 8-bit character set, e.g. ASCII or
+-- ISO-8859-15.  It /does not/ deal with character encodings,
+-- multibyte characters, or wide characters.  Any attempts to use
+-- characters above code point 255 will give wrong answers.
 -----------------------------------------------------------------------------
 module Data.Attoparsec.Char8
     (
-    -- * Parser
+    -- * Parser types
       ParseError
     , Parser
 
@@ -26,48 +31,51 @@ module Data.Attoparsec.Char8
 
     -- * Combinators
     , (<?>)
-
-    -- * Things vaguely like those in @Parsec.Combinator@ (and @Parsec.Prim@)
     , try
-    , endOfInput
-    , lookAhead
-    , peek
 
-    -- * Things like in @Parsec.Char@
-    , satisfy
-    , letter
-    , digit
+    -- * Parsing individual characters
     , anyChar
-    , space
     , char
+    , digit
+    , letter
     , notChar
+    , space
+    , satisfy
+
+    -- ** Character classes
+    , inClass
+    , notInClass
+
+    -- * Efficient string handling
     , string
     , stringCI
+    , skipSpace
+    , skipWhile
+    , takeAll
+    , takeCount
+    , takeTill
+    , takeWhile
+    , takeWhile1
 
-    -- * Parser converters.
-    , eitherP
+    -- ** Combinators
+    , match
+    , notEmpty
 
-    -- * Numeric parsers.
+    -- * Text parsing
+    , endOfLine
+
+    -- * Numeric parsers
     , int
     , integer
     , double
 
-    -- * Miscellaneous functions.
-    , getInput
+    -- * State observation functions
+    , endOfInput
     , getConsumed
-    , takeWhile
-    , takeWhile1
-    , takeTill
-    , takeAll
-    , takeCount
-    , skipWhile
-    , skipSpace
-    , notEmpty
-    , match
-    , inClass
-    , notInClass
-    , endOfLine
+    , getInput
+    , lookAhead
 
+    -- * Combinators
     , module Data.Attoparsec.Combinator
     ) where
 
@@ -76,13 +84,13 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Internal (w2c)
 import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Attoparsec.FastSet
-    (FastSet, memberChar, set)
+    (FastSet, charClass, memberChar, set)
 import qualified Data.Attoparsec.Internal as I
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal
     (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, endOfInput,
-     lookAhead, peek, string,
-     eitherP, getInput, getConsumed, takeAll, takeCount, notEmpty, match,
+     lookAhead, string,
+     getInput, getConsumed, takeAll, takeCount, notEmpty, match,
      endOfLine, setInput)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)

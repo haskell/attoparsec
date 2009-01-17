@@ -39,6 +39,7 @@ module Data.Attoparsec
     , skipWhile
     , stringTransform
     , takeAll
+    , takeCount
     , takeTill
     , takeWhile
     , takeWhile1

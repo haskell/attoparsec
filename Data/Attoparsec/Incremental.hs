@@ -93,7 +93,8 @@ data Result a = Failed String
               | Partial (L.ByteString -> Result a)
                 -- ^ The parse ran out of data before finishing. To
                 -- resume the parse, pass more data to the given
-                -- continuation.
+                -- continuation.  To indicate that no more input is
+                -- available, pass the empty string.
 
 instance (Show a) => Show (Result a) where
   show (Failed err)      = "Failed " ++ show err
@@ -140,7 +141,8 @@ zero = fail ""
 cutContinuation :: (a -> S -> IResult r) -> a -> S -> IResult r
 cutContinuation k v s =
   case k v s of
-       IFailed (S lb i adds eof failDepth) err -> IFailed (S lb i adds eof (failDepth - 1)) err
+       IFailed (S sb lb adds eof failDepth) err ->
+           IFailed (S sb lb adds eof (failDepth - 1)) err
        x -> x
 
 appL :: L.ByteString -> L.ByteString -> L.ByteString
@@ -207,8 +209,10 @@ continue :: (S -> IResult r) -> Parser r a
 continue onEOF p k (S _sb _lb adds eof failDepth) =
     if eof
     then onEOF (S S.empty L.empty adds True failDepth)
-    else IPartial $ \s -> let st = contState s adds failDepth
-                          in unParser p st k
+    else IPartial $ \s ->
+         let st | L.null s  = S S.empty L.empty adds True failDepth
+                | otherwise = mkState s (addX s adds) False failDepth
+         in unParser p st k
 
 takeWith :: (L.ByteString -> (L.ByteString, L.ByteString))
          -> Parser r L.ByteString
@@ -254,11 +258,6 @@ string s =
                      (k . appL h)
                      st
       _ -> IFailed st "string failed to match"
-
-contState :: L.ByteString -> [L.ByteString] -> Int -> S
-contState s adds failDepth
-    | L.null s  = S S.empty L.empty [] True failDepth
-    | otherwise = mkState s (addX s adds) False failDepth
 
 -- | Match a single byte based on the given predicate.
 satisfy :: (Word8 -> Bool) -> Parser r Word8

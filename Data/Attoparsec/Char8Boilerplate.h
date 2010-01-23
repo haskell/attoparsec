@@ -68,5 +68,5 @@ skipWhile p = I.skipWhile (p . w2c)
 
 -- | Skip over white space.
 skipSpace :: PARSER ()
-skipSpace = takeWhile isSpace >> return ()
+skipSpace = skipWhile isSpace >> return ()
 {-# INLINE skipSpace #-}

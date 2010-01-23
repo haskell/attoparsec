@@ -29,6 +29,7 @@ module Data.Attoparsec.Incremental
     , parse
     , parseWith
     , parseTest
+    , feed
 
     -- * Combinators
     , (<?>)
@@ -322,6 +323,22 @@ parseWith refill p s =
 -- | Try out a parser, and print its result.
 parseTest :: (Show r) => Parser r r -> L.ByteString -> IO ()
 parseTest p s = print (parse p s)
+
+-- | Attempt to feed more data to a 'Result'.
+--
+-- * If the original parse 'Failed', the string is not inspected, and
+--   the result remains a failed parse.
+--
+-- * If the parse was 'Done', the string is appended to the remainder,
+--   and the result of the parse is otherwise the same 'Done' as
+--   before.
+--
+-- * If the parse was 'Partial', the string is fed to the continuation
+--   and the new 'Result' returned.
+feed :: Result a -> L.ByteString -> Result a
+feed f@(Failed _) _ = f
+feed (Done bs a)  c = Done (L.append bs c) a
+feed (Partial k)  c = k c
 
 #define PARSER Parser r
 #include "Word8Boilerplate.h"

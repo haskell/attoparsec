@@ -29,6 +29,7 @@ module Data.Attoparsec.Incremental.Char8
     , parse
     , parseWith
     , parseTest
+    , feed
 
     -- * Combinators
     , (<?>)
@@ -78,7 +79,7 @@ import Data.Char (isDigit, isLetter, isSpace)
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import qualified Data.Attoparsec.Incremental as I
 import Data.Attoparsec.Incremental
-    (Parser, Result(..), (<?>), endOfInput, parse, parseWith, parseTest,
+    (Parser, Result(..), (<?>), endOfInput, feed, parse, parseWith, parseTest,
      pushBack, string, takeCount, try, yield)
 import Data.ByteString.Lex.Lazy.Double (readDouble)
 import Prelude hiding (takeWhile)

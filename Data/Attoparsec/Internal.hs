@@ -34,6 +34,10 @@ module Data.Attoparsec.Internal
     , word8
     , notWord8
 
+    -- ** Byte classes
+    , inClass
+    , notInClass
+
     -- * Efficient string handling
     , match
     , notEmpty
@@ -62,6 +66,7 @@ import Control.Applicative
     (Alternative(..), Applicative(..), (*>))
 import Control.Monad (MonadPlus(..), ap)
 import Control.Monad.Fix (MonadFix(..))
+import Data.Attoparsec.FastSet (charClass, memberWord8)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.ByteString.Lazy.Char8 as L8

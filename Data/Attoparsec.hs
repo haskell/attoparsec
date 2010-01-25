@@ -34,6 +34,10 @@ module Data.Attoparsec
     , word8
     , satisfy
 
+    -- ** Byte classes
+    , inClass
+    , notInClass
+
     -- * Efficient string handling
     , string
     , skipWhile

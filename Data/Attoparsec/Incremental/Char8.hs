@@ -42,6 +42,7 @@ module Data.Attoparsec.Incremental.Char8
     , anyChar
     , space
     , char
+    , char8
     , notChar
 
     -- ** Character classes
@@ -74,8 +75,9 @@ module Data.Attoparsec.Incremental.Char8
     ) where
 
 import qualified Data.ByteString.Lazy.Char8 as LB
-import Data.ByteString.Internal (w2c)
+import Data.ByteString.Internal (c2w, w2c)
 import Data.Char (isDigit, isLetter, isSpace)
+import Data.Word (Word8)
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import qualified Data.Attoparsec.Incremental as I
 import Data.Attoparsec.Incremental

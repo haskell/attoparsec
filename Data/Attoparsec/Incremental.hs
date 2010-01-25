@@ -41,6 +41,10 @@ module Data.Attoparsec.Incremental
     , anyWord8
     , satisfy
 
+    -- ** Byte classes
+    , inClass
+    , notInClass
+
     -- * Efficient string handling
     , string
     , skipWhile
@@ -59,6 +63,7 @@ module Data.Attoparsec.Incremental
 
 import Data.Attoparsec.Combinator
 import Control.Monad (MonadPlus(..), ap)
+import Data.Attoparsec.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Internal ((+:))
 import Data.Word (Word8)
 import qualified Data.ByteString as S

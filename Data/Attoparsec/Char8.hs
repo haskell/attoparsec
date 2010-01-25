@@ -36,6 +36,7 @@ module Data.Attoparsec.Char8
     -- * Parsing individual characters
     , anyChar
     , char
+    , char8
     , digit
     , letter
     , notChar
@@ -80,9 +81,10 @@ module Data.Attoparsec.Char8
     ) where
 
 import qualified Data.ByteString.Lazy.Char8 as LB
-import Data.ByteString.Internal (w2c)
+import Data.ByteString.Internal (c2w, w2c)
 import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Attoparsec.FastSet (charClass, memberChar)
+import Data.Word (Word8)
 import qualified Data.Attoparsec.Internal as I
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal

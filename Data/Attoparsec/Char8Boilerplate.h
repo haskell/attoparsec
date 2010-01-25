@@ -26,6 +26,11 @@ char :: Char -> PARSER Char
 char c = satisfy (== c) <?> [c]
 {-# INLINE char #-}
 
+-- | Match a specific character.
+char8 :: Char -> PARSER Word8
+char8 c = I.satisfy (== c2w c) <?> [c]
+{-# INLINE char8 #-}
+
 -- | Match any character except the given one.
 notChar :: Char -> PARSER Char
 notChar c = satisfy (/= c) <?> "not " ++ [c]

@@ -126,13 +126,21 @@ newtype Parser r a = Parser {
       unParser :: S -> (a -> S -> IResult r) -> IResult r
     }
 
-instance Monad (Parser r) where
-  return a = Parser $ \s k -> k a s
-  m >>= k = Parser $ \s cont -> unParser m s $ \a s' -> unParser (k a) s' cont
-  fail err = Parser $ \s -> const $ IFailed s err
+returnP :: a -> Parser r a
+returnP a = Parser $ \s k -> k a s
+{-# INLINE returnP #-}
+
+bindP :: Parser r a -> (a -> Parser r b) -> Parser r b
+bindP m k = Parser $ \s cont -> unParser m s $ \a s' -> unParser (k a) s' cont
+{-# INLINE bindP #-}
+
+failP :: String -> Parser r a
+failP err = Parser $ \s _ -> IFailed s err
+{-# INLINE failP #-}
 
 zero :: Parser r a
 zero = fail ""
+{-# INLINE zero #-}
 
 -- | I'm not sure if this is a huge bodge or not. It probably is.
 --
@@ -174,8 +182,9 @@ plus p1 p2 =
 try :: Parser r a -> Parser r a
 try p = p
 
-instance Functor (Parser r) where
-    fmap f m = Parser $ \s cont -> unParser m s (cont . f)
+fmapP :: (a -> b) -> Parser r a -> Parser r b
+fmapP f m = Parser $ \s cont -> unParser m s (cont . f)
+{-# INLINE fmapP #-}
 
 infix 0 <?>
 

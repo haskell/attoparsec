@@ -64,7 +64,7 @@ module Data.Attoparsec.Internal
 
 import Control.Applicative
     (Alternative(..), Applicative(..), (*>))
-import Control.Monad (MonadPlus(..), ap)
+import Control.Monad (MonadPlus(..))
 import Control.Monad.Fix (MonadFix(..))
 import Data.Attoparsec.FastSet (charClass, memberWord8)
 import qualified Data.ByteString as SB
@@ -92,20 +92,27 @@ newtype Parser a = Parser {
       unParser :: S -> Either (LB.ByteString, [String]) (a, S)
     }
 
-instance Functor Parser where
-    fmap f p =
-        Parser $ \s ->
+fmapP :: (a -> b) -> Parser a -> Parser b
+fmapP f p = Parser $ \s ->
             case unParser p s of
               Right (a, s') -> Right (f a, s')
               Left err -> Left err
+{-# INLINE fmapP #-}
 
-instance Monad Parser where
-    return a = Parser $ \s -> Right (a, s)
-    m >>= f = Parser $ \s ->
-              case unParser m s of
-                Right (a, s') -> unParser (f a) s'
-                Left (s', msgs) -> Left (s', msgs)
-    fail err = Parser $ \(S sb lb _) -> Left (sb +: lb, [err])
+returnP :: a -> Parser a
+returnP a = Parser $ \s -> Right (a, s)
+{-# INLINE returnP #-}
+
+bindP :: Parser a -> (a -> Parser b) -> Parser b
+bindP m f = Parser $ \s ->
+            case unParser m s of
+              Right (a, s') -> unParser (f a) s'
+              Left (s', msgs) -> Left (s', msgs)
+{-# INLINE bindP #-}
+
+failP :: String -> Parser a
+failP err = Parser $ \(S sb lb _) -> Left (sb +: lb, [err])
+{-# INLINE failP #-}
 
 instance MonadFix Parser where
     mfix f = Parser $ \s ->

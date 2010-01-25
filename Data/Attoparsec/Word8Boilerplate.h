@@ -1,13 +1,28 @@
 -- -*- haskell -*-
 -- This file is intended to be #included by other source files.
 
+instance Monad (PARSER) where
+    return = returnP
+    (>>=)  = bindP
+    fail   = failP
+
 instance MonadPlus (PARSER) where
     mzero = zero
     mplus = plus
 
+apP :: PARSER (a -> b) -> PARSER a -> PARSER b
+apP d e = do
+  b <- d
+  a <- e
+  return (b a)
+{-# INLINE apP #-}
+
+instance Functor (PARSER) where
+    fmap = fmapP
+
 instance Applicative (PARSER) where
-    pure = return
-    (<*>) = ap
+    pure = returnP
+    (<*>) = apP
 
 instance Alternative (PARSER) where
     empty = zero

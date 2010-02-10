@@ -3,17 +3,21 @@
 module Main (main) where
 import Control.Applicative
 import Control.Monad
-import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Internal as B
+import Data.ByteString.Lazy (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.ByteString.Lazy.Internal as B
+import qualified Data.ByteString as S
+import Data.ByteString.Internal (inlinePerformIO, toForeignPtr, w2c)
 import Foreign.Ptr (castPtr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
+import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (getChar)
 
 data Result r = Fail [String] String
-              | Partial (B.ByteString -> Result r)
-              | Done B.ByteString r
+              | Partial (ByteString -> Result r)
+              | Done ByteString r
 
 -- | The Parser monad is an Exception and State monad.
 newtype Parser a = Parser {
@@ -26,14 +30,14 @@ newtype Parser a = Parser {
 type Failure   r = [String] -> String -> Result r
 type Success a r = S -> a -> Result r
 
-type S = B.ByteString
+type S = ByteString
 
 instance Show r => Show (Result r) where
     show (Fail stack msg) = "Fail " ++ show stack ++ " " ++ show msg
     show (Partial _) = "Partial _"
     show (Done bs r) = "Done " ++ show bs ++ " " ++ show r
 
-feed :: Result r -> B.ByteString -> Result r
+feed :: Result r -> ByteString -> Result r
 feed f@(Fail _ _) _ = f
 feed (Partial k) s = k s
 feed (Done bs r) s = Done (B.append bs s) r
@@ -87,9 +91,18 @@ failDesc err = Parser (\_s0 kf _ks -> kf [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
+compareLength :: ByteString -> Int64 -> Ordering
+compareLength (B.Chunk sb lb) n =
+    let l = S.length sb
+    in if l > fromIntegral n
+       then GT
+       else compareLength lb (n - fromIntegral l)
+compareLength _ 0 = EQ
+compareLength _ _ = LT
+
 ensure :: Int -> Parser ()
 ensure n = Parser $ \s0 kf ks ->
-           if B.length s0 >= n
+           if compareLength s0 (fromIntegral n) /= LT
            then ks s0 ()
            else Partial $ \s -> if B.null s
                            then kf ["ensure"] "not enough bytes"
@@ -101,25 +114,25 @@ failK stack msg = Fail stack msg
 successK :: Success a a
 successK state a = Done state a
 
-get :: Parser B.ByteString
+get :: Parser ByteString
 get  = Parser (\s0 _kf ks -> ks s0 s0)
 
-put :: B.ByteString -> Parser ()
+put :: ByteString -> Parser ()
 put s = Parser (\_s0 _kf ks -> ks s ())
 
-getBytes :: Int -> Parser B.ByteString
+getBytes :: Int -> Parser ByteString
 getBytes n = do
     ensure n
     s <- get
-    let (consume,rest) = B.splitAt n s
+    let (consume,rest) = B.splitAt (fromIntegral n) s
     put rest
     return consume
 
 getWord8 :: Parser Word8
-getWord8 = getPtr (sizeOf (undefined :: Word8))
+getWord8 = getPtr (fromIntegral (sizeOf (undefined :: Word8)))
 
 getChar :: Parser Char
-getChar = B.w2c `fmapP` getWord8
+getChar = w2c `fmapP` getWord8
 
 letter :: Parser Char
 letter = do
@@ -137,10 +150,11 @@ digit = do
 
 getPtr :: Storable a => Int -> Parser a
 getPtr n = do
-    (fp,o,_) <- B.toForeignPtr `fmapP` getBytes n
-    return . B.inlinePerformIO $ withForeignPtr fp $ \p -> peek (castPtr $ p `plusPtr` o)
+  s <- getBytes n
+  let (fp,o,_) = toForeignPtr (S.concat (B.toChunks s))
+  return . inlinePerformIO $ withForeignPtr fp $ \p -> peek (castPtr $ p `plusPtr` o)
 
-parse :: Parser a -> B.ByteString -> Result a
+parse :: Parser a -> ByteString -> Result a
 parse m s = runParser m s failK successK
               
 manyP :: Parser a -> Parser [a]

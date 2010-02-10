@@ -1,6 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 
 module Main (main) where
+import Control.Applicative
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B
@@ -51,9 +52,35 @@ instance Monad Parser where
     (>>=)  = bindP
     fail   = failDesc
 
+plus :: Parser a -> Parser a -> Parser a
+plus a b = Parser (\s0 kf ks -> runParser a s0 (\_ _ -> runParser b s0 kf ks) ks)
+{-# INLINE plus #-}
+
 instance MonadPlus Parser where
     mzero = failDesc "mzero"
-    mplus a b = Parser (\s0 kf ks -> runParser a s0 (\_ _ -> runParser b s0 kf ks) ks)
+    mplus = plus
+
+fmapP :: (a -> b) -> Parser a -> Parser b
+fmapP p m = Parser (\s0 f k -> runParser m s0 f (\s a -> k s (p a)))
+{-# INLINE fmapP #-}
+
+instance Functor Parser where
+    fmap = fmapP
+
+apP :: Parser (a -> b) -> Parser a -> Parser b
+apP d e = do
+  b <- d
+  a <- e
+  return (b a)
+{-# INLINE apP #-}
+
+instance Applicative Parser where
+    pure  = returnP
+    (<*>) = apP
+
+instance Alternative Parser where
+    empty = failDesc "empty"
+    (<|>) = mplus
 
 failDesc :: String -> Parser a
 failDesc err = Parser (\_s0 kf _ks -> kf [] msg)
@@ -75,15 +102,15 @@ successK :: Success a a
 successK state a = Done state a
 
 get :: Parser B.ByteString
-get  = Parser (\s0 _ k -> k s0 s0)
+get  = Parser (\s0 _kf ks -> ks s0 s0)
 
 put :: B.ByteString -> Parser ()
-put s = Parser (\_ _ k -> k s ())
+put s = Parser (\_s0 _kf ks -> ks s ())
 
 getBytes :: Int -> Parser B.ByteString
 getBytes n = do
+    ensure n
     s <- get
-    when (n > B.length s) (fail "too few bytes")
     let (consume,rest) = B.splitAt n s
     put rest
     return consume
@@ -92,7 +119,7 @@ getWord8 :: Parser Word8
 getWord8 = getPtr (sizeOf (undefined :: Word8))
 
 getChar :: Parser Char
-getChar = B.w2c `liftM` getWord8
+getChar = B.w2c `fmapP` getWord8
 
 letter :: Parser Char
 letter = do
@@ -110,25 +137,25 @@ digit = do
 
 getPtr :: Storable a => Int -> Parser a
 getPtr n = do
-    (fp,o,_) <- B.toForeignPtr `liftM` getBytes n
+    (fp,o,_) <- B.toForeignPtr `fmapP` getBytes n
     return . B.inlinePerformIO $ withForeignPtr fp $ \p -> peek (castPtr $ p `plusPtr` o)
 
 parse :: Parser a -> B.ByteString -> Result a
 parse m s = runParser m s failK successK
               
-many :: Parser a -> Parser [a]
-many v = many_v
-    where many_v = some_v `mplus` return []
-	  some_v = (:) `liftM` v `ap` many_v
+manyP :: Parser a -> Parser [a]
+manyP v = many_v
+    where many_v = some_v <|> pure []
+	  some_v = (:) <$> v <*> many_v
 
 many1 :: Parser a -> Parser [a]
 many1 p = do
   a <- p
-  as <- many p
+  as <- manyP p
   return (a:as)
 
 x = "asnoteubaoe8u9823bnaotebusnt823bsoeut98234nbaoetu29234"
 yS = take 570000 $ cycle x
 yB = B.pack yS
 
-main = print (parse (many (many1 letter `mplus` many1 digit)) yB)
+main = print (parse (manyP (many1 letter `mplus` many1 digit)) yB)

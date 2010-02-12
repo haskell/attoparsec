@@ -41,7 +41,7 @@ data S = S {
 instance Show r => Show (Result r) where
     show (Fail _ stack msg) = "Fail " ++ show stack ++ " " ++ show msg
     show (Partial _) = "Partial _"
-    show (Done _st r) = "Done _ " ++ show r
+    show (Done bs r) = "Done " ++ show bs ++ " " ++ show r
 
 feed :: Result r -> B.ByteString -> Result r
 feed f@(Fail _ _ _) _ = f

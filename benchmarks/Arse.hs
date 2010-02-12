@@ -3,6 +3,7 @@
 module Main where
 
 import Control.Applicative
+import System.Environment
 import Data.Monoid
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
@@ -12,8 +13,6 @@ import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
 import Data.Word (Word8)
 import Prelude hiding (getChar)
---import Debug.Trace
-trace a b = b
 
 data Result r = Fail S [String] String
               | Partial (B.ByteString -> Result r)
@@ -34,19 +33,19 @@ data AddState = Incomplete | Complete
                 deriving (Eq, Ord, Show)
 
 data S = S {
-      input :: B.ByteString
-    , added :: B.ByteString
-    , addState :: AddState
+      input :: !B.ByteString
+    , added :: !B.ByteString
+    , addState :: !AddState
     } deriving (Show)
 
 instance Show r => Show (Result r) where
     show (Fail _ stack msg) = "Fail " ++ show stack ++ " " ++ show msg
     show (Partial _) = "Partial _"
-    show (Done bs r) = "Done " ++ show bs ++ " " ++ show r
+    show (Done _st r) = "Done _ " ++ show r
 
 feed :: Result r -> B.ByteString -> Result r
 feed f@(Fail _ _ _) _ = f
-feed (Partial k) d = trace "k" k d
+feed (Partial k) d = k d
 feed (Done st0@(S s a c) r) d = Done (S (B.append s d) a c) r
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
@@ -64,7 +63,7 @@ instance Monad Parser where
     fail   = failDesc
 
 plus :: Parser a -> Parser a -> Parser a
-plus a b = Parser (\st0@(S s0 a0 c0) kf ks -> runParser a (S s0 B.empty c0) (\st1@(S _s1 a1 c1) _ _ -> trace (show ("+",st0,st1)) runParser b (S s0 (B.append a0 a1) (max c0 c1)) kf ks) ks)
+plus a b = Parser (\st0@(S s0 a0 c0) kf ks -> runParser a (S s0 B.empty c0) (\st1@(S _s1 a1 c1) _ _ -> runParser b (S s0 (B.append a0 a1) (max c0 c1)) kf ks) ks)
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -94,7 +93,7 @@ instance Alternative Parser where
     (<|>) = mplus
 
 failDesc :: String -> Parser a
-failDesc err = Parser (\st0 kf _ks -> trace (show ("fail",err,st0)) kf st0 [] msg)
+failDesc err = Parser (\st0 kf _ks -> kf st0 [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
@@ -104,10 +103,10 @@ ensure n = Parser $ \st0@(S s0 a0 c0) kf ks ->
            then ks st0 ()
            else if c0 == Complete
                 then kf st0 ["ensure"] "not enough bytes"
-                else trace "p" Partial $ \s -> trace (show ("partial",s)) $ if B.null s
-                           then trace "kf" kf (S s0 a0 Complete) ["ensure"] "not enough bytes"
+                else Partial $ \s -> if B.null s
+                           then kf (S s0 a0 Complete) ["ensure"] "not enough bytes"
                            else let st1 = S (B.append s0 s) (B.append a0 s) Incomplete
-                                in trace (show ("resume",st1)) runParser (ensure n) st1 kf ks
+                                in runParser (ensure n) st1 kf ks
 
 failK :: Failure a
 failK st0 stack msg = Fail st0 stack msg
@@ -136,7 +135,7 @@ getChar :: Parser Char
 getChar = B.w2c `fmapP` getWord8
 
 try :: Parser a -> Parser a
-try p = Parser (\st0@(S s0 a0 c0) kf ks -> trace (show ("trying",st0)) runParser p (S s0 B.empty c0) (\(S s1 a1 c1) a b -> let st1 = S s0 (B.append a0 a1) (max c0 c1) in trace (show ("tried",st1)) kf st1 a b) ks)
+try p = Parser (\st0@(S s0 a0 c0) kf ks -> runParser p (S s0 B.empty c0) (\(S s1 a1 c1) a b -> let st1 = S s0 (B.append a0 a1) (max c0 c1) in kf st1 a b) ks)
 
 letter :: Parser Char
 letter = try $ do
@@ -171,8 +170,25 @@ many1 p = do
   as <- manyP p
   return (a:as)
 
-x = "asnoteubaoe8u9823bnaotebusnt823bsoeut98234nbaoetu29234"
-yS = take 400000 $ cycle x
-yB = B.pack yS
+chunksOf :: Int -> B.ByteString -> [B.ByteString]
+chunksOf n = go
+  where go s | B.null s  = []
+             | otherwise = let (h,t) = B.splitAt n s
+                         in h : go t
 
-main = print (parse (manyP (many1 letter `mplus` many1 digit)) yB `feed` B.empty)
+parseAll :: Parser a -> [B.ByteString] -> Result a
+parseAll p ss = case ss of
+                  []     -> go (parse p B.empty) []
+                  (c:cs) -> go (parse p c) cs
+  where go (Partial k) (c:cs) = go (k c) cs
+        go (Partial k) []     = k B.empty
+        go r           _      = r
+
+main = do
+  args <- getArgs
+  forM_ args $ \arg -> do
+    input <- B.readFile arg
+    let chunks | False      = [input]
+               | otherwise = chunksOf 24 input
+    let p = manyP (many1 letter `mplus` many1 digit)
+    print (parseAll p chunks)

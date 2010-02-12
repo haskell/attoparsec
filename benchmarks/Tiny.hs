@@ -1,14 +1,20 @@
+import Control.Monad
+import System.Environment
 import qualified Data.Attoparsec.Incremental.Char8 as A
 import qualified Text.ParserCombinators.Parsec as P
 import qualified Data.ByteString.Lazy.Char8 as B
 import Control.Applicative
 
-x = "asnoteubaoe8u9823bnaotebusnt823bsoeut98234nbaoetu29234"
-yS = take 570000 $ cycle x
-yB = B.pack yS
+mainA = do
+  args <- getArgs
+  forM_ args $ \arg -> do
+    input <- B.readFile arg
+    print (A.parse (A.many (A.many1 A.letter <|> A.many1 A.digit)) input)
 
-mainA = print (A.parse (A.many (A.many1 A.letter <|> A.many1 A.digit)) yB)
-
-mainP = print (P.parse (P.many (P.many1 P.letter P.<|> P.many1 P.digit)) "" yS)
+mainP = do
+  args <- getArgs
+  forM_ args $ \arg -> do
+    input <- readFile arg
+    print (P.parse (P.many (P.many1 P.letter P.<|> P.many1 P.digit)) "" input)
 
 main = mainP

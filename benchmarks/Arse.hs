@@ -63,7 +63,7 @@ instance Monad Parser where
     fail   = failDesc
 
 plus :: Parser a -> Parser a -> Parser a
-plus a b = Parser (\st0@(S s0 a0 c0) kf ks -> runParser a (S s0 B.empty c0) (\st1@(S _s1 a1 c1) _ _ -> runParser b (S s0 (B.append a0 a1) (max c0 c1)) kf ks) ks)
+plus a b = Parser (\st0@(S s0 a0 c0) kf ks -> runParser a (S s0 B.empty c0) (\st1@(S _s1 a1 c1) _ _ -> runParser b (S (B.append s0 a1) (B.append a0 a1) (max c0 c1)) kf ks) ks)
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -135,7 +135,7 @@ getChar :: Parser Char
 getChar = B.w2c `fmapP` getWord8
 
 try :: Parser a -> Parser a
-try p = Parser (\st0@(S s0 a0 c0) kf ks -> runParser p (S s0 B.empty c0) (\(S s1 a1 c1) a b -> let st1 = S s0 (B.append a0 a1) (max c0 c1) in kf st1 a b) ks)
+try p = Parser (\st0@(S s0 a0 c0) kf ks -> runParser p (S s0 B.empty c0) (\(S _s1 a1 c1) a b -> let st1 = S (B.append s0 a1) (B.append a0 a1) (max c0 c1) in kf st1 a b) ks)
 
 letter :: Parser Char
 letter = try $ do

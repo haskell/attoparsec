@@ -1,7 +1,10 @@
 {-# LANGUAGE Rank2Types #-}
 
-module Main (main) where
+--module Main (main) where
+
+import Debug.Trace
 import Control.Applicative
+import Data.Monoid
 import Control.Monad
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B
@@ -11,9 +14,9 @@ import Foreign.Storable (Storable(peek, sizeOf))
 import Data.Word (Word8)
 import Prelude hiding (getChar)
 
-data Result r = Fail [String] String
+data Result r = Fail S [String] String
               | Partial (B.ByteString -> Result r)
-              | Done B.ByteString r
+              | Done S r
 
 -- | The Parser monad is an Exception and State monad.
 newtype Parser a = Parser {
@@ -23,20 +26,45 @@ newtype Parser a = Parser {
                 -> Result r
     }
 
-type Failure   r = [String] -> String -> Result r
+type Failure   r = S -> [String] -> String -> Result r
 type Success a r = S -> a -> Result r
 
-type S = B.ByteString
+data Feed = Empty
+          | Fed !B.ByteString
+            deriving (Eq, Ord, Show)
+
+instance Monoid Feed where
+    mempty = Empty
+    mappend Empty b = b
+    mappend a Empty = a
+    mappend (Fed a) (Fed b) = Fed (B.append a b)
+
+augment :: B.ByteString -> Feed -> B.ByteString
+augment bs Empty = bs
+augment bs (Fed s) = B.append bs s
+
+shove :: Feed -> B.ByteString -> Feed
+shove Empty bs = Fed bs
+shove (Fed s) bs = Fed (B.append s bs)
+
+isEOF :: Feed -> Bool
+isEOF (Fed s) = B.null s
+isEOF _ = False
+
+data S = S {
+      input :: B.ByteString
+    , fed :: Feed
+    } deriving (Show)
 
 instance Show r => Show (Result r) where
-    show (Fail stack msg) = "Fail " ++ show stack ++ " " ++ show msg
+    show (Fail _ stack msg) = "Fail " ++ show stack ++ " " ++ show msg
     show (Partial _) = "Partial _"
     show (Done bs r) = "Done " ++ show bs ++ " " ++ show r
 
 feed :: Result r -> B.ByteString -> Result r
-feed f@(Fail _ _) _ = f
-feed (Partial k) s = k s
-feed (Done bs r) s = Done (B.append bs s) r
+feed f@(Fail _ _ _) _ = f
+feed (Partial k) s = trace "k" k s
+feed (Done bs r) s = Done (S (B.append (input bs) s) (fed bs)) r
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
 bindP m g =
@@ -52,8 +80,10 @@ instance Monad Parser where
     (>>=)  = bindP
     fail   = failDesc
 
+merge (S i1 a1) (S i2 a2) = S i1 (mappend a1 a2)
+
 plus :: Parser a -> Parser a -> Parser a
-plus a b = Parser (\s0 kf ks -> runParser a s0 (\_ _ -> runParser b s0 kf ks) ks)
+plus a b = Parser (\s0@(S i j) kf ks -> runParser a s0 (\s1@(S x y) _ _ -> trace (show ("+",s0,s1)) runParser b (S (augment i y) (mappend j y)) kf ks) ks)
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -83,29 +113,32 @@ instance Alternative Parser where
     (<|>) = mplus
 
 failDesc :: String -> Parser a
-failDesc err = Parser (\_s0 kf _ks -> kf [] msg)
+failDesc err = Parser (\s0 kf _ks -> trace (show ("fail",err,s0)) kf s0 [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
 ensure :: Int -> Parser ()
-ensure n = Parser $ \s0 kf ks ->
-           if B.length s0 >= n
+ensure n = Parser $ \s0@(S a b) kf ks ->
+           if B.length (input s0) >= n
            then ks s0 ()
-           else Partial $ \s -> if B.null s
-                           then kf ["ensure"] "not enough bytes"
-                           else runParser (ensure n) (B.append s0 s) kf ks
+           else if isEOF b
+                then kf s0 ["ensure"] "not enough bytes"
+                else trace "p" Partial $ \s -> trace (show ("partial",s)) $ if B.null s
+                           then trace "kf" kf (S a (shove b s)) ["ensure"] "not enough bytes"
+                           else let s1 = S (B.append a s) (shove b s)
+                                in trace (show ("resume",s1)) runParser (ensure n) s1 kf ks
 
 failK :: Failure a
-failK stack msg = Fail stack msg
+failK s0 stack msg = Fail s0 stack msg
 
 successK :: Success a a
 successK state a = Done state a
 
 get :: Parser B.ByteString
-get  = Parser (\s0 _kf ks -> ks s0 s0)
+get  = Parser (\s0 _kf ks -> ks s0 (input s0))
 
 put :: B.ByteString -> Parser ()
-put s = Parser (\_s0 _kf ks -> ks s ())
+put s = Parser (\s0 _kf ks -> ks (S s (fed s0)) ())
 
 getBytes :: Int -> Parser B.ByteString
 getBytes n = do
@@ -121,15 +154,18 @@ getWord8 = getPtr (sizeOf (undefined :: Word8))
 getChar :: Parser Char
 getChar = B.w2c `fmapP` getWord8
 
+try :: Parser a -> Parser a
+try p = Parser (\s0@(S i j) kf ks -> trace (show ("trying",s0)) runParser p s0 (\(S x y) a b -> let s1 = S (augment i y) (mappend j y) in trace (show ("tried",s1)) kf s1 a b) ks)
+
 letter :: Parser Char
-letter = do
+letter = try $ do
   c <- getChar
   if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
     then return c
     else fail "letter"
 
 digit :: Parser Char
-digit = do
+digit = try $ do
   c <- getChar
   if (c >= '0' && c <= '9')
     then return c
@@ -141,7 +177,7 @@ getPtr n = do
     return . B.inlinePerformIO $ withForeignPtr fp $ \p -> peek (castPtr $ p `plusPtr` o)
 
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = runParser m s failK successK
+parse m s = runParser m (S s mempty) failK successK
               
 manyP :: Parser a -> Parser [a]
 manyP v = many_v
@@ -158,4 +194,4 @@ x = "asnoteubaoe8u9823bnaotebusnt823bsoeut98234nbaoetu29234"
 yS = take 570000 $ cycle x
 yB = B.pack yS
 
-main = print (parse (manyP (many1 letter `mplus` many1 digit)) yB)
+main = print (parse (manyP (many1 letter `mplus` many1 digit)) yB `feed` B.empty)

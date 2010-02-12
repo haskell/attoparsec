@@ -1,10 +1,14 @@
 ^dist$
+benchmarks/Arse
+benchmarks/Tiny
 
 syntax: glob
+.\#*
+*~
+\#*
 *.hi
 *.o
-*~
-.*.swp
 *.orig
-\#*
-.\#*
+*.prof
+*.rej
+.*.swp

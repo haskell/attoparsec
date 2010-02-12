@@ -4,9 +4,10 @@ module Main where
 
 import Control.Applicative
 import System.Environment
-import Data.Monoid
 import Control.Monad
+import qualified Data.ByteString.Lazy.Char8 as B8
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Internal as B
 import Foreign.Ptr (castPtr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
@@ -29,13 +30,13 @@ newtype Parser a = Parser {
 type Failure   r = S -> [String] -> String -> Result r
 type Success a r = S -> a -> Result r
 
-data AddState = Incomplete | Complete
-                deriving (Eq, Ord, Show)
+data InputState = Incomplete | Complete
+                  deriving (Eq, Ord, Show)
 
 data S = S {
       input :: !B.ByteString
     , added :: !B.ByteString
-    , addState :: !AddState
+    , inputState :: !InputState
     } deriving (Show)
 
 instance Show r => Show (Result r) where
@@ -46,7 +47,7 @@ instance Show r => Show (Result r) where
 feed :: Result r -> B.ByteString -> Result r
 feed f@(Fail _ _ _) _ = f
 feed (Partial k) d = k d
-feed (Done st0@(S s a c) r) d = Done (S (B.append s d) a c) r
+feed (Done (S s a c) r) d = Done (S (s +++ d) a c) r
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
 bindP m g =
@@ -63,7 +64,10 @@ instance Monad Parser where
     fail   = failDesc
 
 plus :: Parser a -> Parser a -> Parser a
-plus a b = Parser (\st0@(S s0 a0 c0) kf ks -> runParser a (S s0 B.empty c0) (\st1@(S _s1 a1 c1) _ _ -> runParser b (S (B.append s0 a1) (B.append a0 a1) (max c0 c1)) kf ks) ks)
+plus a b = Parser $ \(S s0 a0 c0) kf ks ->
+           let kf' (S _s1 a1 c1) _ _ = runParser b st1 kf ks
+                   where st1 = S (s0 +++ a1) (a0 +++ a1) (max c0 c1)
+           in  runParser a (S s0 B.empty c0) kf' ks
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -99,14 +103,15 @@ failDesc err = Parser (\st0 kf _ks -> kf st0 [] msg)
 
 ensure :: Int -> Parser ()
 ensure n = Parser $ \st0@(S s0 a0 c0) kf ks ->
-           if B.length s0 >= n
-           then ks st0 ()
-           else if c0 == Complete
-                then kf st0 ["ensure"] "not enough bytes"
-                else Partial $ \s -> if B.null s
-                           then kf (S s0 a0 Complete) ["ensure"] "not enough bytes"
-                           else let st1 = S (B.append s0 s) (B.append a0 s) Incomplete
-                                in runParser (ensure n) st1 kf ks
+    if B.length s0 >= n
+    then ks st0 ()
+    else if c0 == Complete
+    then kf st0 ["ensure"] "not enough bytes"
+    else Partial $ \s ->
+         if B.null s
+         then kf (S s0 a0 Complete) ["ensure"] "not enough bytes"
+         else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
+              in  runParser (ensure n) st1 kf ks
 
 failK :: Failure a
 failK st0 stack msg = Fail st0 stack msg
@@ -118,7 +123,7 @@ get :: Parser B.ByteString
 get  = Parser (\st0 _kf ks -> ks st0 (input st0))
 
 put :: B.ByteString -> Parser ()
-put s = Parser (\st0@(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
+put s = Parser (\(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
 
 getBytes :: Int -> Parser B.ByteString
 getBytes n = do
@@ -134,18 +139,40 @@ getWord8 = getPtr (sizeOf (undefined :: Word8))
 getChar :: Parser Char
 getChar = B.w2c `fmapP` getWord8
 
-try :: Parser a -> Parser a
-try p = Parser (\st0@(S s0 a0 c0) kf ks -> runParser p (S s0 B.empty c0) (\(S _s1 a1 c1) a b -> let st1 = S (B.append s0 a1) (B.append a0 a1) (max c0 c1) in kf st1 a b) ks)
+(+++) :: B.ByteString -> B.ByteString -> B.ByteString
+(+++) = B.append
+{-# INLINE (+++) #-}
 
+try :: Parser a -> Parser a
+try p = Parser $ \(S s0 a0 c0) kf ks ->
+        let kf' (S _s1 a1 c1) = kf (S (s0 +++ a1) (a0 +++ a1) (max c0 c1))
+        in  runParser p (S s0 B.empty c0) kf' ks
+
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = do
+  ensure 1
+  s <- get
+  let c = B.w2c (B.unsafeHead s)
+  if p c
+    then put (B.unsafeTail s) >> return c
+    else fail "satisfy"
+{-# INLINE satisfy #-}
+  
 letter :: Parser Char
-letter = try $ do
+letter = satisfy $ \c -> (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+
+letter1 :: Parser Char
+letter1 = try $ do
   c <- getChar
   if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
     then return c
     else fail "letter"
 
 digit :: Parser Char
-digit = try $ do
+digit = satisfy $ \c -> c >= '0' && c <= '9'
+
+digit1 :: Parser Char
+digit1 = try $ do
   c <- getChar
   if (c >= '0' && c <= '9')
     then return c
@@ -187,8 +214,12 @@ parseAll p ss = case ss of
 main = do
   args <- getArgs
   forM_ args $ \arg -> do
-    input <- B.readFile arg
-    let chunks | False      = [input]
-               | otherwise = chunksOf 24 input
+    chunks <- if False
+              then B8.toChunks `fmap` B8.readFile arg
+              else do
+                content <- B.readFile arg
+                return $ if True
+                         then [content]
+                         else chunksOf 24 content
     let p = manyP (many1 letter `mplus` many1 digit)
     print (parseAll p chunks)

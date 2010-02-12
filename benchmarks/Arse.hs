@@ -172,7 +172,7 @@ many1 p = do
   return (a:as)
 
 x = "asnoteubaoe8u9823bnaotebusnt823bsoeut98234nbaoetu29234"
-yS = take 570000 $ cycle x
+yS = take 400000 $ cycle x
 yB = B.pack yS
 
 main = print (parse (manyP (many1 letter `mplus` many1 digit)) yB `feed` B.empty)

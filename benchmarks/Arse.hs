@@ -5,6 +5,7 @@ module Main where
 import Control.Applicative
 import System.Environment
 import Control.Monad
+import Data.Monoid (Monoid(..))
 import qualified Data.ByteString.Lazy.Char8 as B8
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Unsafe as B
@@ -30,13 +31,23 @@ newtype Parser a = Parser {
 type Failure   r = S -> [String] -> String -> Result r
 type Success a r = S -> a -> Result r
 
-data InputState = Incomplete | Complete
-                  deriving (Eq, Ord, Show)
+data More = Complete | Incomplete
+                    deriving (Eq, Ord, Show)
+
+plusMore :: More -> More -> More
+plusMore Complete _ = Complete
+plusMore _ Complete = Complete
+plusMore _ _        = Incomplete
+{-# INLINE plusMore #-}
+
+instance Monoid More where
+    mempty  = Incomplete
+    mappend = plusMore
 
 data S = S {
       input :: !B.ByteString
     , added :: !B.ByteString
-    , inputState :: !InputState
+    , more  :: !More
     } deriving (Show)
 
 instance Show r => Show (Result r) where
@@ -66,7 +77,7 @@ instance Monad Parser where
 plus :: Parser a -> Parser a -> Parser a
 plus a b = Parser $ \(S s0 a0 c0) kf ks ->
            let kf' (S _s1 a1 c1) _ _ = runParser b st1 kf ks
-                   where st1 = S (s0 +++ a1) (a0 +++ a1) (max c0 c1)
+                   where st1 = S (s0 +++ a1) (a0 +++ a1) (mappend c0 c1)
            in  runParser a (S s0 B.empty c0) kf' ks
 {-# INLINE plus #-}
 
@@ -102,7 +113,7 @@ failDesc err = Parser (\st0 kf _ks -> kf st0 [] msg)
 {-# INLINE failDesc #-}
 
 ensure :: Int -> Parser ()
-ensure n = Parser $ \st0@(S s0 a0 c0) kf ks ->
+ensure n = Parser $ \st0@(S s0 _a0 _c0) kf ks ->
     if B.length s0 >= n
     then ks st0 ()
     else runParser (acquireInput >> ensure n) st0 kf ks
@@ -149,7 +160,7 @@ getChar = B.w2c `fmapP` getWord8
 
 try :: Parser a -> Parser a
 try p = Parser $ \(S s0 a0 c0) kf ks ->
-        let kf' (S _s1 a1 c1) = kf (S (s0 +++ a1) (a0 +++ a1) (max c0 c1))
+        let kf' (S _s1 a1 c1) = kf (S (s0 +++ a1) (a0 +++ a1) (mappend c0 c1))
         in  runParser p (S s0 B.empty c0) kf' ks
 
 satisfy :: (Char -> Bool) -> Parser Char

@@ -105,13 +105,17 @@ ensure :: Int -> Parser ()
 ensure n = Parser $ \st0@(S s0 a0 c0) kf ks ->
     if B.length s0 >= n
     then ks st0 ()
-    else if c0 == Complete
-    then kf st0 ["ensure"] "not enough bytes"
+    else runParser (acquireInput >> ensure n) st0 kf ks
+
+acquireInput :: Parser ()
+acquireInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
+    if c0 == Complete
+    then kf st0 ["acquireInput"] "not enough bytes"
     else Partial $ \s ->
          if B.null s
-         then kf (S s0 a0 Complete) ["ensure"] "not enough bytes"
+         then kf (S s0 a0 Complete) ["acquireInput"] "not enough bytes"
          else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
-              in  runParser (ensure n) st1 kf ks
+              in  ks st1 ()
 
 failK :: Failure a
 failK st0 stack msg = Fail st0 stack msg

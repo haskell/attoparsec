@@ -195,6 +195,11 @@ manyP v = many_v
     where many_v = some_v <|> pure []
 	  some_v = (:) <$> v <*> many_v
 
+many_ :: Parser a -> Parser ()
+many_ v = many_v
+    where many_v = some_v <|> pure ()
+	  some_v = v *> many_v
+
 many1 :: Parser a -> Parser [a]
 many1 p = do
   a <- p

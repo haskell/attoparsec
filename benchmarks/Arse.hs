@@ -6,7 +6,8 @@ import Control.Applicative
 import System.Environment
 import Control.Monad
 import Data.Monoid (Monoid(..))
-import qualified Data.ByteString.Lazy.Char8 as B8
+import qualified Data.ByteString.Lazy.Char8 as L
+import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Internal as B
@@ -14,7 +15,7 @@ import Foreign.Ptr (castPtr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
 import Data.Word (Word8)
-import Prelude hiding (getChar)
+import Prelude hiding (getChar, takeWhile)
 
 data Result r = Fail S [String] String
               | Partial (B.ByteString -> Result r)
@@ -116,15 +117,15 @@ ensure :: Int -> Parser ()
 ensure n = Parser $ \st0@(S s0 _a0 _c0) kf ks ->
     if B.length s0 >= n
     then ks st0 ()
-    else runParser (acquireInput >> ensure n) st0 kf ks
+    else runParser (requireInput >> ensure n) st0 kf ks
 
-acquireInput :: Parser ()
-acquireInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
+requireInput :: Parser ()
+requireInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
     if c0 == Complete
-    then kf st0 ["acquireInput"] "not enough bytes"
+    then kf st0 ["requireInput"] "not enough bytes"
     else Partial $ \s ->
          if B.null s
-         then kf (S s0 a0 Complete) ["acquireInput"] "not enough bytes"
+         then kf (S s0 a0 Complete) ["requireInput"] "not enough bytes"
          else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
               in  ks st1 ()
 
@@ -217,6 +218,25 @@ many1 p = do
   as <- manyP p
   return (a:as)
 
+takeWhile8 :: (Word8 -> Bool) -> Parser B.ByteString
+takeWhile8 p = do
+  (`when` requireInput) =<< B.null <$> get
+  (h,t) <- B8.span p <$> get
+  when (B.null h) $ failDesc "takeWhile8"
+  put t
+  if B.null t
+    then (h+++) `fmapP` (takeWhile8 p <|> return B.empty)
+    else return h
+
+takeWhile :: (Char -> Bool) -> Parser B.ByteString
+takeWhile p = takeWhile8 (p . B.w2c)
+
+letters :: Parser B.ByteString
+letters = takeWhile $ \c -> (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') 
+
+digits :: Parser B.ByteString
+digits = takeWhile $ \c -> c >= '0' && c <= '9'
+
 chunksOf :: Int -> B.ByteString -> [B.ByteString]
 chunksOf n = go
   where go s | B.null s  = []
@@ -235,11 +255,12 @@ main = do
   args <- getArgs
   forM_ args $ \arg -> do
     chunks <- if False
-              then B8.toChunks `fmap` B8.readFile arg
+              then L.toChunks `fmap` L.readFile arg
               else do
                 content <- B.readFile arg
-                return $ if True
+                return $ if False
                          then [content]
                          else chunksOf 24 content
-    let p = manyP (many1 letter `mplus` many1 digit)
-    print (parseAll p chunks)
+    let p1 = manyP (many1 letter `mplus` many1 digit)
+        p2 = manyP (letters `mplus` digits)
+    print (parseAll p2 chunks)

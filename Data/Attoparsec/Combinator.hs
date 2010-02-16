@@ -28,7 +28,8 @@ module Data.Attoparsec.Combinator
     , many
     ) where
 
-import Control.Applicative (Alternative(..), Applicative(..), liftA2, (*>), (<$>))
+import Control.Applicative (Alternative, Applicative(..), empty, liftA2,
+                            (<|>), (*>), (<$>))
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
 -- until one of them succeeds. Returns the value of the succeeding

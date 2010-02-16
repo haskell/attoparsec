@@ -18,6 +18,7 @@ module Data.Attoparsec.Internal
     -- * Parser types
       Parser
     , Result(..)
+    , S(input)
 
     -- * Running parsers
     , parse
@@ -135,14 +136,14 @@ instance Monad Parser where
     (>>=)  = bindP
     fail   = failDesc
 
-clear :: S -> S
-clear (S s0 _a0 c0) = S s0 B.empty c0
-{-# INLINE clear #-}
+noAdds :: S -> S
+noAdds (S s0 _a0 c0) = S s0 B.empty c0
+{-# INLINE noAdds #-}
 
 plus :: Parser a -> Parser a -> Parser a
 plus a b = Parser $ \st0 kf ks ->
            let kf' st1 _ _ = runParser b (mappend st0 st1) kf ks
-           in  runParser a (clear st0) kf' ks
+           in  runParser a (noAdds st0) kf' ks
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -213,7 +214,7 @@ take n = takeWith n (const True)
 
 try :: Parser a -> Parser a
 try p = Parser $ \st0 kf ks ->
-        runParser p (clear st0) (kf . mappend st0) ks
+        runParser p (noAdds st0) (kf . mappend st0) ks
 
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p = do
@@ -241,14 +242,15 @@ takeWith n p = do
   if p h
     then put t >> return h
     else failDesc "takeWith"
-{-# INLINE takeWith #-}
 
 string :: B.ByteString -> Parser B.ByteString
 string s = takeWith (B.length s) (==s)
+{-# INLINE string #-}
 
 stringTransform :: (B.ByteString -> B.ByteString) -> B.ByteString
                 -> Parser B.ByteString
 stringTransform f s = takeWith (B.length s) ((==s) . f)
+{-# INLINE stringTransform #-}
 
 skipWhile :: (Word8 -> Bool) -> Parser ()
 skipWhile p = do
@@ -261,6 +263,7 @@ skipWhile p = do
 
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
 takeTill p = takeWhile (not . p)
+{-# INLINE takeTill #-}
 
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile p = do
@@ -338,6 +341,7 @@ infix 0 <?>
 
 parse :: Parser a -> B.ByteString -> Result a
 parse m s = runParser m (S s B.empty Incomplete) failK successK
+{-# INLINE parse #-}
               
 feed :: Result r -> B.ByteString -> Result r
 feed f@(Fail _ _ _) _ = f

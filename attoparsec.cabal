@@ -34,7 +34,7 @@ library
 
   extensions:      CPP
   exposed-modules: Data.Attoparsec
-                   --Data.Attoparsec.Char8
+                   Data.Attoparsec.Char8
                    Data.Attoparsec.Combinator
                    Data.Attoparsec.FastSet
   other-modules:   Data.Attoparsec.Internal

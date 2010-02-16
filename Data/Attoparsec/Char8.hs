@@ -76,7 +76,7 @@ import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.ByteString.Internal (c2w, w2c)
 import Data.ByteString.Lex.Double (readDouble)
-import Data.Char (isDigit, isLetter, isSpace, toLower)
+import Data.Char (toLower)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec as A
@@ -94,20 +94,26 @@ takeWhile1 p = I.takeWhile1 (p . w2c)
 
 -- | Character parser.
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = w2c `fmap` I.satisfy (p . w2c)
+satisfy = I.satisfyWith w2c
 {-# INLINE satisfy #-}
 
 letter :: Parser Char
 letter = satisfy isLetter <?> "letter"
+  where isLetter c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 {-# INLINE letter #-}
 
 digit :: Parser Char
 digit = satisfy isDigit <?> "digit"
+  where isDigit c = c >= '0' && c <= '9'
 {-# INLINE digit #-}
 
 anyChar :: Parser Char
 anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
+
+isSpace :: Char -> Bool
+isSpace c = c `B.elem` spaces
+    where spaces = B.pack " \n\r\t\v\f"
 
 space :: Parser Char
 space = satisfy isSpace <?> "space"

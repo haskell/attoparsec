@@ -32,6 +32,7 @@ module Data.Attoparsec.Internal
 
     -- * Parsing individual bytes
     , satisfy
+    , satisfyWith
     , anyWord8
     , word8
     , notWord8
@@ -193,12 +194,6 @@ requireInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
          else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
               in  ks st1 ()
 
-failK :: Failure a
-failK st0 stack msg = Fail st0 stack msg
-
-successK :: Success a a
-successK state a = Done state a
-
 get :: Parser B.ByteString
 get  = Parser (\st0 _kf ks -> ks st0 (input st0))
 
@@ -225,6 +220,17 @@ satisfy p = do
     then put (B.unsafeTail s) >> return w
     else fail "satisfy"
 {-# INLINE satisfy #-}
+
+-- | Character parser.
+satisfyWith :: (Word8 -> a) -> (a -> Bool) -> Parser a
+satisfyWith f p = do
+  ensure 1
+  s <- get
+  let c = f (B.unsafeHead s)
+  if p c
+    then put (B.unsafeTail s) >> return c
+    else fail "satisfyWith"
+{-# INLINE satisfyWith #-}
 
 storable :: Storable a => Parser a
 storable = hack undefined
@@ -337,7 +343,14 @@ endOfLine = (word8 10 >> return ()) <|> (string (B.pack "\r\n") >> return ())
       -> String                 -- ^ the name to use if parsing fails
       -> Parser a
 p <?> _msg = p
+{-# INLINE (<?>) #-}
 infix 0 <?>
+
+failK :: Failure a
+failK st0 stack msg = Fail st0 stack msg
+
+successK :: Success a a
+successK state a = Done state a
 
 parse :: Parser a -> B.ByteString -> Result a
 parse m s = runParser m (S s B.empty Incomplete) failK successK

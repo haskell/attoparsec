@@ -1,11 +1,11 @@
 module Main (main) where
 
-import Control.Monad
+import Control.Monad (forM_, mplus)
+import Data.Attoparsec.Char8 hiding (digit, letter)
+import System.Environment (getArgs)
+import qualified Data.Attoparsec.Char8 as A
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
-import Data.Attoparsec.Char8 hiding (digit, letter)
-import qualified Data.Attoparsec.Char8 as A
-import System.Environment
 
 letter :: Parser Char
 letter = satisfy $ \c -> (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
@@ -46,4 +46,4 @@ main = do
     let p1 = many (many1 letter `mplus` many1 digit)
         p2 = many (many1 A.letter `mplus` many1 A.digit)
         p3 = many (letters `mplus` digits)
-    print (parseAll p3 chunks)
+    print (parseAll p1 chunks)

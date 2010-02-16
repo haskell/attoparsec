@@ -80,7 +80,6 @@ module Data.Attoparsec.Char8
     , module Data.Attoparsec.Combinator
     ) where
 
-import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Char (isDigit, isLetter, isSpace, toLower)
 import Data.Attoparsec.FastSet (charClass, memberChar)
@@ -88,12 +87,7 @@ import Data.Word (Word8)
 import qualified Data.Attoparsec.Internal as I
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal
-    (Parser, ParseError, (<?>), parse, parseAt, parseTest, try, endOfInput,
-     lookAhead, string,
-     getInput, getConsumed, takeAll, takeCount, notEmpty, match,
-     endOfLine, setInput)
-import Data.ByteString.Lex.Lazy.Double (readDouble)
-import Prelude hiding (takeWhile)
+import Data.ByteString.Lex.Double (readDouble)
 
 -- | Satisfy a literal string, ignoring case.
 stringCI :: LB.ByteString -> Parser LB.ByteString

@@ -24,10 +24,11 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
-    , module Control.Applicative
+    -- * Inlined implementations of existing functions
+    , many
     ) where
 
-import Control.Applicative
+import Control.Applicative (Alternative(..), Applicative(..), liftA2, (*>), (<$>))
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
 -- until one of them succeeds. Returns the value of the succeeding
@@ -49,6 +50,7 @@ option x p = p <|> pure x
 -- >  word  = many1 letter
 many1 :: Alternative f => f a -> f [a]
 many1 p = liftA2 (:) p (many p)
+{-# INLINE many1 #-}
 
 -- | @sepBy p sep@ applies /zero/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@.
@@ -95,3 +97,9 @@ count n p = sequence (replicate n p)
 eitherP :: (Alternative f) => f a -> f b -> f (Either a b)
 eitherP a b = (Left <$> a) <|> (Right <$> b)
 {-# INLINE eitherP #-}
+
+many :: (Alternative f) => f a -> f [a]
+many v = many_v
+    where many_v = some_v <|> pure []
+	  some_v = (:) <$> v <*> many_v
+{-# INLINE many #-}

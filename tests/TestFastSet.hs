@@ -1,7 +1,7 @@
-module TestFastSet where
+module Main (main) where
 
 import Data.Word (Word8)
-import qualified Data.ParserCombinators.Attoparsec.FastSet as F
+import qualified Data.Attoparsec.FastSet as F
 import System.Random (Random(..), RandomGen)
 import Test.QuickCheck
 

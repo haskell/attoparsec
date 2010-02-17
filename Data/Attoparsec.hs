@@ -37,6 +37,7 @@ module Data.Attoparsec
     -- ** Byte classes
     , I.inClass
     , I.notInClass
+    , takeCount
 
     -- * Efficient string handling
     , I.string

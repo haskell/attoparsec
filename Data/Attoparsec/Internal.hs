@@ -267,18 +267,25 @@ skipWhile p = do
     then (skipWhile p <|> return ())
     else return ()
 
+takeSplit :: (B.ByteString -> (B.ByteString, B.ByteString))
+          -> Parser B.ByteString
+takeSplit split = go
+ where
+  go = do
+    (`when` requireInput) =<< B.null <$> get
+    (h,t) <- split <$> get
+    put t
+    if B.null t
+      then (h+++) `fmapP` (go <|> return B.empty)
+      else return h
+
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
-takeTill p = takeWhile (not . p)
+takeTill = takeSplit . B8.break
 {-# INLINE takeTill #-}
 
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
-takeWhile p = do
-  (`when` requireInput) =<< B.null <$> get
-  (h,t) <- B8.span p <$> get
-  put t
-  if B.null t
-    then (h+++) `fmapP` (takeWhile p <|> return B.empty)
-    else return h
+takeWhile = takeSplit . B8.span
+{-# INLINE takeWhile #-}
 
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do

@@ -278,14 +278,13 @@ takeSplit split = go
     if B.null t
       then (h+++) `fmapP` (go <|> return B.empty)
       else return h
+{-# INLINE takeSplit #-}
 
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
 takeTill = takeSplit . B8.break
-{-# INLINE takeTill #-}
 
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile = takeSplit . B8.span
-{-# INLINE takeWhile #-}
 
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do

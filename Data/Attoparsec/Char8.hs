@@ -74,7 +74,7 @@ import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.ByteString.Internal (c2w, w2c)
-import Data.ByteString.Lex.Double (readDouble)
+-- import Data.ByteString.Lex.Double (readDouble)
 import Data.Char (toLower)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)

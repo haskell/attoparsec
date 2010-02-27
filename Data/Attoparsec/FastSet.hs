@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, MagicHash #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -32,13 +32,14 @@ module Data.Attoparsec.FastSet
     , charClass
     ) where
 
-import Data.Bits ((.&.), (.|.), shiftL, shiftR)
-import qualified Data.ByteString.Char8 as B8
+import Data.Bits ((.&.), (.|.))
+import Foreign.Storable (peekByteOff, pokeByteOff)
+import GHC.Base (Int(I#), iShiftRA#, narrow8Word#, shiftL#)
+import GHC.Word (Word8(W8#))
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Internal as I
 import qualified Data.ByteString.Unsafe as U
-import Data.Word (Word8)
-import Foreign.Storable (peekByteOff, pokeByteOff)
 
 data FastSet = Sorted { fromSet :: !B.ByteString }
              | Table  { fromSet :: !B.ByteString }
@@ -61,14 +62,23 @@ set s | B.length s < tableCutoff = Sorted . B.sort $ s
 fromList :: [Word8] -> FastSet
 fromList = set . B.pack
 
-index :: Int -> (Int, Word8)
-index i = (i `shiftR` 3, 1 `shiftL` (i .&. 7))
+data I = I {-# UNPACK #-} !Int {-# UNPACK #-} !Word8
+
+shiftR :: Int -> Int -> Int
+shiftR (I# x#) (I# i#) = I# (x# `iShiftRA#` i#)
+
+shiftL :: Word8 -> Int -> Word8
+shiftL (W8# x#) (I# i#) = W8# (narrow8Word# (x# `shiftL#` i#))
+
+index :: Int -> I
+index i = I (i `shiftR` 3) (1 `shiftL` (i .&. 7))
+{-# INLINE index #-}
 
 -- | Check the set for membership.
 memberWord8 :: Word8 -> FastSet -> Bool
 memberWord8 w (Table t)  =
-    let (byte,bit) = index (fromIntegral w)
-    in U.unsafeIndex t byte .&. bit /= 0
+    let I byte bit = index (fromIntegral w)
+    in  U.unsafeIndex t byte .&. bit /= 0
 memberWord8 w (Sorted s) = search 0 (B.length s - 1)
     where search lo hi
               | hi < lo = False
@@ -92,7 +102,7 @@ mkTable s = I.unsafeCreate 32 $ \t -> do
               let loop n | n == l = return ()
                          | otherwise = do
                     c <- peekByteOff p n :: IO Word8
-                    let (byte,bit) = index (fromIntegral c)
+                    let I byte bit = index (fromIntegral c)
                     prev <- peekByteOff t byte :: IO Word8
                     pokeByteOff t byte (prev .|. bit)
                     loop (n + 1)

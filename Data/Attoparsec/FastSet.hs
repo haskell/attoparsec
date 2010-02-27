@@ -40,8 +40,8 @@ import qualified Data.ByteString.Unsafe as U
 import Data.Word (Word8)
 import Foreign.Storable (peekByteOff, pokeByteOff)
 
-data FastSet = Sorted { fromSet :: {-# UNPACK #-} !B.ByteString }
-             | Table  { fromSet :: {-# UNPACK #-} !B.ByteString }
+data FastSet = Sorted { fromSet :: !B.ByteString }
+             | Table  { fromSet :: !B.ByteString }
     deriving (Eq, Ord)
 
 instance Show FastSet where
@@ -83,6 +83,7 @@ memberWord8 w (Sorted s) = search 0 (B.length s - 1)
 -- characters above code point 255 will give wrong answers.
 memberChar :: Char -> FastSet -> Bool
 memberChar c = memberWord8 (I.c2w c)
+{-# INLINE memberChar #-}
 
 mkTable :: B.ByteString -> B.ByteString
 mkTable s = I.unsafeCreate 32 $ \t -> do

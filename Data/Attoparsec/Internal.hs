@@ -267,7 +267,6 @@ skipWhile p = do
   if B.null t
     then (skipWhile p <|> return ())
     else return ()
-{-# INLINE skipWhile #-}
 
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
 takeTill p = takeWhile (not . p)
@@ -283,7 +282,6 @@ takeWhile p = go
     if B.null t
       then (h+++) `fmapP` (go <|> return B.empty)
       else return h
-{-# INLINE takeWhile #-}
 
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do
@@ -294,7 +292,6 @@ takeWhile1 p = do
   if B.null t
     then (h+++) `fmapP` (takeWhile p <|> return B.empty)
     else return h
-{-# INLINE takeWhile1 #-}
 
 -- | Match any character in a set.
 --

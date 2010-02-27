@@ -12,16 +12,15 @@ module RFC2616
 
 import Control.Applicative hiding (many)
 import Data.Attoparsec as P
-import Data.Attoparsec.Char8 (char8, endOfLine)
+import Data.Attoparsec.Char8 (char8, endOfLine, isEndOfLine, isHorizontalSpace)
 import Data.Word (Word8)
 import qualified Data.ByteString.Char8 as B
 
 isToken :: Word8 -> Bool
-isToken w = w <= 127 && notInClass "\0-\31()<>@,;:\\\"/[]?={} \t" w
+isToken w = notInClass "\0-\31()<>@,;:\\\"/[]?={} \t\128-\255" w
 
-skipSpaces :: Parser ()
-skipSpaces = satisfy spc *> skipWhile spc
-    where spc = inClass " \t"
+skipHSpaces :: Parser ()
+skipHSpaces = satisfy isHorizontalSpace *> skipWhile isHorizontalSpace
 
 data Request = Request {
       requestMethod   :: !B.ByteString
@@ -31,13 +30,12 @@ data Request = Request {
 
 requestLine :: Parser Request
 requestLine = do
-  method <- P.takeWhile isToken
-  skipSpaces
-  uri <- P.takeWhile (notInClass " \t")
-  skipSpaces >> string "HTTP/"
-  proto <- P.takeWhile (inClass "0-9.")
-  endOfLine
+  method <- P.takeWhile1 isToken <* skipHSpaces
+  uri <- P.takeWhile1 (not . isHorizontalSpace) <* skipHSpaces <* string "HTTP/"
+  proto <- P.takeWhile1 isDigitOrDot <* endOfLine
   return $! Request method uri proto
+ where
+  isDigitOrDot w = (w >= 48 && w <= 57) || w == 46
 
 data Header = Header {
       headerName  :: !B.ByteString
@@ -46,13 +44,10 @@ data Header = Header {
 
 messageHeader :: Parser Header
 messageHeader = do
-  header <- P.takeWhile isToken
-  char8 ':' *> skipSpaces
-  body <- takeTill (inClass "\r\n")
-  endOfLine
-  bodies <- many $ satisfy (inClass " \t") *> skipSpaces *>
-                   takeTill (inClass "\r\n") <* endOfLine
-  return $! Header header (body:bodies)
+  header <- P.takeWhile1 isToken <* char8 ':' <* skipHSpaces
+  body <- takeTill isEndOfLine <* endOfLine
+  conts <- many $ skipHSpaces *> takeTill isEndOfLine <* endOfLine
+  return $! Header header (body:conts)
 
 request :: Parser (Request, [Header])
 request = (,) <$> requestLine <*> many messageHeader <* endOfLine

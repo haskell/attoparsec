@@ -59,6 +59,8 @@ module Data.Attoparsec.Char8
 
     -- * Text parsing
     , I.endOfLine
+    , isEndOfLine
+    , isHorizontalSpace
 
     -- * Numeric parsers
     --, int
@@ -172,6 +174,14 @@ skipWhile p = I.skipWhile (p . w2c)
 skipSpace :: Parser ()
 skipSpace = skipWhile isSpace >> return ()
 {-# INLINE skipSpace #-}
+
+isEndOfLine :: Word8 -> Bool
+isEndOfLine w = w == 13 || w == 10
+{-# INLINE isEndOfLine #-}
+
+isHorizontalSpace :: Word8 -> Bool
+isHorizontalSpace w = w == 32 || w == 9
+{-# INLINE isHorizontalSpace #-}
 
 {-
 numeric :: String -> (B.ByteString -> Maybe (a,B.ByteString)) -> Parser a

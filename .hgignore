@@ -3,12 +3,16 @@ benchmarks/Arse
 benchmarks/Tiny
 
 syntax: glob
-.\#*
-*~
-\#*
+*.aux
 *.hi
+*.hp
 *.o
 *.orig
+*.pdf
 *.prof
+*.ps
 *.rej
+*~
 .*.swp
+.\#*
+\#*

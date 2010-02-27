@@ -20,6 +20,7 @@ module Data.Attoparsec
 
     -- * Running parsers
     , parse
+    , parseWith
     , parseTest
     , feed
 
@@ -46,8 +47,9 @@ module Data.Attoparsec
     , I.takeWhile
     , I.takeWhile1
 
-    -- * State observation functions
+    -- * State observation and manipulation functions
     , I.endOfInput
+    , I.ensure
     ) where
 
 import Data.Attoparsec.Combinator
@@ -55,9 +57,9 @@ import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B
 
-data Result r = Fail B.ByteString [String] String
+data Result r = Fail !B.ByteString [String] String
               | Partial (B.ByteString -> Result r)
-              | Done B.ByteString r
+              | Done !B.ByteString r
 
 instance Show r => Show (Result r) where
     show (Fail bs stk msg) = "Fail " ++ show bs ++ show stk ++ " " ++ show msg
@@ -88,3 +90,13 @@ translate (I.Done st r)       = Done (I.input st) r
 parse :: I.Parser a -> B.ByteString -> Result a
 parse m s = translate (I.parse m s)
 {-# INLINE parse #-}
+
+parseWith :: Monad m =>
+             (m B.ByteString)
+          -> I.Parser a
+          -> B.ByteString
+          -> m (Result a)
+parseWith refill p s = step $ I.parse p s
+  where step (I.Fail st stk msg) = return $! Fail (I.input st) stk msg
+        step (I.Partial k)       = (step . k) =<< refill
+        step (I.Done st r)       = return $! Done (I.input st) r

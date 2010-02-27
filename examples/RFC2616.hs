@@ -32,10 +32,10 @@ requestLine :: Parser Request
 requestLine = do
   method <- P.takeWhile1 isToken <* skipHSpaces
   uri <- P.takeWhile1 (not . isHorizontalSpace) <* skipHSpaces <* string "HTTP/"
-  proto <- P.takeWhile1 isDigitOrDot <* endOfLine
+  proto <- P.takeWhile1 isHttpVersion <* endOfLine
   return $! Request method uri proto
  where
-  isDigitOrDot w = (w >= 48 && w <= 57) || w == 46
+  isHttpVersion w = w == 46 || w == 48 || w == 49
 
 data Header = Header {
       headerName  :: !B.ByteString

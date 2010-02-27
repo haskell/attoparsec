@@ -43,6 +43,7 @@ module Data.Attoparsec
     , I.string
     , I.skipWhile
     , I.stringTransform
+    , I.take
     , I.takeTill
     , I.takeWhile
     , I.takeWhile1

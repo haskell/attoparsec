@@ -1,5 +1,11 @@
-tests: TestFastSet.out
+all: TestFastSet.out QC.out
 
-%.out: %.hs
-	runghc $< > $<.tmp
+%.out: %.exe
+	./$< | tee $<.tmp
 	mv $<.tmp $@
+
+%.exe: %.hs
+	ghc -O -fno-warn-orphans --make -o $@ $<
+
+clean:
+	-rm -f *.hi *.o *.exe *.out

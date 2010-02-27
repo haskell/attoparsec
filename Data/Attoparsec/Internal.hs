@@ -53,9 +53,9 @@ module Data.Attoparsec.Internal
     , takeWhile
     , takeWhile1
 
-    -- * State observation functions
-    , ensure
+    -- * State observation and manipulation functions
     , endOfInput
+    , ensure
 
     -- * Utilities
     , endOfLine
@@ -272,13 +272,15 @@ takeTill p = takeWhile (not . p)
 {-# INLINE takeTill #-}
 
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
-takeWhile p = do
-  (`when` requireInput) =<< B.null <$> get
-  (h,t) <- B8.span p <$> get
-  put t
-  if B.null t
-    then (h+++) `fmapP` (takeWhile p <|> return B.empty)
-    else return h
+takeWhile p = go
+ where
+  go = do
+    (`when` requireInput) =<< B.null <$> get
+    (h,t) <- B8.span p <$> get
+    put t
+    if B.null t
+      then (h+++) `fmapP` (go <|> return B.empty)
+      else return h
 
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do

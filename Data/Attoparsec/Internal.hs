@@ -202,6 +202,7 @@ put s = Parser (\(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
 
 take :: Int -> Parser B.ByteString
 take n = takeWith n (const True)
+{-# INLINE take #-}
 
 (+++) :: B.ByteString -> B.ByteString -> B.ByteString
 (+++) = B.append

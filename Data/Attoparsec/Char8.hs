@@ -31,6 +31,7 @@ module Data.Attoparsec.Char8
     -- * Combinators
     , (I.<?>)
     , I.try
+    , module Data.Attoparsec.Combinator
 
     -- * Parsing individual characters
     , anyChar
@@ -64,11 +65,9 @@ module Data.Attoparsec.Char8
     --, integer
     --, double
 
-    -- * State observation functions
+    -- * State observation and manipulation functions
     , I.endOfInput
-
-    -- * Combinators
-    , module Data.Attoparsec.Combinator
+    , I.ensure
     ) where
 
 import Data.Attoparsec.Combinator

@@ -83,9 +83,9 @@ parseTest :: (Show a) => I.Parser a -> B.ByteString -> IO ()
 parseTest p s = print (parse p s)
 
 translate :: I.Result a -> Result a
-translate (I.Fail s0 a0 c0 stk msg) = Fail s0 stk msg
-translate (I.Partial k)             = Partial (translate . k)
-translate (I.Done s0 a0 c0 r)       = Done s0 r
+translate (I.Fail st stk msg) = Fail (I.input st) stk msg
+translate (I.Partial k)       = Partial (translate . k)
+translate (I.Done st r)       = Done (I.input st) r
 
 parse :: I.Parser a -> B.ByteString -> Result a
 parse m s = translate (I.parse m s)
@@ -97,6 +97,6 @@ parseWith :: Monad m =>
           -> B.ByteString
           -> m (Result a)
 parseWith refill p s = step $ I.parse p s
-  where step (I.Fail s0 a0 c0 stk msg) = return $! Fail s0 stk msg
+  where step (I.Fail st stk msg) = return $! Fail (I.input st) stk msg
         step (I.Partial k)       = (step . k) =<< refill
-        step (I.Done s0 a0 c0 r)       = return $! Done s0 r
+        step (I.Done st r)       = return $! Done (I.input st) r

@@ -1,40 +1,58 @@
 {-# LANGUAGE OverloadedStrings #-}
-module RFC2616 where
 
-import Data.Attoparsec.Incremental.Char8
-import Data.ByteString.Lazy.Char8 (ByteString)
-import qualified Data.ByteString.Lazy.Char8 as L
-import Data.ByteString.Char8 ()
-import Control.Applicative
-import Data.Char
-import Control.Monad
-import Prelude hiding (takeWhile)
-import Data.Time.Clock
-import Data.Time.Format
-import System.Locale
+module RFC2616
+    (
+      Request(..)
+    , Header(..)
+    , isToken
+    , requestLine
+    , messageHeader
+    , request
+    ) where
 
-date = rfc1123Date -- <|> rfc850Date <|> asctimeDate
+import Control.Applicative hiding (many)
+import Data.Attoparsec as P
+import Data.Attoparsec.Char8 (char8, endOfLine)
+import Data.Word (Word8)
+import qualified Data.ByteString.Char8 as B
 
-fallible :: Parser r (Maybe a) -> Parser r a
-fallible p = maybe mzero return =<< p
+isToken :: Word8 -> Bool
+isToken w = w <= 127 && notInClass "\0-\31()<>@,;:\\\"/[]?={} \t" w
 
-rfc1123Date :: Parser r UTCTime
-rfc1123Date =
-  fallible (q <$> (manyTill anyChar (string " GMT")))
-    <?> "RFC1123 date"
-  where q = parseTime defaultTimeLocale "%a, %d %b %Y %T"
+skipSpaces :: Parser ()
+skipSpaces = satisfy spc *> skipWhile spc
+    where spc = inClass " \t"
 
-time = liftA3 (,,) (d <* c) (d <* c) d <?> "time"
-    where d = replicateM 2 (satisfy isDigit)
-          c = char ':'
+data Request = Request {
+      requestMethod   :: !B.ByteString
+    , requestUri      :: !B.ByteString
+    , requestProtocol :: !B.ByteString
+    } deriving (Eq, Ord, Show)
 
-eol = (char '\n' *> pure Nothing) <|> (string "\r\n" *> pure Nothing)
+requestLine :: Parser Request
+requestLine = do
+  method <- P.takeWhile isToken
+  skipSpaces
+  uri <- P.takeWhile (notInClass " \t")
+  skipSpaces >> string "HTTP/"
+  proto <- P.takeWhile (inClass "0-9.")
+  endOfLine
+  return $! Request method uri proto
 
-header =
-    (,) <$> (takeWhile fieldChar <* char ':' <* skipWhile space)
-        <*> ((:) <$> tillEOL <*> many cont)
-    where tillEOL = takeTill newline <* eol
-          newline c = c == '\r' || c == '\n'
-          fieldChar c = c /= ':' && c >= '!' && c <= '~' 
-          cont = some (satisfy space) *> tillEOL
-          space c = c == ' ' || c == '\t'
+data Header = Header {
+      headerName  :: !B.ByteString
+    , headerValue :: [B.ByteString]
+    } deriving (Eq, Ord, Show)
+
+messageHeader :: Parser Header
+messageHeader = do
+  header <- P.takeWhile isToken
+  char8 ':' *> skipSpaces
+  body <- takeTill (inClass "\r\n")
+  endOfLine
+  bodies <- many $ satisfy (inClass " \t") *> skipSpaces *>
+                   takeTill (inClass "\r\n") <* endOfLine
+  return $! Header header (body:bodies)
+
+request :: Parser (Request, [Header])
+request = (,) <$> requestLine <*> many messageHeader <* endOfLine

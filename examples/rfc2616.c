@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #include "http_parser.h"
-
+    
 struct http_string {
     size_t len;
     char value[0];
@@ -43,6 +43,11 @@ struct http_request {
     struct http_string *method;
     struct http_string *uri;
     struct http_header *headers, *last;
+};
+
+struct data {
+    size_t count;
+    struct http_request req;
 };
   
 static void *xmalloc(size_t size)
@@ -83,16 +88,9 @@ static void xstrcat(struct http_string **dst, const char *src, size_t len)
 
 static int begin(http_parser *p)
 {
-#ifdef LOOK_BUSY
-    struct http_request *req = xmalloc(sizeof(*req));
+    struct data *data = p->data;
 
-    req->method = NULL;
-    req->uri = NULL;
-    req->headers = NULL;
-    req->last = NULL;
-
-    p->data = req;
-#endif
+    data->count++;
 
     return 0;
 }
@@ -100,9 +98,9 @@ static int begin(http_parser *p)
 static int url(http_parser *p, const char *at, size_t len)
 {
 #ifdef LOOK_BUSY
-    struct http_request *req = p->data;    
+    struct data *data = p->data;    
 
-    xstrcat(&req->uri, at, len);
+    xstrcat(&data->req.uri, at, len);
 #endif
 
     return 0;
@@ -111,10 +109,10 @@ static int url(http_parser *p, const char *at, size_t len)
 static int header_field(http_parser *p, const char *at, size_t len)
 {
 #ifdef LOOK_BUSY
-    struct http_request *req = p->data;
+    struct data *data = p->data;
 
-    if (req->last && req->last->value == NULL) {
-	xstrcat(&req->last->name, at, len);
+    if (data->req.last && data->req.last->value == NULL) {
+	xstrcat(&data->req.last->name, at, len);
     } else {
 	struct http_header *hdr = xmalloc(sizeof(*hdr));
 
@@ -122,11 +120,11 @@ static int header_field(http_parser *p, const char *at, size_t len)
 	hdr->value = NULL;
 	hdr->next = NULL;
     
-	if (req->last)
-	    req->last->next = hdr;
-	req->last = hdr;
-	if (req->headers == NULL)
-	    req->headers = hdr;
+	if (data->req.last != NULL)
+	    data->req.last->next = hdr;
+	data->req.last = hdr;
+	if (data->req.headers == NULL)
+	    data->req.headers = hdr;
     }
 #endif
 
@@ -136,9 +134,9 @@ static int header_field(http_parser *p, const char *at, size_t len)
 static int header_value(http_parser *p, const char *at, size_t len)
 {
 #ifdef LOOK_BUSY
-    struct http_request *req = p->data;
+    struct data *data = p->data;
 
-    xstrcat(&req->last->value, at, len);
+    xstrcat(&data->req.last->value, at, len);
 #endif
 
     return 0;
@@ -147,13 +145,13 @@ static int header_value(http_parser *p, const char *at, size_t len)
 static int complete(http_parser *p)
 {
 #ifdef LOOK_BUSY
-    struct http_request *req = p->data;
+    struct data *data = p->data;
     struct http_header *hdr, *next;
 
-    free(req->method);
-    free(req->uri);
+    free(data->req.method);
+    free(data->req.uri);
 	
-    for (hdr = req->headers; hdr != NULL; hdr = next) {
+    for (hdr = data->req.headers; hdr != NULL; hdr = next) {
 	next = hdr->next;
 	free(hdr->name);
 	free(hdr->value);
@@ -161,7 +159,10 @@ static int complete(http_parser *p)
 	hdr = next;
     }
 
-    free(req);
+    data->req.method = NULL;
+    data->req.uri = NULL;
+    data->req.headers = NULL;
+    data->req.last = NULL;
 #endif
     
     /* Bludgeon http_parser into understanding that we really want to
@@ -178,6 +179,7 @@ static int complete(http_parser *p)
 
 static void parse(const char *path, int fd)
 {
+    struct data data;
     http_parser p;
     ssize_t nread;
 
@@ -187,6 +189,12 @@ static void parse(const char *path, int fd)
     p.on_header_field = header_field;
     p.on_header_value = header_value;
     p.on_message_complete = complete;
+    p.data = &data;
+    data.count = 0;
+    data.req.method = NULL;
+    data.req.uri = NULL;
+    data.req.headers = NULL;
+    data.req.last = NULL;
 
     do {
 	char buf[HTTP_MAX_HEADER_SIZE];
@@ -200,6 +208,8 @@ static void parse(const char *path, int fd)
 	    break;
 	}
     } while (nread > 0);
+
+    printf("%ld\n", (unsigned long) data.count);
 }
 
 int main(int argc, char **argv)

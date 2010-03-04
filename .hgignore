@@ -1,6 +1,7 @@
 ^dist$
 benchmarks/Arse
-benchmarks/Tiny
+benchmarks/med.txt
+benchmarks/tiny
 
 syntax: glob
 *.aux

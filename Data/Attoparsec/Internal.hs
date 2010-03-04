@@ -144,7 +144,8 @@ noAdds (S s0 _a0 c0) = S s0 B.empty c0
 plus :: Parser a -> Parser a -> Parser a
 plus a b = Parser $ \st0 kf ks ->
            let kf' st1 _ _ = runParser b (mappend st0 st1) kf ks
-           in  runParser a (noAdds st0) kf' ks
+               !st2 = noAdds st0
+           in  runParser a st2 kf' ks
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -171,7 +172,7 @@ instance Applicative Parser where
 
 instance Alternative Parser where
     empty = failDesc "empty"
-    (<|>) = mplus
+    (<|>) = plus
 
 failDesc :: String -> Parser a
 failDesc err = Parser (\st0 kf _ks -> kf st0 [] msg)
@@ -220,7 +221,6 @@ satisfy p = do
   if p w
     then put (B.unsafeTail s) >> return w
     else fail "satisfy"
-{-# INLINE satisfy #-}
 
 -- | Character parser.
 satisfyWith :: (Word8 -> a) -> (a -> Bool) -> Parser a
@@ -231,7 +231,6 @@ satisfyWith f p = do
   if p c
     then put (B.unsafeTail s) >> return c
     else fail "satisfyWith"
-{-# INLINE satisfyWith #-}
 
 storable :: Storable a => Parser a
 storable = hack undefined

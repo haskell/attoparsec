@@ -1,9 +1,10 @@
-import Control.Monad
-import System.Environment
+import Control.Applicative ((<|>))
+import Control.Monad (forM_)
+import System.Environment (getArgs)
 import qualified Data.Attoparsec.Char8 as A
-import qualified Text.ParserCombinators.Parsec as P
 import qualified Data.ByteString.Char8 as B
-import Control.Applicative
+import qualified Text.Parsec as P
+import qualified Text.Parsec.ByteString as P
 
 mainA = do
   args <- getArgs
@@ -22,4 +23,4 @@ mainP = do
       Left err -> print err
       Right xs -> print (length xs)
 
-main = mainA
+main = mainP

@@ -7,4 +7,4 @@ tiny: Tiny.hs
 	bunzip2 -k $<
 
 clean:
-	-rm -f *.o *.hi
+	-rm -f *.o *.hi tiny

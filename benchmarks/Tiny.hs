@@ -6,16 +6,21 @@ import qualified Data.ByteString.Char8 as B
 import qualified Text.Parsec as P
 import qualified Text.Parsec.ByteString as P
 
-mainA = do
+attoparsec = do
   args <- getArgs
   forM_ args $ \arg -> do
     input <- B.readFile arg
-    let p = A.parse (A.many (A.many1 A.letter <|> A.many1 A.digit)) input
-    case p `A.feed` B.empty of
+    case A.parse p input `A.feed` B.empty of
       A.Done _ xs -> print (length xs)
       what        -> print what
+ where
+  slow = A.many (A.many1 A.letter <|> A.many1 A.digit)
+  fast = A.many (A.takeWhile1 isLetter <|> A.takeWhile1 isDigit)
+  isDigit c  = c >= '0' && c <= '9'
+  isLetter c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+  p = fast
 
-mainP = do
+parsec = do
   args <- getArgs
   forM_ args $ \arg -> do
     input <- readFile arg
@@ -23,4 +28,4 @@ mainP = do
       Left err -> print err
       Right xs -> print (length xs)
 
-main = mainP
+main = attoparsec

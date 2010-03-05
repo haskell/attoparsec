@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
 import Control.Monad (forM_)
@@ -10,6 +11,7 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (NonEmpty)
 import qualified Data.Attoparsec as P
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 
 -- Make sure that structures whose types claim they are non-empty
 -- really are.
@@ -63,9 +65,10 @@ takeWhile (w,s) =
          P.Done t' h' -> t == t' && h == h'
          _            -> False
 
-takeWhile1 (w, NonEmpty s) =
-    let (h,t) = B.span (==w) s
-    in case defP (P.takeWhile1 (==w)) s of
+takeWhile1 (w, s) =
+    let s'    = B.cons w s
+        (h,t) = B.span (<=w) s'
+    in case defP (P.takeWhile1 (<=w)) s' of
          P.Done t' h' -> t == t' && h == h'
          _            -> False
 

@@ -63,9 +63,10 @@ data Result r = Fail !B.ByteString [String] String
               | Done !B.ByteString r
 
 instance Show r => Show (Result r) where
-    show (Fail bs stk msg) = "Fail " ++ show bs ++ show stk ++ " " ++ show msg
-    show (Partial _)        = "Partial _"
-    show (Done bs r)        = "Done " ++ show bs ++ " " ++ show r
+    show (Fail bs stk msg) =
+        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
+    show (Partial _)       = "Partial _"
+    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
 
 feed :: Result r -> B.ByteString -> Result r
 feed f@(Fail _ _ _) _ = f

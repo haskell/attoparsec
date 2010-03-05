@@ -183,17 +183,28 @@ ensure :: Int -> Parser ()
 ensure n = Parser $ \st0@(S s0 _a0 _c0) kf ks ->
     if B.length s0 >= n
     then ks st0 ()
-    else runParser (requireInput >> ensure n) st0 kf ks
+    else runParser (demandInput >> ensure n) st0 kf ks
 
-requireInput :: Parser ()
-requireInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
+demandInput :: Parser ()
+demandInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
     if c0 == Complete
-    then kf st0 ["requireInput"] "not enough bytes"
+    then kf st0 ["demandInput"] "not enough bytes"
     else Partial $ \s ->
          if B.null s
-         then kf (S s0 a0 Complete) ["requireInput"] "not enough bytes"
+         then kf (S s0 a0 Complete) ["demandInput"] "not enough bytes"
          else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
               in  ks st1 ()
+
+wantInput :: Parser Bool
+wantInput = Parser $ \st0@(S s0 a0 c0) _kf ks ->
+  case undefined of
+    _ | not (B.null s0) -> ks st0 True
+      | c0 == Complete  -> ks st0 False
+      | otherwise       -> Partial $ \s ->
+                           if B.null s
+                           then ks st0 False
+                           else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
+                                in  ks st1 True
 
 get :: Parser B.ByteString
 get  = Parser (\st0 _kf ks -> ks st0 (input st0))
@@ -259,13 +270,14 @@ stringTransform f s = takeWith (B.length s) ((==s) . f)
 {-# INLINE stringTransform #-}
 
 skipWhile :: (Word8 -> Bool) -> Parser ()
-skipWhile p = do
-  (`when` requireInput) =<< B.null <$> get
-  t <- B8.dropWhile p <$> get
-  put t
-  if B.null t
-    then (skipWhile p <|> return ())
-    else return ()
+skipWhile p = go
+ where
+  go = do
+    input <- wantInput
+    when input $ do
+      t <- B8.dropWhile p <$> get
+      put t
+      when (B.null t) go
 
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
 takeTill p = takeWhile (not . p)
@@ -275,21 +287,24 @@ takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile p = go
  where
   go = do
-    (`when` requireInput) =<< B.null <$> get
-    (h,t) <- B8.span p <$> get
-    put t
-    if B.null t
-      then (h+++) `fmapP` (go <|> return B.empty)
-      else return h
+    input <- wantInput
+    if input
+      then do
+        (h,t) <- B8.span p <$> get
+        put t
+        if B.null t
+          then (h+++) `fmapP` go
+          else return h
+      else return B.empty
 
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do
-  (`when` requireInput) =<< B.null <$> get
+  (`when` demandInput) =<< B.null <$> get
   (h,t) <- B8.span p <$> get
   when (B.null h) $ failDesc "takeWhile1"
   put t
   if B.null t
-    then (h+++) `fmapP` (takeWhile p <|> return B.empty)
+    then (h+++) `fmapP` takeWhile p
     else return h
 
 -- | Match any character in a set.
@@ -334,7 +349,7 @@ endOfInput = Parser $ \st0@S{..} kf ks ->
                   then ks st0 ()
                   else let kf' st1 _ _ = ks (mappend st0 st1) ()
                            ks' st1 _   = kf (mappend st0 st1) [] "endOfInput"
-                       in  runParser requireInput st0 kf' ks'
+                       in  runParser demandInput st0 kf' ks'
              else kf st0 [] "endOfInput"
                                                
 endOfLine :: Parser ()

@@ -1,4 +1,3 @@
------------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.Char8
 -- Copyright   :  Bryan O'Sullivan 2007-2010
@@ -16,7 +15,6 @@
 -- ISO-8859-15.  It /does not/ deal with character encodings,
 -- multibyte characters, or wide characters.  Any attempts to use
 -- characters above code point 255 will give wrong answers.
------------------------------------------------------------------------------
 module Data.Attoparsec.Char8
     (
     -- * Parser types

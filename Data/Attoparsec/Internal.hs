@@ -1,5 +1,4 @@
 {-# LANGUAGE Rank2Types, RecordWildCards #-}
------------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2010
@@ -9,10 +8,9 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for 'bB.ByteString' strings,
--- loosely based on 'Text.ParserCombinators.Parsec'.
--- 
------------------------------------------------------------------------------
+-- Simple, efficient parser combinators for 'B.ByteString' strings,
+-- loosely based on the Parsec library.
+
 module Data.Attoparsec.Internal
     (
     -- * Parser types
@@ -80,7 +78,7 @@ data Result r = Fail S [String] String
               | Partial (B.ByteString -> Result r)
               | Done S r
 
--- | The Parser monad is an Exception and State monad.
+-- | The 'Parser' type is a monad.
 newtype Parser a = Parser {
       runParser :: forall r. S
                 -> Failure   r
@@ -91,6 +89,7 @@ newtype Parser a = Parser {
 type Failure   r = S -> [String] -> String -> Result r
 type Success a r = S -> a -> Result r
 
+-- | Have we read all available input?
 data More = Complete | Incomplete
             deriving (Eq, Show)
 

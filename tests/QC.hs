@@ -1,101 +1,97 @@
 module Main (main) where
 
-import Control.Applicative
-import Data.Attoparsec as P
-import Data.List (isInfixOf)
+import Control.Monad (forM_)
 import Data.Maybe (isJust)
 import Data.Word (Word8)
-import Control.Monad (forM_)
-import Debug.Trace
-import System.IO
-import Test.QuickCheck hiding (NonEmpty)
-import qualified Data.ByteString as B
-import System.Environment
+import Prelude hiding (takeWhile)
 import QCSupport
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.QuickCheck hiding (NonEmpty)
+import qualified Data.Attoparsec as P
+import qualified Data.ByteString as B
 
 -- Make sure that structures whose types claim they are non-empty
 -- really are.
 
-prop_nonEmptyList l = length (nonEmpty l) > 0
+nonEmptyList l = length (nonEmpty l) > 0
     where types = l :: NonEmpty [Int]
-prop_nonEmptyBS l = B.length (nonEmpty l) > 0
+nonEmptyBS l = B.length (nonEmpty l) > 0
 
 -- Naming.
 
 {-
-prop_label (NonEmpty s) = case parse (anyWord8 <?> s) B.empty of
+label (NonEmpty s) = case parse (anyWord8 <?> s) B.empty of
                             (_, Left err) -> s `isInfixOf` err
                             _             -> False
 -}
 
 -- Basic byte-level combinators.
 
-maybeP p s = case parse p s `feed` B.empty of
-               Done _ i -> Just i
-               _        -> Nothing
+maybeP p s = case P.parse p s `P.feed` B.empty of
+               P.Done _ i -> Just i
+               _          -> Nothing
 
-defP p s = parse p s `feed` B.empty
+defP p s = P.parse p s `P.feed` B.empty
 
-prop_word8 (NonEmpty s) = maybeP (word8 w) s == Just w
+word8 (NonEmpty s) = maybeP (P.word8 w) s == Just w
     where w = B.head s
 
-prop_anyWord8 (NonEmpty s) = isJust $ maybeP anyWord8 s
+anyWord8 (NonEmpty s) = isJust $ maybeP P.anyWord8 s
 
-prop_notWord8 (w, NonEmpty s) = v /= w ==> maybeP (notWord8 w) s == Just v
+notWord8 (w, NonEmpty s) = v /= w ==> maybeP (P.notWord8 w) s == Just v
     where v = B.head s
 
-prop_string s = maybeP (string s) s == Just s
+string s = maybeP (P.string s) s == Just s
 
-prop_skipWhile (w,s) =
+skipWhile (w,s) =
     let (h,t) = B.span (==w) s
-    in case defP (skipWhile (==w)) s of
-         Done t' () -> t == t'
-         _          -> False
+    in case defP (P.skipWhile (==w)) s of
+         P.Done t' () -> t == t'
+         _            -> False
 
-prop_takeCount (k,s) =
+takeCount (k,s) =
     k >= 0 ==>
     case maybeP (P.take k) s of
       Nothing -> j > B.length s
       Just s' -> j <= B.length s
   where j = fromIntegral k
 
-prop_takeWhile (w,s) =
+takeWhile (w,s) =
     let (h,t) = B.span (==w) s
     in case defP (P.takeWhile (==w)) s of
-         Done t' h' -> t == t' && h == h'
-         _          -> False
+         P.Done t' h' -> t == t' && h == h'
+         _            -> False
 
-prop_takeWhile1 (w, NonEmpty s) =
+takeWhile1 (w, NonEmpty s) =
     let (h,t) = B.span (==w) s
     in case defP (P.takeWhile1 (==w)) s of
-         Done t' h' -> t == t' && h == h'
-         _          -> False
+         P.Done t' h' -> t == t' && h == h'
+         _            -> False
 
-prop_takeTill (w, s) =
+takeTill (w, s) =
     let (h,t) = B.break (==w) s
     in case defP (P.takeTill (==w)) s of
-         Done t' h' -> t == t' && h == h'
-         _          -> False
+         P.Done t' h' -> t == t' && h == h'
+         _            -> False
 
-prop_takeWhile1_empty = maybeP (P.takeWhile1 undefined) B.empty == Nothing
+takeWhile1_empty = maybeP (P.takeWhile1 undefined) B.empty == Nothing
 
 main = defaultMain tests
 
 tests = [
   testGroup "fnord" [
-    testProperty "nonEmptyList" prop_nonEmptyList,
-    testProperty "nonEmptyBS" prop_nonEmptyBS,
-    testProperty "word8" prop_word8,
-    testProperty "notWord8" prop_notWord8,
-    testProperty "anyWord8" prop_anyWord8,
-    testProperty "string" prop_string,
-    testProperty "skipWhile" prop_skipWhile,
-    testProperty "takeCount" prop_takeCount,
-    testProperty "takeWhile" prop_takeWhile,
-    testProperty "takeWhile1" prop_takeWhile1,
-    testProperty "takeWhile1_empty" prop_takeWhile1_empty,
-    testProperty "takeTill" prop_takeTill
+    testProperty "nonEmptyList" nonEmptyList,
+    testProperty "nonEmptyBS" nonEmptyBS,
+    testProperty "word8" word8,
+    testProperty "notWord8" notWord8,
+    testProperty "anyWord8" anyWord8,
+    testProperty "string" string,
+    testProperty "skipWhile" skipWhile,
+    testProperty "takeCount" takeCount,
+    testProperty "takeWhile" takeWhile,
+    testProperty "takeWhile1" takeWhile1,
+    testProperty "takeWhile1_empty" takeWhile1_empty,
+    testProperty "takeTill" takeTill
     ]
   ]

@@ -61,6 +61,7 @@ module Data.Attoparsec.Char8
     , isHorizontalSpace
 
     -- * Numeric parsers
+    , hexNumber
     --, int
     --, integer
     --, double
@@ -75,16 +76,20 @@ import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.ByteString.Internal (c2w, w2c)
 -- import Data.ByteString.Lex.Double (readDouble)
-import Data.Char (toLower)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec as A
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString as B8
+
+toLower :: Word8 -> Word8
+toLower w | w >= 65 && w <= 90 = w + 32
+          | otherwise          = w
 
 -- | Satisfy a literal string, ignoring case.
 stringCI :: B.ByteString -> Parser B.ByteString
-stringCI = I.stringTransform (B.map toLower)
+stringCI = I.stringTransform (B8.map toLower)
 {-# INLINE stringCI #-}
 
 takeWhile1 :: (Char -> Bool) -> Parser B.ByteString
@@ -201,3 +206,14 @@ integer = numeric "Integer" B.readInteger
 double :: Parser Double
 double = numeric "Double" readDouble
 -}
+
+hexNumber :: Integral a => Parser a
+{-# SPECIALISE hexNumber :: Parser Int #-}
+hexNumber = fromHex `fmap` I.takeWhile1 isHexDigit
+  where isHexDigit w = (w >= 48 && w <= 57) || (x >= 97 && x <= 102)
+            where x = toLower w
+        fromHex = B8.foldl' step 0
+        step a w | w >= 48 && w <= 57  = a * 16 + fromIntegral (w - 48)
+                 | x >= 97 && x <= 102 = a * 16 + fromIntegral (x - 87)
+                 | otherwise           = error "impossible"
+            where x = toLower w

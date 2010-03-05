@@ -7,7 +7,7 @@ import System.Environment
 import qualified Data.ByteString.Char8 as B
 import Data.Attoparsec
 
-refill h = B.hGet h 4096
+refill h = B.hGet h (4*1024)
 
 listy file h = do
   r <- parseWith (refill h) (many request) =<< refill h

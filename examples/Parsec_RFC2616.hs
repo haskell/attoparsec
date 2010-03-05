@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleContexts #-}
 
 module Main (main) where
 
@@ -6,12 +6,18 @@ import Control.Applicative
 import Control.Exception (bracket)
 import System.Environment (getArgs)
 import System.IO (hClose, openFile, IOMode(ReadMode))
-import Text.Parsec.ByteString (Parser, parseFromFile)
 import Text.Parsec.Char (anyChar, char, satisfy, string)
 import Text.Parsec.Combinator (many1, manyTill, skipMany1)
 import Text.Parsec.Prim hiding (many, token, (<|>))
-import qualified Data.ByteString as B
 import qualified Data.IntSet as S
+
+#if 1
+import Text.Parsec.ByteString.Lazy (Parser, parseFromFile)
+import qualified Data.ByteString.Lazy as B
+#else
+import Text.Parsec.ByteString (Parser, parseFromFile)
+import qualified Data.ByteString as B
+#endif
 
 token :: Stream s m Char => ParsecT s u m Char
 token = satisfy $ \c -> S.notMember (fromEnum c) set

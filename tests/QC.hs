@@ -36,28 +36,31 @@ maybeP p s = case P.parse p s `P.feed` B.empty of
 
 defP p s = P.parse p s `P.feed` B.empty
 
-word8 (NonEmpty s) = maybeP (P.word8 w) s == Just w
-    where w = B.head s
+satisfy (w,s) = maybeP (P.satisfy (<=w)) (B.cons w s) == Just w
 
-anyWord8 (NonEmpty s) = isJust $ maybeP P.anyWord8 s
+word8 (w,s) = maybeP (P.word8 w) (B.cons w s) == Just w
 
-notWord8 (w, NonEmpty s) = v /= w ==> maybeP (P.notWord8 w) s == Just v
+anyWord8 s = maybeP P.anyWord8 s == if B.null s
+                                    then Nothing
+                                    else Just (B.head s)
+
+notWord8 (w, NonEmpty s) = maybeP (P.notWord8 w) s == if v == w
+                                                      then Nothing
+                                                      else Just v
     where v = B.head s
 
 string s = maybeP (P.string s) s == Just s
 
 skipWhile (w,s) =
-    let (h,t) = B.span (==w) s
-    in case defP (P.skipWhile (==w)) s of
+    let t = B.dropWhile (<=w) s
+    in case defP (P.skipWhile (<=w)) s of
          P.Done t' () -> t == t'
          _            -> False
 
-takeCount (k,s) =
-    k >= 0 ==>
+takeCount (Positive k,s) =
     case maybeP (P.take k) s of
-      Nothing -> j > B.length s
-      Just s' -> j <= B.length s
-  where j = fromIntegral k
+      Nothing -> k > B.length s
+      Just s' -> k <= B.length s
 
 takeWhile (w,s) =
     let (h,t) = B.span (==w) s
@@ -80,12 +83,17 @@ takeTill (w, s) =
 
 takeWhile1_empty = maybeP (P.takeWhile1 undefined) B.empty == Nothing
 
+endOfInput s = maybeP P.endOfInput s == if B.null s
+                                        then Just ()
+                                        else Nothing
+
 main = defaultMain tests
 
 tests = [
   testGroup "fnord" [
     testProperty "nonEmptyList" nonEmptyList,
     testProperty "nonEmptyBS" nonEmptyBS,
+    testProperty "satisfy" satisfy,
     testProperty "word8" word8,
     testProperty "notWord8" notWord8,
     testProperty "anyWord8" anyWord8,
@@ -95,6 +103,7 @@ tests = [
     testProperty "takeWhile" takeWhile,
     testProperty "takeWhile1" takeWhile1,
     testProperty "takeWhile1_empty" takeWhile1_empty,
-    testProperty "takeTill" takeTill
+    testProperty "takeTill" takeTill,
+    testProperty "endOfInput" endOfInput
     ]
   ]

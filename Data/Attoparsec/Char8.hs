@@ -9,17 +9,12 @@
 --
 -- Simple, efficient, character-oriented combinator parsing for
 -- 'B.ByteString' strings, loosely based on the Parsec library.
--- 
--- /Note/: This module is intended for parsing text that is
--- represented using an 8-bit character set, e.g. ASCII or
--- ISO-8859-15.  It /does not/ make any attempt to deal with character
--- encodings, multibyte characters, or wide characters.  In
--- particular, all attempts to use characters above code point U+00FF
--- will give wrong answers.  Characters below U+00FF are simply
--- translated to and from the byte values of their Unicode code
--- points.
+
 module Data.Attoparsec.Char8
     (
+    -- * Character encodings
+    -- $encodings
+
     -- * Parser types
       Parser
     , A.Result(..)
@@ -93,6 +88,21 @@ import qualified Data.Attoparsec as A
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
+
+-- $encodings
+--
+-- This module is intended for parsing text that is
+-- represented using an 8-bit character set, e.g. ASCII or
+-- ISO-8859-15.  It /does not/ make any attempt to deal with character
+-- encodings, multibyte characters, or wide characters.  In
+-- particular, all attempts to use characters above code point U+00FF
+-- will give wrong answers.
+--
+-- Code points below U+0100 are simply translated to and from their
+-- numeric values, so e.g. the code point U+00A4 becomes the byte
+-- @0xA4@ (which is the Euro symbol in ISO-8859-15, but the generic
+-- currency sign in ISO-8859-1).  Haskell 'Char' values above U+00FF
+-- are truncated, so e.g. U+1D6B7 is truncated to the byte @0xB7@.
 
 -- ASCII-specific but fast, oh yes.
 toLower :: Word8 -> Word8

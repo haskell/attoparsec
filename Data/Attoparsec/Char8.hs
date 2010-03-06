@@ -7,7 +7,7 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient, character-oriented parser combinators for
+-- Simple, efficient, character-oriented combinator parsing for
 -- 'B.ByteString' strings, loosely based on the Parsec library.
 -- 
 -- /Note/: This module is intended for parsing text that is

@@ -7,7 +7,7 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for 'B.ByteString' strings,
+-- Simple, efficient combinator parsing for 'B.ByteString' strings,
 -- loosely based on the Parsec library.
 
 module Data.Attoparsec
@@ -64,9 +64,9 @@ data Result r = Fail !B.ByteString [String] String
               -- in which the error occurred.  The 'String' is the
               -- message describing the error, if any.
               | Partial (B.ByteString -> Result r)
-              -- ^ Pass this continuation more input so that the
-              -- parser can resume.  Pass it an 'B.empty' string to
-              -- indicate that no more input is available.
+              -- ^ Supply this continuation with more input so that
+              -- the parser can resume.  To indicate that no more
+              -- input is available, use an 'B.empty' string.
               | Done !B.ByteString r
               -- ^ The parse succeeded.  The 'B.ByteString' is the
               -- input that had not yet been consumed (if any) when

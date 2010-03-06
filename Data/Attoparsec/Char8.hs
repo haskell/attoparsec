@@ -12,9 +12,12 @@
 -- 
 -- /Note/: This module is intended for parsing text that is
 -- represented using an 8-bit character set, e.g. ASCII or
--- ISO-8859-15.  It /does not/ deal with character encodings,
--- multibyte characters, or wide characters.  Any attempts to use
--- characters above code point 255 will give wrong answers.
+-- ISO-8859-15.  It /does not/ make any attempt to deal with character
+-- encodings, multibyte characters, or wide characters.  In
+-- particular, all attempts to use characters above code point U+00FF
+-- will give wrong answers.  Characters below U+00FF are simply
+-- translated to and from the byte values of their Unicode code
+-- points.
 module Data.Attoparsec.Char8
     (
     -- * Parser types
@@ -32,16 +35,24 @@ module Data.Attoparsec.Char8
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual characters
-    , anyChar
-    , char
-    , char8
-    , digit
-    , letter
-    , notChar
-    , space
     , satisfy
+    , char
+    , anyChar
+    , char8
+    , notChar
 
-    -- ** Character classes
+    -- ** Special character parsers
+    , digit
+    , letter_iso8859_15
+    , letter_ascii
+    , space
+
+    -- ** Fast predicates
+    , isDigit
+    , isAlpha_iso8859_15
+    , isAlpha_ascii
+
+    -- *** Character classes
     , inClass
     , notInClass
 
@@ -50,7 +61,7 @@ module Data.Attoparsec.Char8
     , stringCI
     , skipSpace
     , skipWhile
-    , take
+    , I.take
     , takeTill
     , takeWhile
     , takeWhile1
@@ -61,9 +72,9 @@ module Data.Attoparsec.Char8
     , isHorizontalSpace
 
     -- * Numeric parsers
-    , hexNumber
-    --, int
-    --, integer
+    , decimal
+    , hexadecimal
+    , signed
     --, double
 
     -- * State observation and manipulation functions
@@ -71,18 +82,19 @@ module Data.Attoparsec.Char8
     , I.ensure
     ) where
 
+import Control.Applicative ((*>), (<$>), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.ByteString.Internal (c2w, w2c)
--- import Data.ByteString.Lex.Double (readDouble)
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec as A
 import qualified Data.Attoparsec.Internal as I
-import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString as B8
+import qualified Data.ByteString.Char8 as B
 
+-- ASCII-specific but fast, oh yes.
 toLower :: Word8 -> Word8
 toLower w | w >= 65 && w <= 90 = w + 32
           | otherwise          = w
@@ -92,33 +104,90 @@ stringCI :: B.ByteString -> Parser B.ByteString
 stringCI = I.stringTransform (B8.map toLower)
 {-# INLINE stringCI #-}
 
+-- | Consume input as long as the predicate returns 'True', and return
+-- the consumed input.
+--
+-- This parser requires the predicate to succeed on at least one byte
+-- of input: it will fail if the predicate never returns 'True' or if
+-- there is no input left.
 takeWhile1 :: (Char -> Bool) -> Parser B.ByteString
 takeWhile1 p = I.takeWhile1 (p . w2c)
 {-# INLINE takeWhile1 #-}
 
--- | Character parser.
+-- | The parser @satisfy p@ succeeds for any byte for which the
+-- predicate @p@ returns 'True'. Returns the byte that is actually
+-- parsed.
+--
+-- >digit = satisfy isDigit
+-- >    where isDigit c = c >= '0' && c <= '9'
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy = I.satisfyWith w2c
 {-# INLINE satisfy #-}
 
-letter :: Parser Char
-letter = satisfy isLetter <?> "letter"
-  where isLetter c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-{-# INLINE letter #-}
+-- | Match a letter, in the ISO-8859-15 encoding.
+letter_iso8859_15 :: Parser Char
+letter_iso8859_15 = satisfy isAlpha_iso8859_15 <?> "letter_iso8859_15"
+{-# INLINE letter_iso8859_15 #-}
 
+-- | Match a letter, in the ASCII encoding.
+letter_ascii :: Parser Char
+letter_ascii = satisfy isAlpha_ascii <?> "letter_ascii"
+{-# INLINE letter_ascii #-}
+
+-- | A fast alphabetic predicate for the ISO-8859-15 encoding
+--
+-- /Note/: For all character encodings other than ISO-8859-15, and
+-- almost all Unicode code points above U+00A3, this predicate gives
+-- /wrong answers/.
+isAlpha_iso8859_15 :: Char -> Bool
+isAlpha_iso8859_15 c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                       (c >= '\166' && moby c)
+  where moby = notInClass "\167\169\171-\179\182\183\185\187\191\215\247"
+        {-# NOINLINE moby #-}
+{-# INLINE isAlpha_iso8859_15 #-}
+
+-- | A fast alphabetic predicate for the ASCII encoding
+--
+-- /Note/: For all character encodings other than ASCII, and
+-- almost all Unicode code points above U+007F, this predicate gives
+-- /wrong answers/.
+isAlpha_ascii :: Char -> Bool
+isAlpha_ascii c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+{-# INLINE isAlpha_ascii #-}
+
+-- | Parse a single digit.
 digit :: Parser Char
 digit = satisfy isDigit <?> "digit"
-  where isDigit c = c >= '0' && c <= '9'
 {-# INLINE digit #-}
 
+-- | A fast digit predicate.
+isDigit :: Char -> Bool
+isDigit c = c >= '0' && c <= '9'
+{-# INLINE isDigit #-}
+
+-- | Match any character.
 anyChar :: Parser Char
 anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
 
+-- | Fast predicate for matching a space character.
+--
+-- /Note/: This predicate only gives correct answers for the ASCII
+-- encoding.  For instance, it does not recognise U+00A0 (non-breaking
+-- space) as a space character, even though it is a valid ISO-8859-15
+-- byte.
 isSpace :: Char -> Bool
 isSpace c = c `B.elem` spaces
     where spaces = B.pack " \n\r\t\v\f"
+          {-# NOINLINE spaces #-}
+{-# INLINE isSpace #-}
 
+-- | Parse a space character.
+--
+-- /Note/: This parser only gives correct answers for the ASCII
+-- encoding.  For instance, it does not recognise U+00A0 (non-breaking
+-- space) as a space character, even though it is a valid ISO-8859-15
+-- byte.
 space :: Parser Char
 space = satisfy isSpace <?> "space"
 {-# INLINE space #-}
@@ -128,7 +197,7 @@ char :: Char -> Parser Char
 char c = satisfy (== c) <?> [c]
 {-# INLINE char #-}
 
--- | Match a specific character.
+-- | Match a specific character, but return its 'Word8' value.
 char8 :: Char -> Parser Word8
 char8 c = I.satisfy (== c2w c) <?> [c]
 {-# INLINE char8 #-}
@@ -140,11 +209,11 @@ notChar c = satisfy (/= c) <?> "not " ++ [c]
 
 -- | Match any character in a set.
 --
--- > vowel = inClass "aeiou"
+-- >vowel = inClass "aeiou"
 --
 -- Range notation is supported.
 --
--- > halfAlphabet = inClass "a-nA-N"
+-- >halfAlphabet = inClass "a-nA-N"
 --
 -- To add a literal \'-\' to a set, place it at the beginning or end
 -- of the string.
@@ -158,17 +227,33 @@ notInClass :: String -> Char -> Bool
 notInClass s = not . inClass s
 {-# INLINE notInClass #-}
 
--- | Consume characters while the predicate succeeds.
+-- | Consume input as long as the predicate returns 'True', and return
+-- the consumed input.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'False' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
 takeWhile :: (Char -> Bool) -> Parser B.ByteString
 takeWhile p = I.takeWhile (p . w2c)
 {-# INLINE takeWhile #-}
 
--- | Consume characters while the predicate fails.
+-- | Consume input as long as the predicate returns 'False'
+-- (i.e. until it returns 'True'), and return the consumed input.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'True' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
 takeTill :: (Char -> Bool) -> Parser B.ByteString
 takeTill p = I.takeTill (p . w2c)
 {-# INLINE takeTill #-}
 
--- | Skip over characters while the predicate succeeds.
+-- | Skip past input for as long as the predicate returns 'True'.
 skipWhile :: (Char -> Bool) -> Parser ()
 skipWhile p = I.skipWhile (p . w2c)
 {-# INLINE skipWhile #-}
@@ -178,42 +263,48 @@ skipSpace :: Parser ()
 skipSpace = skipWhile isSpace >> return ()
 {-# INLINE skipSpace #-}
 
+-- | A predicate that matches either a carriage return @\'\\r\'@ or
+-- newline @\'\\n\'@ character.
 isEndOfLine :: Word8 -> Bool
 isEndOfLine w = w == 13 || w == 10
 {-# INLINE isEndOfLine #-}
 
+-- | A predicate that matches either a space @\' \'@ or horizontal tab
+-- @\'\\t\'@ character.
 isHorizontalSpace :: Word8 -> Bool
 isHorizontalSpace w = w == 32 || w == 9
 {-# INLINE isHorizontalSpace #-}
 
 {-
-numeric :: String -> (B.ByteString -> Maybe (a,B.ByteString)) -> Parser a
-numeric desc f = do
-  s <- getInput
-  case f s of
-    Nothing -> fail desc
-    Just (i,s') -> setInput s' >> return i
-                   
--- | Parse an integer.  The position counter is not updated.
-int :: Parser Int
-int = numeric "Int" B.readInt
-
--- | Parse an integer.  The position counter is not updated.
-integer :: Parser Integer
-integer = numeric "Integer" B.readInteger
-
 -- | Parse a Double.  The position counter is not updated.
 double :: Parser Double
 double = numeric "Double" readDouble
 -}
 
-hexNumber :: Integral a => Parser a
-{-# SPECIALISE hexNumber :: Parser Int #-}
-hexNumber = fromHex `fmap` I.takeWhile1 isHexDigit
+-- | Parse and decode an unsigned hexadecimal number.  The hex digits
+-- @\'a\'@ through @\'f\'@ may be upper or lower case.
+--
+-- This parser does not accept a leading @\"0x\"@ string.
+hexadecimal :: Integral a => Parser a
+{-# SPECIALISE hexadecimal :: Parser Int #-}
+hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
   where isHexDigit w = (w >= 48 && w <= 57) || (x >= 97 && x <= 102)
             where x = toLower w
-        fromHex = B8.foldl' step 0
         step a w | w >= 48 && w <= 57  = a * 16 + fromIntegral (w - 48)
-                 | x >= 97 && x <= 102 = a * 16 + fromIntegral (x - 87)
-                 | otherwise           = error "impossible"
+                 | otherwise           = a * 16 + fromIntegral (x - 87)
             where x = toLower w
+
+-- | Parse and decode an unsigned decimal number.
+decimal :: Integral a => Parser a
+{-# SPECIALISE decimal :: Parser Int #-}
+decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDig
+  where isDig w  = w >= 48 && w <= 57
+        step a w = a * 10 + fromIntegral (w - 48)
+
+-- | Parse a number with an optional leading @\'+\'@ or @\'-\'@ sign
+-- character.
+signed :: Num a => Parser a -> Parser a
+{-# SPECIALISE signed :: Parser Int -> Parser Int #-}
+signed p = (negate <$> char8 '-' *> p)
+       <|> (char8 '+' *> p)
+       <|> p

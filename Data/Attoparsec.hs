@@ -28,10 +28,11 @@ module Data.Attoparsec
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual bytes
+    , I.word8
     , I.anyWord8
     , I.notWord8
-    , I.word8
     , I.satisfy
+    , I.satisfyWith
 
     -- ** Byte classes
     , I.inClass
@@ -40,11 +41,10 @@ module Data.Attoparsec
     -- * Efficient string handling
     , I.string
     , I.skipWhile
-    , I.stringTransform
     , I.take
-    , I.takeTill
     , I.takeWhile
     , I.takeWhile1
+    , I.takeTill
 
     -- * State observation and manipulation functions
     , I.endOfInput

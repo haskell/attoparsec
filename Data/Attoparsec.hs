@@ -12,7 +12,10 @@
 
 module Data.Attoparsec
     (
-    -- * Performance
+    -- * Differences from Parsec
+    -- $parsec
+
+    -- * Performance considerations
     -- $performance
 
     -- * Parser types
@@ -64,18 +67,52 @@ import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B
 
+-- $parsec
+--
+-- Compared to Parsec 3, Attoparsec makes several tradeoffs.  It is
+-- not intended for, or ideal for, all possible uses.
+--
+-- * While Attoparsec can consume input incrementally, Parsec cannot.
+--   Incremental input is a huge deal for efficient and secure network
+--   and system programming, since it gives much more control to users
+--   of the library over matters such as resource usage and the I/O
+--   model to use.
+--
+-- * Much of the performance advantage of Attoparsec is gained via
+--   high-performance parsers such as 'I.takeWhile' and 'I.string'.
+--   If you use complicated combinators that return lists of bytes or
+--   characters, there really isn't much performance difference the
+--   two libraries.
+--
+-- * Unlike Parsec 3, Attoparsec does not support being used as a
+--   monad transformer.  This is mostly a matter of the implementor
+--   not having needed that functionality.
+--
+-- * Attoparsec is specialised to deal only with strict 'B.ByteString'
+--   input.  Efficiency concernts rule out both lists and lazy
+--   bytestrings.  The usual use for lazy bytestrings would be to
+--   allow consumption of very large input without a large footprint.
+--   For this need, Attoparsec's incremental input provides an
+--   excellent substitute, with much more control over when input
+--   takes place.
+--
+-- * Parsec parsers can produce more helpful error messages than
+--   Attoparsec parsers.  This is a matter of focus: Attoparsec avoids
+--   the extra book-keeping in favour of higher performance.
+
 -- $performance
 --
 -- If you write an Attoparsec-based parser carefully, it can be
--- entirely reasonable to expect it to perform within a factor of 2 of
--- a hand-rolled C parser (measuring megabytes parsed per second).
+-- realistic to expect it to perform within a factor of 2 of a
+-- hand-rolled C parser (measuring megabytes parsed per second).
 --
 -- To actually achieve high performance, there are a few guidelines
 -- that it is useful to follow.
 --
 -- Use the 'B.ByteString'-oriented parsers whenever possible,
 -- e.g. 'I.takeWhile1' instead of 'many1' 'I.anyWord8'.  There is
--- about a factor of 100 difference in performance between the two.
+-- about a factor of 100 difference in performance between the two
+-- kinds of parser.
 --
 -- For very simple byte-testing predicates, write them by hand instead
 -- of using 'I.inClass' or 'I.notInClass'.  For instance, both of

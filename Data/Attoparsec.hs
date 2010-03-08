@@ -12,9 +12,15 @@
 
 module Data.Attoparsec
     (
+    -- * Performance
+    -- $performance
+
     -- * Parser types
       I.Parser
     , Result(..)
+
+    -- ** Typeclass instances
+    -- $instances
 
     -- * Running parsers
     , parse
@@ -51,10 +57,54 @@ module Data.Attoparsec
     , I.ensure
     ) where
 
+import Control.Applicative (Alternative(..), Applicative)
+import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Combinator
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B
+
+-- $performance
+--
+-- If you write an Attoparsec-based parser carefully, it can be
+-- entirely reasonable to expect it to perform within a factor of 2 of
+-- a hand-rolled C parser (measuring megabytes parsed per second).
+--
+-- To actually achieve high performance, there are a few guidelines
+-- that it is useful to follow.
+--
+-- Use the 'B.ByteString'-oriented parsers whenever possible,
+-- e.g. 'I.takeWhile1' instead of 'many1' 'I.anyWord8'.  There is
+-- about a factor of 100 difference in performance between the two.
+--
+-- For very simple byte-testing predicates, write them by hand instead
+-- of using 'I.inClass' or 'I.notInClass'.  For instance, both of
+-- these predicates test for an end-of-line byte, but the first is
+-- much faster than the second:
+--
+-- >endOfLine_fast w = w == 13 || w == 10
+-- >endOfLine_slow   = inClass "\r\n"
+--
+-- Make active use of benchmarking and profiling tools to measure,
+-- find the problems with, and improve the performance of your parser.
+
+-- $instances
+--
+-- The 'I.Parser' type is an instance of the following classes:
+--
+-- * 'Monad', where 'fail' throws an exception (i.e. fails) with an
+--   error message.
+--
+-- * 'Functor' and 'Applicative', which follow the usual definitions.
+--
+-- * 'MonadPlus', where 'mzero' fails (with no error message) and
+--   'mplus' executes the right-hand parser if the left-hand one
+--   fails.
+--
+-- * 'Alternative', which follows 'MonadPlus'.
+--
+-- The 'Result' type is an instance of 'Functor', where 'fmap'
+-- transforms the value in a 'Done' result.
 
 -- | The result of a parse.
 data Result r = Fail !B.ByteString [String] String

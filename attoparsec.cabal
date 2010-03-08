@@ -6,12 +6,14 @@ category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
-tested-with:     GHC == 6.8.3, GHC == 6.10.1
-synopsis:        Fast bytestring combinator parsing
-description:     Fast bytestring combinator parsing
+tested-with:     GHC == 6.10.4, GHC == 6.12.1
+synopsis:        Fast combinator parsing for bytestrings
 cabal-version:   >= 1.2
 build-type:      Simple
-description:     Fast, flexible text-oriented parsing of lazy ByteStrings.
+description:
+    A fast parser combinator library, aimed particularly at dealing
+    efficiently with network protocols and complicated text/binary
+    file formats.
 
 flag split-base
 flag applicative-in-base
@@ -21,7 +23,7 @@ library
     -- bytestring was in base-2.0 and 2.1.1
     build-depends: base >= 2.0 && < 2.2
   else
-    -- in base 1.0 and 3.0 bytestring is a separate package
+    -- in base 1.0 and >= 3.0 bytestring is a separate package
     build-depends: base < 2.0 || >= 3, bytestring >= 0.9, containers >= 0.1.0.1
 
   if flag(applicative-in-base)

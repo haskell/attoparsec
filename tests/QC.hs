@@ -81,6 +81,10 @@ takeTill (w, s) =
          P.Done t' h' -> t == t' && h == h'
          _            -> False
 
+ensure n s = case defP (P.ensure n) s of
+               P.Done _ () -> B.length s >= n
+               _           -> B.length s < n
+
 takeWhile1_empty = maybeP (P.takeWhile1 undefined) B.empty == Nothing
 
 endOfInput s = maybeP P.endOfInput s == if B.null s
@@ -104,6 +108,7 @@ tests = [
     testProperty "takeWhile1" takeWhile1,
     testProperty "takeWhile1_empty" takeWhile1_empty,
     testProperty "takeTill" takeTill,
-    testProperty "endOfInput" endOfInput
+    testProperty "endOfInput" endOfInput,
+    testProperty "ensure" ensure
     ]
   ]

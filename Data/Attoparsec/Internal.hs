@@ -20,8 +20,6 @@ module Data.Attoparsec.Internal
 
     -- * Running parsers
     , parse
-    , parseAll
-    , feed
 
     -- * Combinators
     , (<?>)
@@ -47,9 +45,9 @@ module Data.Attoparsec.Internal
     , string
     , stringTransform
     , take
-    , takeTill
     , takeWhile
     , takeWhile1
+    , takeTill
 
     -- * State observation and manipulation functions
     , endOfInput
@@ -178,12 +176,15 @@ failDesc err = Parser (\st0 kf _ks -> kf st0 [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
+-- | Succeed only if at least @n@ bytes of input are available.
 ensure :: Int -> Parser ()
 ensure n = Parser $ \st0@(S s0 _a0 _c0) kf ks ->
     if B.length s0 >= n
     then ks st0 ()
     else runParser (demandInput >> ensure n) st0 kf ks
 
+-- | Immediately demand more input via a 'Partial' continuation
+-- result.
 demandInput :: Parser ()
 demandInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
     if c0 == Complete
@@ -194,6 +195,9 @@ demandInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
          else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
               in  ks st1 ()
 
+-- | This parser always succeeds.  It returns 'True' if any input is
+-- available either immediately or on demand, and 'False' if the end
+-- of all input has been reached.
 wantInput :: Parser Bool
 wantInput = Parser $ \st0@(S s0 a0 c0) _kf ks ->
   case undefined of
@@ -211,18 +215,27 @@ get  = Parser (\st0 _kf ks -> ks st0 (input st0))
 put :: B.ByteString -> Parser ()
 put s = Parser (\(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
 
-take :: Int -> Parser B.ByteString
-take n = takeWith n (const True)
-{-# INLINE take #-}
-
 (+++) :: B.ByteString -> B.ByteString -> B.ByteString
 (+++) = B.append
 {-# INLINE (+++) #-}
 
+-- | Attempt a parse, and if it fails, rewind the input so that no
+-- input appears to have been consumed.
+--
+-- This combinator is useful in cases where a parser might consume
+-- some input before failing, i.e. the parser needs arbitrary
+-- lookahead.  The downside to using this combinator is that it can
+-- retain input for longer than is desirable.
 try :: Parser a -> Parser a
 try p = Parser $ \st0 kf ks ->
         runParser p (noAdds st0) (kf . mappend st0) ks
 
+-- | The parser @satisfy p@ succeeds for any byte for which the
+-- predicate @p@ returns 'True'. Returns the byte that is actually
+-- parsed.
+--
+-- >digit = satisfy isDigit
+-- >    where isDigit w = w >= 48 && w <= 57
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p = do
   ensure 1
@@ -232,7 +245,9 @@ satisfy p = do
     then put (B.unsafeTail s) >> return w
     else fail "satisfy"
 
--- | Character parser.
+-- | The parser @satisfyWith f p@ transforms a byte, and succeeds if
+-- the predicate @p@ returns 'True' on the transformed value. The
+-- parser returns the transformed byte that was parsed.
 satisfyWith :: (Word8 -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
   ensure 1
@@ -250,6 +265,8 @@ storable = hack undefined
     (fp,o,_) <- B.toForeignPtr `fmapP` take (sizeOf dummy)
     return . B.inlinePerformIO . withForeignPtr fp $ \p -> peek (castPtr $ p `plusPtr` o)
 
+-- | Consume @n@ bytes of input, but succeed only if the predicate
+-- returns 'True'.
 takeWith :: Int -> (B.ByteString -> Bool) -> Parser B.ByteString
 takeWith n p = do
   ensure n
@@ -259,6 +276,26 @@ takeWith n p = do
     then put t >> return h
     else failDesc "takeWith"
 
+-- | Consume exactly @n@ bytes of input.
+take :: Int -> Parser B.ByteString
+take n = takeWith n (const True)
+{-# INLINE take #-}
+
+-- | @string s@ parses a sequence of bytes that identically match
+-- @s@. Returns the parsed string (i.e. @s@).  This parser consumes no
+-- input if it fails (even if a partial match).
+--
+-- /Note/: The behaviour of this parser is different to that of the
+-- similarly-named parser in Parsec, as this one is all-or-nothing.
+-- To illustrate the difference, the following parser will fail under
+-- Parsec given an input of @"for"@:
+--
+-- >string "foo" <|> string "for"
+--
+-- The reason for its failure is that that the first branch is a
+-- partial match, and will consume the letters @\'f\'@ and @\'o\'@
+-- before failing.  In Attoparsec, the above parser will /succeed/ on
+-- that input, because the failed first branch will consume nothing.
 string :: B.ByteString -> Parser B.ByteString
 string s = takeWith (B.length s) (==s)
 {-# INLINE string #-}
@@ -268,6 +305,7 @@ stringTransform :: (B.ByteString -> B.ByteString) -> B.ByteString
 stringTransform f s = takeWith (B.length s) ((==s) . f)
 {-# INLINE stringTransform #-}
 
+-- | Skip past input for as long as the predicate returns 'True'.
 skipWhile :: (Word8 -> Bool) -> Parser ()
 skipWhile p = go
  where
@@ -278,10 +316,28 @@ skipWhile p = go
       put t
       when (B.null t) go
 
+-- | Consume input as long as the predicate returns 'False'
+-- (i.e. until it returns 'True'), and return the consumed input.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'True' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
 takeTill p = takeWhile (not . p)
 {-# INLINE takeTill #-}
 
+-- | Consume input as long as the predicate returns 'True', and return
+-- the consumed input.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'False' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile p = go
  where
@@ -296,6 +352,12 @@ takeWhile p = go
           else return h
       else return B.empty
 
+-- | Consume input as long as the predicate returns 'True', and return
+-- the consumed input.
+--
+-- This parser requires the predicate to succeed on at least one byte
+-- of input: it will fail if the predicate never returns 'True' or if
+-- there is no input left.
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do
   (`when` demandInput) =<< B.null <$> get
@@ -306,22 +368,22 @@ takeWhile1 p = do
     then (h+++) `fmapP` takeWhile p
     else return h
 
--- | Match any character in a set.
+-- | Match any byte in a set.
 --
--- > vowel = inClass "aeiou"
+-- >vowel = inClass "aeiou"
 --
 -- Range notation is supported.
 --
--- > halfAlphabet = inClass "a-nA-N"
+-- >halfAlphabet = inClass "a-nA-N"
 --
--- To add a literal \'-\' to a set, place it at the beginning or end
+-- To add a literal @\'-\'@ to a set, place it at the beginning or end
 -- of the string.
 inClass :: String -> Word8 -> Bool
 inClass s = (`memberWord8` mySet)
     where mySet = charClass s
 {-# INLINE inClass #-}
 
--- | Match any character not in a set.
+-- | Match any byte not in a set.
 notInClass :: String -> Word8 -> Bool
 notInClass s = not . inClass s
 {-# INLINE notInClass #-}
@@ -341,6 +403,7 @@ notWord8 :: Word8 -> Parser Word8
 notWord8 c = satisfy (/= c) <?> "not " ++ show c
 {-# INLINE notWord8 #-}
 
+-- | Match only if all input has been consumed.
 endOfInput :: Parser ()
 endOfInput = Parser $ \st0@S{..} kf ks ->
              if B.null input
@@ -351,6 +414,8 @@ endOfInput = Parser $ \st0@S{..} kf ks ->
                        in  runParser demandInput st0 kf' ks'
              else kf st0 [] "endOfInput"
                                                
+-- | Match either a single newline character @\'\\n\'@, or a carriage
+-- return followed by a newline character @\"\\r\\n\"@.
 endOfLine :: Parser ()
 endOfLine = (word8 10 >> return ()) <|> (string (B.pack "\r\n") >> return ())
 
@@ -362,25 +427,15 @@ p <?> _msg = p
 {-# INLINE (<?>) #-}
 infix 0 <?>
 
+-- | Terminal failure continuation.
 failK :: Failure a
 failK st0 stack msg = Fail st0 stack msg
 
+-- | Terminal success continuation.
 successK :: Success a a
 successK state a = Done state a
 
+-- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
 parse m s = runParser m (S s B.empty Incomplete) failK successK
 {-# INLINE parse #-}
-              
-feed :: Result r -> B.ByteString -> Result r
-feed f@(Fail _ _ _) _ = f
-feed (Partial k) d = k d
-feed (Done (S s a c) r) d = Done (S (s +++ d) a c) r
-
-parseAll :: Parser a -> [B.ByteString] -> Result a
-parseAll p ss = case ss of
-                  []     -> go (parse p B.empty) []
-                  (c:cs) -> go (parse p c) cs
-  where go (Partial k) (c:cs) = go (k c) cs
-        go (Partial k) []     = k B.empty
-        go r           _      = r

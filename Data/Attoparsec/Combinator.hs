@@ -1,8 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP #-}
------------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.Combinator
--- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2009
+-- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2009-2010
 -- License     :  BSD3
 -- 
 -- Maintainer  :  bos@serpentine.com
@@ -10,8 +9,6 @@
 -- Portability :  portable
 --
 -- Useful parser combinators, similar to those provided by Parsec.
--- 
------------------------------------------------------------------------------
 module Data.Attoparsec.Combinator
     (
       choice
@@ -24,7 +21,13 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
+
     -- * Inlined implementations of existing functions
+    --
+    -- These are exact duplicates of functions already exported by the
+    -- 'Control.Applicative' module, but whose definitions are
+    -- inlined.  In many cases, this leads to 2x performance
+    -- improvements.
     , many
     ) where
 
@@ -99,6 +102,7 @@ eitherP :: (Alternative f) => f a -> f b -> f (Either a b)
 eitherP a b = (Left <$> a) <|> (Right <$> b)
 {-# INLINE eitherP #-}
 
+-- | Zero or more.
 many :: (Alternative f) => f a -> f [a]
 many v = many_v
     where many_v = some_v <|> pure []

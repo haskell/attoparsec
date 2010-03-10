@@ -37,6 +37,7 @@ library
                    Data.Attoparsec.Char8
                    Data.Attoparsec.Combinator
                    Data.Attoparsec.FastSet
+                   Data.Attoparsec.Lazy
   other-modules:   Data.Attoparsec.Internal
   ghc-options:     -Wall
   ghc-prof-options: -auto-all

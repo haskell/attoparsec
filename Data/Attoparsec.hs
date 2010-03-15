@@ -60,10 +60,7 @@ module Data.Attoparsec
     , I.ensure
     ) where
 
-import Control.Applicative (Alternative(..), Applicative)
-import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Combinator
-import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B
 

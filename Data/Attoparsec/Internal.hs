@@ -183,31 +183,31 @@ ensure n = Parser $ \st0@(S s0 _a0 _c0) kf ks ->
     then ks st0 ()
     else runParser (demandInput >> ensure n) st0 kf ks
 
+-- | Ask for input.  If we receive any, pass it to a success
+-- continuation, otherwise to a failure continuation.
+prompt :: S -> (S -> Result r) -> (S -> Result r) -> Result r
+prompt (S s0 a0 _c0) kf ks = Partial $ \s ->
+    if B.null s
+    then kf $! S s0 a0 Complete
+    else ks $! S (s0 +++ s) (a0 +++ s) Incomplete
+
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
 demandInput :: Parser ()
-demandInput = Parser $ \st0@(S s0 a0 c0) kf ks ->
-    if c0 == Complete
+demandInput = Parser $ \st0 kf ks ->
+    if more st0 == Complete
     then kf st0 ["demandInput"] "not enough bytes"
-    else Partial $ \s ->
-         if B.null s
-         then kf (S s0 a0 Complete) ["demandInput"] "not enough bytes"
-         else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
-              in  ks st1 ()
+    else prompt st0 (\st -> kf st ["demandInput"] "not enough bytes") (`ks` ())
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end
 -- of all input has been reached.
 wantInput :: Parser Bool
-wantInput = Parser $ \st0@(S s0 a0 c0) _kf ks ->
-  case undefined of
+wantInput = Parser $ \st0@(S s0 _a0 c0) _kf ks ->
+  case () of
     _ | not (B.null s0) -> ks st0 True
       | c0 == Complete  -> ks st0 False
-      | otherwise       -> Partial $ \s ->
-                           if B.null s
-                           then ks st0 False
-                           else let st1 = S (s0 +++ s) (a0 +++ s) Incomplete
-                                in  ks st1 True
+      | otherwise       -> prompt st0 (`ks` False) (`ks` True)
 
 get :: Parser B.ByteString
 get  = Parser (\st0 _kf ks -> ks st0 (input st0))

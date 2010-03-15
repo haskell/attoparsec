@@ -31,6 +31,10 @@ module Data.Attoparsec
     , parseWith
     , parseTest
 
+    -- ** Result conversion
+    , maybeResult
+    , eitherResult
+
     -- * Combinators
     , (I.<?>)
     , I.try
@@ -206,3 +210,16 @@ parseWith refill p s = step $ I.parse p s
   where step (I.Fail st stk msg) = return $! Fail (I.input st) stk msg
         step (I.Partial k)       = (step . k) =<< refill
         step (I.Done st r)       = return $! Done (I.input st) r
+
+-- | Convert a 'Result' value to a 'Maybe' value. A 'Partial' result
+-- is treated as failure.
+maybeResult :: Result r -> Maybe r
+maybeResult (Done _ r) = Just r
+maybeResult _          = Nothing
+
+-- | Convert a 'Result' value to an 'Either' value. A 'Partial' result
+-- is treated as failure.
+eitherResult :: Result r -> Either String r
+eitherResult (Done _ r)     = Right r
+eitherResult (Fail _ _ msg) = Left msg
+eitherResult _              = Left "Result: incomplete input"

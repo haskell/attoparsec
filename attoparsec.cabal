@@ -14,6 +14,19 @@ description:
     A fast parser combinator library, aimed particularly at dealing
     efficiently with network protocols and complicated text/binary
     file formats.
+extra-source-files:
+    benchmarks/Makefile
+    benchmarks/Tiny.hs
+    benchmarks/med.txt.bz2
+    tests/Makefile
+    tests/QC.hs
+    tests/QCSupport.hs
+    tests/TestFastSet.hs
+    examples/Makefile
+    examples/Parsec_RFC2616.hs
+    examples/RFC2616.hs
+    examples/TestRFC2616.hs
+    examples/rfc2616.c
 
 flag split-base
 flag applicative-in-base
@@ -37,6 +50,7 @@ library
                    Data.Attoparsec.Char8
                    Data.Attoparsec.Combinator
                    Data.Attoparsec.FastSet
+                   Data.Attoparsec.Lazy
   other-modules:   Data.Attoparsec.Internal
   ghc-options:     -Wall
   ghc-prof-options: -auto-all

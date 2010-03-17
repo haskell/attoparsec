@@ -22,6 +22,7 @@ module Data.Attoparsec.Char8
     -- * Running parsers
     , A.parse
     , A.parseTest
+    , A.parseWith
     , A.feed
 
     -- * Combinators

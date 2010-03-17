@@ -45,6 +45,7 @@ module Data.Attoparsec.Char8
 
     -- ** Fast predicates
     , isDigit
+    , isDigit_w8
     , isAlpha_iso8859_15
     , isAlpha_ascii
 
@@ -175,6 +176,11 @@ digit = satisfy isDigit <?> "digit"
 isDigit :: Char -> Bool
 isDigit c = c >= '0' && c <= '9'
 {-# INLINE isDigit #-}
+
+-- | A fast digit predicate.
+isDigit_w8 :: Word8 -> Bool
+isDigit_w8 w = w >= 48 && w <= 57
+{-# INLINE isDigit_w8 #-}
 
 -- | Match any character.
 anyChar :: Parser Char

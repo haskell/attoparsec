@@ -322,6 +322,6 @@ decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDig
 -- character.
 signed :: Num a => Parser a -> Parser a
 {-# SPECIALISE signed :: Parser Int -> Parser Int #-}
-signed p = (negate <$> char8 '-' *> p)
+signed p = (negate <$> (char8 '-' *> p))
        <|> (char8 '+' *> p)
        <|> p

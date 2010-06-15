@@ -97,7 +97,7 @@ memberChar c = memberWord8 (I.c2w c)
 
 mkTable :: B.ByteString -> B.ByteString
 mkTable s = I.unsafeCreate 32 $ \t -> do
-            I.memset t 0 32
+            _ <- I.memset t 0 32
             U.unsafeUseAsCStringLen s $ \(p, l) ->
               let loop n | n == l = return ()
                          | otherwise = do

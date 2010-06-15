@@ -48,6 +48,7 @@ module Data.Attoparsec.Char8
     , isDigit_w8
     , isAlpha_iso8859_15
     , isAlpha_ascii
+    , isSpace
 
     -- *** Character classes
     , inClass

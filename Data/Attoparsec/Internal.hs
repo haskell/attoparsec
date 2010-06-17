@@ -30,6 +30,7 @@ module Data.Attoparsec.Internal
     , satisfy
     , satisfyWith
     , anyWord8
+    , skip
     , word8
     , notWord8
 
@@ -244,6 +245,19 @@ satisfy p = do
   if p w
     then put (B.unsafeTail s) >> return w
     else fail "satisfy"
+
+-- | The parser @skip p@ succeeds for any byte for which the predicate
+-- @p@ returns 'True'.
+--
+-- >digit = satisfy isDigit
+-- >    where isDigit w = w >= 48 && w <= 57
+skip :: (Word8 -> Bool) -> Parser ()
+skip p = do
+  ensure 1
+  s <- get
+  if p (B.unsafeHead s)
+    then put (B.unsafeTail s)
+    else fail "skip"
 
 -- | The parser @satisfyWith f p@ transforms a byte, and succeeds if
 -- the predicate @p@ returns 'True' on the transformed value. The

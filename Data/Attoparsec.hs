@@ -46,6 +46,7 @@ module Data.Attoparsec
     , I.notWord8
     , I.satisfy
     , I.satisfyWith
+    , I.skip
 
     -- ** Byte classes
     , I.inClass

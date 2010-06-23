@@ -40,7 +40,7 @@ library
     build-depends: base < 2.0 || >= 3, bytestring >= 0.9, containers >= 0.1.0.1
 
   if flag(applicative-in-base)
-    build-depends: base >= 2.0
+    build-depends: base >= 2.0 && < 5.0
     cpp-options: -DAPPLICATIVE_IN_BASE
   else
     build-depends: base < 2.0

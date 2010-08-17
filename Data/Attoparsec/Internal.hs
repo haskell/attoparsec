@@ -437,7 +437,7 @@ endOfLine = (word8 10 >> return ()) <|> (string (B.pack "\r\n") >> return ())
 (<?>) :: Parser a
       -> String                 -- ^ the name to use if parsing fails
       -> Parser a
-p <?> _msg = p
+p <?> msg = Parser $ \s kf ks -> runParser p s (\s' strs m -> kf s' (msg:strs) m) ks
 {-# INLINE (<?>) #-}
 infix 0 <?>
 

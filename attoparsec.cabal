@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.8.1.0
+version:         0.8.1.1
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -9,6 +9,8 @@ stability:       experimental
 tested-with:     GHC == 6.10.4, GHC == 6.12.1
 synopsis:        Fast combinator parsing for bytestrings
 cabal-version:   >= 1.2
+homepage:        http://bitbucket.org/bos/attoparsec
+bug-reports:     http://bitbucket.org/bos/attoparsec/issues
 build-type:      Simple
 description:
     A fast parser combinator library, aimed particularly at dealing
@@ -54,3 +56,7 @@ library
   other-modules:   Data.Attoparsec.Internal
   ghc-options:     -Wall
   ghc-prof-options: -auto-all
+
+source-repository head
+  type:     mercurial
+  location: http://bitbucket.org/bos/attoparsec

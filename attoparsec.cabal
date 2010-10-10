@@ -17,6 +17,7 @@ description:
     efficiently with network protocols and complicated text/binary
     file formats.
 extra-source-files:
+    README.markdown
     benchmarks/Makefile
     benchmarks/Tiny.hs
     benchmarks/med.txt.bz2

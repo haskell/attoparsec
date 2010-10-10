@@ -34,7 +34,6 @@ module Data.Attoparsec.Lazy
     ) where
 
 import Data.ByteString.Lazy.Internal (ByteString(..), chunk)
-import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import qualified Data.Attoparsec as A
 import Data.Attoparsec hiding (Result(..), eitherResult, maybeResult,

@@ -165,8 +165,14 @@ apP d e = do
 {-# INLINE apP #-}
 
 instance Applicative Parser where
-    pure  = returnP
-    (<*>) = apP
+    pure   = returnP
+    (<*>)  = apP
+    
+    -- These definitions are equal to the defaults, but this
+    -- way the optimizer doesn't have to work so hard to figure
+    -- that out.
+    (*>)   = (>>)
+    x <* y = x >>= \a -> y >> return a
 
 instance Alternative Parser where
     empty = failDesc "empty"

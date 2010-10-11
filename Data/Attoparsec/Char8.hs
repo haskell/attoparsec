@@ -49,6 +49,7 @@ module Data.Attoparsec.Char8
     , isAlpha_iso8859_15
     , isAlpha_ascii
     , isSpace
+	, isSpace_w8
 
     -- *** Character classes
     , inClass
@@ -188,17 +189,22 @@ anyChar :: Parser Char
 anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
 
--- | Fast predicate for matching a space character.
+-- | Fast predicate for matching ASCII space characters.
 --
 -- /Note/: This predicate only gives correct answers for the ASCII
 -- encoding.  For instance, it does not recognise U+00A0 (non-breaking
 -- space) as a space character, even though it is a valid ISO-8859-15
--- byte.
+-- byte. For a Unicode-aware and only slightly slower predicate,
+-- use 'Data.Char.isSpace'
 isSpace :: Char -> Bool
-isSpace c = c `B.elem` spaces
-    where spaces = B.pack " \n\r\t\v\f"
-          {-# NOINLINE spaces #-}
+isSpace c = (c == ' ') || ('\t' <= c && c <= '\r')
 {-# INLINE isSpace #-}
+
+-- | Fast 'Word8' predicate for matching ASCII space characters.
+isSpace_w8 :: Word8 -> Bool
+isSpace_w8 w = (w == 32) || (9 <= w && w <= 13)
+{-# INLINE isSpace_w8 #-}
+
 
 -- | Parse a space character.
 --

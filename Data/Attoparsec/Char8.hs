@@ -49,7 +49,7 @@ module Data.Attoparsec.Char8
     , isAlpha_iso8859_15
     , isAlpha_ascii
     , isSpace
-	, isSpace_w8
+    , isSpace_w8
 
     -- *** Character classes
     , inClass

@@ -11,9 +11,9 @@
 -- Portability :  unknown
 --
 -- Fast set membership tests for 'Word8' and 8-bit 'Char' values.  The
--- set representation is unboxed for efficiency.  For sets of fewer
--- than 32 elements, we test for membership using a binary search.
--- For larger sets, we use a lookup table.
+-- set representation is unboxed for efficiency.  For small sets, we
+-- test for membership using a binary search.  For larger sets, we use
+-- a lookup table.
 -- 
 -----------------------------------------------------------------------------
 module Data.Attoparsec.FastSet

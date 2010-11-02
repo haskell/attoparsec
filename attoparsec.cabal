@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.8.1.0
+version:         0.8.1.1
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -8,13 +8,16 @@ maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
 tested-with:     GHC == 6.10.4, GHC == 6.12.1
 synopsis:        Fast combinator parsing for bytestrings
-cabal-version:   >= 1.2
+cabal-version:   >= 1.6
+homepage:        http://bitbucket.org/bos/attoparsec
+bug-reports:     http://bitbucket.org/bos/attoparsec/issues
 build-type:      Simple
 description:
     A fast parser combinator library, aimed particularly at dealing
     efficiently with network protocols and complicated text/binary
     file formats.
 extra-source-files:
+    README.markdown
     benchmarks/Makefile
     benchmarks/Tiny.hs
     benchmarks/med.txt.bz2
@@ -54,3 +57,7 @@ library
   other-modules:   Data.Attoparsec.Internal
   ghc-options:     -Wall
   ghc-prof-options: -auto-all
+
+source-repository head
+  type:     mercurial
+  location: http://bitbucket.org/bos/attoparsec

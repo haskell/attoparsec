@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 -- |
 -- Module      :  Data.Attoparsec.Char8
 -- Copyright   :  Bryan O'Sullivan 2007-2010
@@ -86,12 +89,16 @@ import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.ByteString.Internal (c2w, w2c)
+import Data.String (IsString(..))
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec as A
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
+
+instance IsString (Parser B.ByteString) where
+    fromString = I.string . B.pack
 
 -- $encodings
 --

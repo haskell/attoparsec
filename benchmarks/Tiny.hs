@@ -14,7 +14,7 @@ attoparsec = do
       A.Done _ xs -> print (length xs)
       what        -> print what
  where
-  slow = A.many (A.many1 A.letter <|> A.many1 A.digit)
+  slow = A.many (A.many1 A.letter_ascii <|> A.many1 A.digit)
   fast = A.many (A.takeWhile1 isLetter <|> A.takeWhile1 isDigit)
   isDigit c  = c >= '0' && c <= '9'
   isLetter c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')

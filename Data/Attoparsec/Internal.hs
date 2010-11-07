@@ -322,7 +322,7 @@ string s = takeWith (B.length s) (==s)
 
 stringTransform :: (B.ByteString -> B.ByteString) -> B.ByteString
                 -> Parser B.ByteString
-stringTransform f s = takeWith (B.length s) ((==s) . f)
+stringTransform f s = takeWith (B.length s) ((==f s) . f)
 {-# INLINE stringTransform #-}
 
 -- | Skip past input for as long as the predicate returns 'True'.

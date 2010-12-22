@@ -77,7 +77,8 @@ module Data.Attoparsec.Char8
     , decimal
     , hexadecimal
     , signed
-    --, double
+    , double
+    , rational
 
     -- * State observation and manipulation functions
     , I.endOfInput
@@ -89,6 +90,7 @@ import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.ByteString.Internal (c2w, w2c)
+import Data.Ratio ((%))
 import Data.String (IsString(..))
 import Data.Word (Word8)
 import Prelude hiding (takeWhile)
@@ -306,12 +308,6 @@ isHorizontalSpace :: Word8 -> Bool
 isHorizontalSpace w = w == 32 || w == 9
 {-# INLINE isHorizontalSpace #-}
 
-{-
--- | Parse a Double.  The position counter is not updated.
-double :: Parser Double
-double = numeric "Double" readDouble
--}
-
 -- | Parse and decode an unsigned hexadecimal number.  The hex digits
 -- @\'a\'@ through @\'f\'@ may be upper or lower case.
 --
@@ -328,6 +324,7 @@ hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
 -- | Parse and decode an unsigned decimal number.
 decimal :: Integral a => Parser a
 {-# SPECIALISE decimal :: Parser Int #-}
+{-# SPECIALISE decimal :: Parser Integer #-}
 decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDig
   where isDig w  = w >= 48 && w <= 57
         step a w = a * 10 + fromIntegral (w - 48)
@@ -339,3 +336,84 @@ signed :: Num a => Parser a -> Parser a
 signed p = (negate <$> (char8 '-' *> p))
        <|> (char8 '+' *> p)
        <|> p
+
+data T = T !Integer !Int
+
+-- | Parse a rational number.
+--
+-- This parser accepts an optional leading sign character, followed by
+-- at least one decimal digit.  The syntax similar to that accepted by
+-- the 'read' function, with the exception that a trailing @\'.\'@ or
+-- @\'e\'@ /not/ followed by a number is not consumed.
+--
+-- Examples with behaviour identical to 'read', if you feed an empty
+-- continuation to the first result:
+--
+-- >rational "3"     == Done 3.0 ""
+-- >rational "3.1"   == Done 3.1 ""
+-- >rational "3e4"   == Done 30000.0 ""
+-- >rational "3.1e4" == Done 31000.0, ""
+
+-- Examples with behaviour identical to 'read':
+--
+-- >rational ".3"    == Fail "input does not start with a digit"
+-- >rational "e3"    == Fail "input does not start with a digit"
+--
+-- Examples of differences from 'read':
+--
+-- >rational "3.foo" == Done 3.0 ".foo"
+-- >rational "3e"    == Done 3.0 "e"
+rational :: RealFloat a => Parser a
+{-# SPECIALIZE rational :: Parser Double #-}
+rational = floaty $ \real frac fracDenom -> fromRational $
+                     real % 1 + frac % fracDenom
+
+-- | Parse a rational number.
+--
+-- The syntax accepted by this parser is the same as for 'rational'.
+--
+-- /Note/: This function is almost ten times faster than 'rational',
+-- but is slightly less accurate.
+--
+-- The 'Double' type supports about 16 decimal places of accuracy.
+-- For 94.2% of numbers, this function and 'rational' give identical
+-- results, but for the remaining 5.8%, this function loses precision
+-- around the 15th decimal place.  For 0.001% of numbers, this
+-- function will lose precision at the 13th or 14th decimal place.
+double :: Parser Double
+double = floaty $ \real frac fracDenom ->
+                   fromIntegral real +
+                   fromIntegral frac / fromIntegral fracDenom
+
+floaty :: RealFloat a => (Integer -> Integer -> Integer -> a) -> Parser a
+{-# INLINE floaty #-}
+floaty f = do
+  let minus = 45
+      plus  = 43
+  sign <- I.satisfy (\c -> c == minus || c == plus) <|> return plus
+  real <- decimal
+  let tryFraction = do
+        let dot = 46
+        _ <- I.satisfy (==dot)
+        ds <- I.takeWhile isDigit_w8
+        case (case I.parse decimal ds of
+                I.Partial k -> k B.empty
+                r           -> r) of
+          I.Done _ n -> return $ T n (B.length ds)
+          _          -> fail "no digits after decimal"
+  T fraction fracDigits <- tryFraction <|> return (T 0 0)
+  let littleE = 101
+      bigE    = 69
+      e w = w == littleE || w == bigE
+  power <- (I.satisfy e *> signed decimal) <|> return (0::Int)
+  let n = if fracDigits == 0
+          then if power == 0
+               then fromIntegral real
+               else fromIntegral real * (10 ^^ power)
+          else if power == 0
+               then f real fraction (10 ^ fracDigits)
+               else f real fraction (10 ^ fracDigits) * (10 ^^ power)
+  return $! if sign == plus
+            then n
+            else -n
+  

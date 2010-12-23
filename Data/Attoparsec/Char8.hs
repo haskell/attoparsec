@@ -64,9 +64,10 @@ module Data.Attoparsec.Char8
     , skipSpace
     , skipWhile
     , I.take
-    , takeTill
+    , scan
     , takeWhile
     , takeWhile1
+    , takeTill
 
     -- * Text parsing
     , I.endOfLine
@@ -273,6 +274,21 @@ takeWhile :: (Char -> Bool) -> Parser B.ByteString
 takeWhile p = I.takeWhile (p . w2c)
 {-# INLINE takeWhile #-}
 
+-- | A stateful scanner.  The predicate consumes and transforms a
+-- state argument, and each transformed state is passed to successive
+-- invocations of the predicate on each byte of the input until one
+-- returns 'Nothing' or the input ends.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'Nothing' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+scan :: Show s => s -> (s -> Char -> Maybe s) -> Parser B.ByteString
+scan s0 p = I.scan s0 (\s -> p s . w2c)
+{-# INLINE scan #-}
+
 -- | Consume input as long as the predicate returns 'False'
 -- (i.e. until it returns 'True'), and return the consumed input.
 --
@@ -293,7 +309,7 @@ skipWhile p = I.skipWhile (p . w2c)
 
 -- | Skip over white space.
 skipSpace :: Parser ()
-skipSpace = skipWhile isSpace >> return ()
+skipSpace = I.skipWhile isSpace_w8
 {-# INLINE skipSpace #-}
 
 -- | A predicate that matches either a carriage return @\'\\r\'@ or

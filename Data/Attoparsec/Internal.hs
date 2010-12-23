@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, Rank2Types, RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2010
@@ -46,6 +46,7 @@ module Data.Attoparsec.Internal
     , string
     , stringTransform
     , take
+    , scan
     , takeWhile
     , takeWhile1
     , takeTill
@@ -66,8 +67,9 @@ import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, plusPtr)
-import Foreign.Storable (Storable(peek, sizeOf))
+import Foreign.Storable (Storable(peek, sizeOf), peekByteOff)
 import Prelude hiding (getChar, take, takeWhile)
+import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B
@@ -148,6 +150,7 @@ plus a b = Parser $ \st0 kf ks ->
 
 instance MonadPlus Parser where
     mzero = failDesc "mzero"
+    {-# INLINE mzero #-}
     mplus = plus
 
 fmapP :: (a -> b) -> Parser a -> Parser b
@@ -174,8 +177,14 @@ instance Applicative Parser where
     (*>)   = (>>)
     x <* y = x >>= \a -> y >> return a
 
+instance Monoid (Parser a) where
+    mempty  = failDesc "mempty"
+    {-# INLINE mempty #-}
+    mappend = plus
+
 instance Alternative Parser where
     empty = failDesc "empty"
+    {-# INLINE empty #-}
     (<|>) = plus
 
 failDesc :: String -> Parser a
@@ -335,6 +344,7 @@ skipWhile p = go
       t <- B8.dropWhile p <$> get
       put t
       when (B.null t) go
+{-# INLINE skipWhile #-}
 
 -- | Consume input as long as the predicate returns 'False'
 -- (i.e. until it returns 'True'), and return the consumed input.
@@ -371,6 +381,42 @@ takeWhile p = go
           then (h+++) `fmapP` go
           else return h
       else return B.empty
+
+-- | A stateful scanner.  The predicate consumes and transforms a
+-- state argument, and each transformed state is passed to successive
+-- invocations of the predicate on each byte of the input until one
+-- returns 'Nothing' or the input ends.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'Nothing' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+scan :: Show s => s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
+scan s0 p = go s0
+ where
+  go s1 = do
+    input <- wantInput
+    if input
+      then do
+        let scanner (B.PS fp off len) =
+              withForeignPtr fp $ \ptr -> do
+                let inner !i !s | i == off+len = return (i-off,s)
+                                | otherwise = do
+                                            w <- peekByteOff ptr i
+                                            case p s w of
+                                              Just s' -> inner (i+1) s'
+                                              Nothing -> return (i-off,s)
+                (i,s') <- inner off s1
+                return (B.PS fp off i, B.PS fp (off+i) (len-i),s')
+        (h,t,s') <- (unsafePerformIO . scanner) <$> get
+        put t
+        if B.null t
+          then (h+++) `fmapP` go s'
+          else return h
+      else return B.empty
+{-# INLINE scan #-}    
 
 -- | Consume input as long as the predicate returns 'True', and return
 -- the consumed input.

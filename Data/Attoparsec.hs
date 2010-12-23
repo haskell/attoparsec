@@ -56,6 +56,7 @@ module Data.Attoparsec
     , I.string
     , I.skipWhile
     , I.take
+    , I.scan
     , I.takeWhile
     , I.takeWhile1
     , I.takeTill

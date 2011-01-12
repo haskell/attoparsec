@@ -285,7 +285,7 @@ takeWhile p = I.takeWhile (p . w2c)
 -- /Note/: Because this parser does not fail, do not use it with
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
-scan :: Show s => s -> (s -> Char -> Maybe s) -> Parser B.ByteString
+scan :: s -> (s -> Char -> Maybe s) -> Parser B.ByteString
 scan s0 p = I.scan s0 (\s -> p s . w2c)
 {-# INLINE scan #-}
 

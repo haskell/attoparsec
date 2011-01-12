@@ -393,7 +393,7 @@ takeWhile p = go
 -- /Note/: Because this parser does not fail, do not use it with
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
-scan :: Show s => s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
+scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
 scan s0 p = go s0
  where
   go s1 = do

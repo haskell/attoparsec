@@ -369,18 +369,18 @@ takeTill p = takeWhile (not . p)
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
-takeWhile p = go
+takeWhile p = (B.concat . reverse) `fmap` go []
  where
-  go = do
+  go acc = do
     input <- wantInput
     if input
       then do
         (h,t) <- B8.span p <$> get
         put t
         if B.null t
-          then (h+++) `fmapP` go
-          else return h
-      else return B.empty
+          then go (h:acc)
+          else return (h:acc)
+      else return []
 
 -- | A stateful scanner.  The predicate consumes and transforms a
 -- state argument, and each transformed state is passed to successive
@@ -394,9 +394,9 @@ takeWhile p = go
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
-scan s0 p = go s0
+scan s0 p = (B.concat . reverse) `fmap` go [] s0
  where
-  go s1 = do
+  go acc s1 = do
     input <- wantInput
     if input
       then do
@@ -413,9 +413,9 @@ scan s0 p = go s0
         (h,t,s') <- (unsafePerformIO . scanner) <$> get
         put t
         if B.null t
-          then (h+++) `fmapP` go s'
-          else return h
-      else return B.empty
+          then go (h:acc) s'
+          else return (h:acc)
+      else return acc
 {-# INLINE scan #-}    
 
 -- | Consume input as long as the predicate returns 'True', and return

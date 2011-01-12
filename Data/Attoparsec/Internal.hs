@@ -264,7 +264,7 @@ satisfy p = do
 -- | The parser @skip p@ succeeds for any byte for which the predicate
 -- @p@ returns 'True'.
 --
--- >digit = satisfy isDigit
+-- >skipDigit = skip isDigit
 -- >    where isDigit w = w >= 48 && w <= 57
 skip :: (Word8 -> Bool) -> Parser ()
 skip p = do

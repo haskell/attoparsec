@@ -106,7 +106,7 @@ instance Monoid More where
 
 data S = S {
       input  :: !B.ByteString
-    , _added :: !B.ByteString
+    , _added :: B.ByteString
     , more  :: !More
     } deriving (Show)
 

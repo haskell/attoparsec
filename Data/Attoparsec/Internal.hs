@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings, RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2010
@@ -483,7 +483,7 @@ endOfInput = Parser $ \st0@S{..} kf ks ->
 -- | Match either a single newline character @\'\\n\'@, or a carriage
 -- return followed by a newline character @\"\\r\\n\"@.
 endOfLine :: Parser ()
-endOfLine = (word8 10 >> return ()) <|> (string (B.pack "\r\n") >> return ())
+endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 
 --- | Name the parser, in case failure occurs.
 (<?>) :: Parser a

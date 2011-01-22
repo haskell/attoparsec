@@ -380,7 +380,7 @@ takeWhile p = (B.concat . reverse) `fmap` go []
         if B.null t
           then go (h:acc)
           else return (h:acc)
-      else return []
+      else return acc
 
 -- | A stateful scanner.  The predicate consumes and transforms a
 -- state argument, and each transformed state is passed to successive

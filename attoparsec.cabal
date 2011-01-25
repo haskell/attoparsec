@@ -31,6 +31,10 @@ extra-source-files:
     examples/TestRFC2616.hs
     examples/rfc2616.c
 
+Flag developer
+  Description: Whether to build the library in development mode
+  Default: False
+
 flag split-base
 flag applicative-in-base
 
@@ -56,7 +60,9 @@ library
                    Data.Attoparsec.Lazy
   other-modules:   Data.Attoparsec.Internal
   ghc-options:     -Wall
-  ghc-prof-options: -auto-all
+
+  if flag(developer)
+    ghc-prof-options: -auto-all
 
 source-repository head
   type:     mercurial

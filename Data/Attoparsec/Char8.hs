@@ -90,6 +90,7 @@ import Control.Applicative ((*>), (<$>), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
+import Data.Bits (Bits, (.|.), shiftL)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Ratio ((%))
 import Data.String (IsString(..))
@@ -328,14 +329,16 @@ isHorizontalSpace w = w == 32 || w == 9
 -- @\'a\'@ through @\'f\'@ may be upper or lower case.
 --
 -- This parser does not accept a leading @\"0x\"@ string.
-hexadecimal :: Integral a => Parser a
+hexadecimal :: (Integral a, Bits a) => Parser a
 {-# SPECIALISE hexadecimal :: Parser Int #-}
 hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
-  where isHexDigit w = (w >= 48 && w <= 57) || (x >= 97 && x <= 102)
-            where x = toLower w
-        step a w | w >= 48 && w <= 57  = a * 16 + fromIntegral (w - 48)
-                 | otherwise           = a * 16 + fromIntegral (x - 87)
-            where x = toLower w
+  where
+    isHexDigit w = (w >= 48 && w <= 57) ||
+                   (w >= 97 && w <= 102) ||
+                   (w >= 65 && w <= 90)
+    step a w | w >= 48 && w <= 57  = (a `shiftL` 4) .|. fromIntegral (w - 48)
+             | w >= 97             = (a `shiftL` 4) .|. fromIntegral (w - 87)
+             | otherwise           = (a `shiftL` 4) .|. fromIntegral (w - 55)
 
 -- | Parse and decode an unsigned decimal number.
 decimal :: Integral a => Parser a

@@ -16,7 +16,6 @@ module Data.Attoparsec.Internal
     -- * Parser types
       Parser
     , Result(..)
-    , S(input)
 
     -- * Running parsers
     , parse
@@ -75,38 +74,59 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
 
-data Result r = Fail S [String] String
+-- | The result of a parse.
+data Result r = Fail B.ByteString [String] String
+              -- ^ The parse failed.  The 'B.ByteString' is the input
+              -- that had not yet been consumed when the failure
+              -- occurred.  The @[@'String'@]@ is a list of contexts
+              -- in which the error occurred.  The 'String' is the
+              -- message describing the error, if any.
               | Partial (B.ByteString -> Result r)
-              | Done S r
+              -- ^ Supply this continuation with more input so that
+              -- the parser can resume.  To indicate that no more
+              -- input is available, use an 'B.empty' string.
+              | Done B.ByteString r
+              -- ^ The parse succeeded.  The 'B.ByteString' is the
+              -- input that had not yet been consumed (if any) when
+              -- the parse succeeded.
+
+instance Show r => Show (Result r) where
+    show (Fail bs stk msg) =
+        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
+    show (Partial _)       = "Partial _"
+    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
+
+fmapR :: (a -> b) -> Result a -> Result b
+fmapR _ (Fail st stk msg) = Fail st stk msg
+fmapR f (Partial k)       = Partial (fmapR f . k)
+fmapR f (Done bs r)       = Done bs (f r)
+
+instance Functor Result where
+    fmap = fmapR
+
+newtype Input = I {unI :: B.ByteString}
+newtype Added = A {unA :: B.ByteString}
 
 -- | The 'Parser' type is a monad.
 newtype Parser a = Parser {
-      runParser :: forall r. S
+      runParser :: forall r. Input -> Added -> More
                 -> Failure   r
                 -> Success a r
                 -> Result r
     }
 
-type Failure   r = S -> [String] -> String -> Result r
-type Success a r = S -> a -> Result r
+type Failure   r = Input -> Added -> More -> [String] -> String -> Result r
+type Success a r = Input -> Added -> More -> a -> Result r
 
 -- | Have we read all available input?
 data More = Complete | Incomplete
             deriving (Eq, Show)
 
-data S = S {
-      input  :: !B.ByteString
-    , _added :: B.ByteString
-    , more  :: !More
-    } deriving (Show)
-
-instance Show r => Show (Result r) where
-    show (Fail _ stack msg) = "Fail " ++ show stack ++ " " ++ show msg
-    show (Partial _) = "Partial _"
-    show (Done bs r) = "Done " ++ show bs ++ " " ++ show r
-
-addS :: S -> S -> S
-addS (S s0 a0 c0) (S _s1 a1 c1) = S (s0 +++ a1) (a0 +++ a1) (c0 <> c1)
+addS :: Input -> Added -> More
+     -> Input -> Added -> More
+     -> (Input -> Added -> More -> r) -> r
+addS i0 a0 m0 _i1 a1 m1 f =
+    f (I (unI i0 +++ unA a1)) (A (unA a0 +++ unA a1)) (m0 <> m1)
   where
     Complete <> _ = Complete
     _ <> Complete = Complete
@@ -115,11 +135,12 @@ addS (S s0 a0 c0) (S _s1 a1 c1) = S (s0 +++ a1) (a0 +++ a1) (c0 <> c1)
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
 bindP m g =
-    Parser (\st0 kf ks -> runParser m st0 kf (\s a -> runParser (g a) s kf ks))
+    Parser $ \i0 a0 m0 kf ks -> runParser m i0 a0 m0 kf $
+                                \i1 a1 m1 a -> runParser (g a) i1 a1 m1 kf ks
 {-# INLINE bindP #-}
 
 returnP :: a -> Parser a
-returnP a = Parser (\st0 _kf ks -> ks st0 a)
+returnP a = Parser (\i0 a0 m0 _kf ks -> ks i0 a0 m0 a)
 {-# INLINE returnP #-}
 
 instance Monad Parser where
@@ -127,15 +148,16 @@ instance Monad Parser where
     (>>=)  = bindP
     fail   = failDesc
 
-noAdds :: S -> S
-noAdds (S s0 _a0 c0) = S s0 B.empty c0
+noAdds :: Input -> Added -> More
+       -> (Input -> Added -> More -> r) -> r
+noAdds i0 _a0 m0 f = f i0 (A B.empty) m0
 {-# INLINE noAdds #-}
 
 plus :: Parser a -> Parser a -> Parser a
-plus a b = Parser $ \st0 kf ks ->
-           let kf' st1 _ _ = runParser b (addS st0 st1) kf ks
-               !st2 = noAdds st0
-           in  runParser a st2 kf' ks
+plus a b = Parser $ \i0 a0 m0 kf ks ->
+           let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
+                                  \ i2 a2 m2 -> runParser b i2 a2 m2 kf ks
+           in  noAdds i0 a0 m0 $ \i2 a2 m2 -> runParser a i2 a2 m2 kf' ks
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -144,7 +166,8 @@ instance MonadPlus Parser where
     mplus = plus
 
 fmapP :: (a -> b) -> Parser a -> Parser b
-fmapP p m = Parser (\st0 f k -> runParser m st0 f (\s a -> k s (p a)))
+fmapP p m = Parser $ \i0 a0 m0 f k ->
+            runParser m i0 a0 m0 f $ \i1 a1 s1 a -> k i1 a1 s1 (p a)
 {-# INLINE fmapP #-}
 
 instance Functor Parser where
@@ -178,48 +201,56 @@ instance Alternative Parser where
     (<|>) = plus
 
 failDesc :: String -> Parser a
-failDesc err = Parser (\st0 kf _ks -> kf st0 [] msg)
+failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
 -- | Succeed only if at least @n@ bytes of input are available.
 ensure :: Int -> Parser ()
-ensure n = Parser $ \st0@(S s0 _a0 _c0) kf ks ->
-    if B.length s0 >= n
-    then ks st0 ()
-    else runParser (demandInput >> ensure n) st0 kf ks
+ensure n = Parser $ \i0 a0 m0 kf ks ->
+    if B.length (unI i0) >= n
+    then ks i0 a0 m0 ()
+    else runParser (demandInput >> ensure n) i0 a0 m0 kf ks
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
-prompt :: S -> (S -> Result r) -> (S -> Result r) -> Result r
-prompt (S s0 a0 _c0) kf ks = Partial $ \s ->
+--prompt :: S -> (S -> Result r) -> (S -> Result r) -> Result r
+prompt :: Input -> Added -> More
+       -> (Input -> Added -> More -> Result r)
+       -> (Input -> Added -> More -> Result r)
+       -> Result r
+prompt i0 a0 _m0 kf ks = Partial $ \s ->
     if B.null s
-    then kf $! S s0 a0 Complete
-    else ks $! S (s0 +++ s) (a0 +++ s) Incomplete
+    then kf i0 a0 Complete
+    else ks (I (unI i0 +++ s)) (A (unA a0 +++ s)) Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
 demandInput :: Parser ()
-demandInput = Parser $ \st0 kf ks ->
-    if more st0 == Complete
-    then kf st0 ["demandInput"] "not enough bytes"
-    else prompt st0 (\st -> kf st ["demandInput"] "not enough bytes") (`ks` ())
+demandInput = Parser $ \i0 a0 m0 kf ks ->
+    if m0 == Complete
+    then kf i0 a0 m0 ["demandInput"] "not enough bytes"
+    else let kf' i a m = kf i a m ["demandInput"] "not enough bytes"
+             ks' i a m = ks i a m ()
+         in prompt i0 a0 m0 kf' ks'
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end
 -- of all input has been reached.
 wantInput :: Parser Bool
-wantInput = Parser $ \st0@(S s0 _a0 c0) _kf ks ->
+wantInput = Parser $ \i0 a0 m0 _kf ks ->
   case () of
-    _ | not (B.null s0) -> ks st0 True
-      | c0 == Complete  -> ks st0 False
-      | otherwise       -> prompt st0 (`ks` False) (`ks` True)
+    _ | not (B.null (unI i0)) -> ks i0 a0 m0 True
+      | m0 == Complete  -> ks i0 a0 m0 False
+      | otherwise       -> let kf' i a m = ks i a m False
+                               ks' i a m = ks i a m True
+                           in prompt i0 a0 m0 kf' ks'
 
 get :: Parser B.ByteString
-get  = Parser (\st0 _kf ks -> ks st0 (input st0))
+get  = Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
 
 put :: B.ByteString -> Parser ()
-put s = Parser (\(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
+put s = Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
 
 (+++) :: B.ByteString -> B.ByteString -> B.ByteString
 (+++) = B.append
@@ -233,8 +264,10 @@ put s = Parser (\(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
 -- lookahead.  The downside to using this combinator is that it can
 -- retain input for longer than is desirable.
 try :: Parser a -> Parser a
-try p = Parser $ \st0 kf ks ->
-        runParser p (noAdds st0) (kf . addS st0) ks
+try p = Parser $ \i0 a0 m0 kf ks ->
+        noAdds i0 a0 m0 $ \i1 a1 m1 ->
+            let kf' i2 a2 m2 = addS i0 a0 m0 i2 a2 m2 kf
+            in runParser p i1 a1 m1 kf' ks
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -282,7 +315,8 @@ storable = hack undefined
   hack :: Storable b => b -> Parser b
   hack dummy = do
     (fp,o,_) <- B.toForeignPtr `fmapP` take (sizeOf dummy)
-    return . B.inlinePerformIO . withForeignPtr fp $ \p -> peek (castPtr $ p `plusPtr` o)
+    return . B.inlinePerformIO . withForeignPtr fp $ \p ->
+        peek (castPtr $ p `plusPtr` o)
 
 -- | Consume @n@ bytes of input, but succeed only if the predicate
 -- returns 'True'.
@@ -461,14 +495,17 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 
 -- | Match only if all input has been consumed.
 endOfInput :: Parser ()
-endOfInput = Parser $ \st0@S{..} kf ks ->
-             if B.null input
-             then if more == Complete
-                  then ks st0 ()
-                  else let kf' st1 _ _ = ks (addS st0 st1) ()
-                           ks' st1 _   = kf (addS st0 st1) [] "endOfInput"
-                       in  runParser demandInput st0 kf' ks'
-             else kf st0 [] "endOfInput"
+endOfInput = Parser $ \i0 a0 m0 kf ks ->
+             if B.null (unI i0)
+             then if m0 == Complete
+                  then ks i0 a0 m0 ()
+                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
+                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
+                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
+                                              \ i2 a2 m2 -> kf i2 a2 m2 []
+                                                            "endOfInput"
+                       in  runParser demandInput i0 a0 m0 kf' ks'
+             else kf i0 a0 m0 [] "endOfInput"
                                                
 -- | Match either a single newline character @\'\\n\'@, or a carriage
 -- return followed by a newline character @\"\\r\\n\"@.
@@ -479,19 +516,21 @@ endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 (<?>) :: Parser a
       -> String                 -- ^ the name to use if parsing fails
       -> Parser a
-p <?> msg = Parser $ \s kf ks -> runParser p s (\s' strs m -> kf s' (msg:strs) m) ks
+p <?> msg0 = Parser $ \i0 a0 m0 kf ks ->
+             let kf' i a m strs msg = kf i a m (msg0:strs) msg
+             in runParser p i0 a0 m0 kf' ks
 {-# INLINE (<?>) #-}
 infix 0 <?>
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK st0 stack msg = Fail st0 stack msg
+failK i0 _a0 _m0 stack msg = Fail (unI i0) stack msg
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK state a = Done state a
+successK i0 _a0 _m0 a = Done (unI i0) a
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = runParser m (S s B.empty Incomplete) failK successK
+parse m s = runParser m (I s) (A B.empty) Incomplete failK successK
 {-# INLINE parse #-}

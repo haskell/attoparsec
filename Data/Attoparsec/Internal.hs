@@ -94,16 +94,6 @@ type Success a r = S -> a -> Result r
 data More = Complete | Incomplete
             deriving (Eq, Show)
 
-plusMore :: More -> More -> More
-plusMore Complete _ = Complete
-plusMore _ Complete = Complete
-plusMore _ _        = Incomplete
-{-# INLINE plusMore #-}
-
-instance Monoid More where
-    mempty  = Incomplete
-    mappend = plusMore
-
 data S = S {
       input  :: !B.ByteString
     , _added :: B.ByteString
@@ -116,12 +106,12 @@ instance Show r => Show (Result r) where
     show (Done bs r) = "Done " ++ show bs ++ " " ++ show r
 
 addS :: S -> S -> S
-addS (S s0 a0 c0) (S _s1 a1 c1) = S (s0 +++ a1) (a0 +++ a1) (mappend c0 c1)
+addS (S s0 a0 c0) (S _s1 a1 c1) = S (s0 +++ a1) (a0 +++ a1) (c0 <> c1)
+  where
+    Complete <> _ = Complete
+    _ <> Complete = Complete
+    _ <> _        = Incomplete
 {-# INLINE addS #-}
-
-instance Monoid S where
-    mempty  = S B.empty B.empty Incomplete
-    mappend = addS
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
 bindP m g =
@@ -143,7 +133,7 @@ noAdds (S s0 _a0 c0) = S s0 B.empty c0
 
 plus :: Parser a -> Parser a -> Parser a
 plus a b = Parser $ \st0 kf ks ->
-           let kf' st1 _ _ = runParser b (mappend st0 st1) kf ks
+           let kf' st1 _ _ = runParser b (addS st0 st1) kf ks
                !st2 = noAdds st0
            in  runParser a st2 kf' ks
 {-# INLINE plus #-}
@@ -244,7 +234,7 @@ put s = Parser (\(S _s0 a0 c0) _kf ks -> ks (S s a0 c0) ())
 -- retain input for longer than is desirable.
 try :: Parser a -> Parser a
 try p = Parser $ \st0 kf ks ->
-        runParser p (noAdds st0) (kf . mappend st0) ks
+        runParser p (noAdds st0) (kf . addS st0) ks
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -475,8 +465,8 @@ endOfInput = Parser $ \st0@S{..} kf ks ->
              if B.null input
              then if more == Complete
                   then ks st0 ()
-                  else let kf' st1 _ _ = ks (mappend st0 st1) ()
-                           ks' st1 _   = kf (mappend st0 st1) [] "endOfInput"
+                  else let kf' st1 _ _ = ks (addS st0 st1) ()
+                           ks' st1 _   = kf (addS st0 st1) [] "endOfInput"
                        in  runParser demandInput st0 kf' ks'
              else kf st0 [] "endOfInput"
                                                

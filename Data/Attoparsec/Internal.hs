@@ -426,21 +426,21 @@ scan s0 p = (B.concat . reverse) `fmap` go [] s0
       then do
         let scanner (B.PS fp off len) =
               withForeignPtr fp $ \ptr -> do
-                let inner !i !s | i == off+len = return (i-off,s)
+                let inner !i !s | i == off+len = done (i-off) s
                                 | otherwise = do
                                             w <- peekByteOff ptr i
                                             case p s w of
                                               Just s' -> inner (i+1) s'
-                                              Nothing -> return (i-off,s)
-                (i,s') <- inner off s1
-                return (B.PS fp off i, B.PS fp (off+i) (len-i),s')
+                                              Nothing -> done (i-off) s
+                    done !i !s = return (B.PS fp off i, B.PS fp (off+i) (len-i),s)
+                inner off s1
         (h,t,s') <- (unsafePerformIO . scanner) <$> get
         put t
         if B.null t
           then go (h:acc) s'
           else return (h:acc)
       else return acc
-{-# INLINE scan #-}    
+{-# INLINE scan #-}
 
 -- | Consume input as long as the predicate returns 'True', and return
 -- the consumed input.

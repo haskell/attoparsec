@@ -418,7 +418,11 @@ takeWhile p = (B.concat . reverse) `fmap` go []
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
-scan s0 p = (B.concat . reverse) `fmap` go [] s0
+scan s0 p = do
+  chunks <- go [] s0
+  case chunks of
+    [x] -> return x
+    xs  -> return . B.concat . reverse $ xs
  where
   go acc s1 = do
     input <- wantInput

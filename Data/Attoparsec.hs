@@ -153,6 +153,7 @@ feed :: Result r -> B.ByteString -> Result r
 feed f@(Fail _ _ _) _ = f
 feed (Partial k) d    = k d
 feed (Done bs r) d    = Done (B.append bs d) r
+{-# INLINE feed #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => I.Parser a -> B.ByteString -> IO ()

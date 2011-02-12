@@ -398,15 +398,15 @@ takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile p = (B.concat . reverse) `fmap` go []
  where
   go acc = do
-    input <- wantInput
-    if input
+    (h,t) <- B8.span p <$> get
+    put t
+    if B.null t
       then do
-        (h,t) <- B8.span p <$> get
-        put t
-        if B.null t
+        input <- wantInput
+        if input
           then go (h:acc)
           else return (h:acc)
-      else return acc
+      else return (h:acc)
 
 takeRest :: Parser [B.ByteString]
 takeRest = go []

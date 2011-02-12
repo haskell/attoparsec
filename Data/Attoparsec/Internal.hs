@@ -211,16 +211,16 @@ failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
--- | Succeed only if at least @n@ bytes of input are available.
-ensure :: Int -> Parser ()
+-- | If at least @n@ bytes of input are available, return the current
+-- input, otherwise fail.
+ensure :: Int -> Parser B.ByteString
 ensure n = Parser $ \i0 a0 m0 kf ks ->
     if B.length (unI i0) >= n
-    then ks i0 a0 m0 ()
+    then ks i0 a0 m0 (unI i0)
     else runParser (demandInput >> ensure n) i0 a0 m0 kf ks
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
---prompt :: S -> (S -> Result r) -> (S -> Result r) -> Result r
 prompt :: Input -> Added -> More
        -> (Input -> Added -> More -> Result r)
        -> (Input -> Added -> More -> Result r)
@@ -283,8 +283,7 @@ try p = Parser $ \i0 a0 m0 kf ks ->
 -- >    where isDigit w = w >= 48 && w <= 57
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p = do
-  ensure 1
-  s <- get
+  s <- ensure 1
   let w = B.unsafeHead s
   if p w
     then put (B.unsafeTail s) >> return w
@@ -297,8 +296,7 @@ satisfy p = do
 -- >    where isDigit w = w >= 48 && w <= 57
 skip :: (Word8 -> Bool) -> Parser ()
 skip p = do
-  ensure 1
-  s <- get
+  s <- ensure 1
   if p (B.unsafeHead s)
     then put (B.unsafeTail s)
     else fail "skip"
@@ -308,8 +306,7 @@ skip p = do
 -- parser returns the transformed byte that was parsed.
 satisfyWith :: (Word8 -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
-  ensure 1
-  s <- get
+  s <- ensure 1
   let c = f (B.unsafeHead s)
   if p c
     then put (B.unsafeTail s) >> return c
@@ -328,8 +325,7 @@ storable = hack undefined
 -- returns 'True'.
 takeWith :: Int -> (B.ByteString -> Bool) -> Parser B.ByteString
 takeWith n p = do
-  ensure n
-  s <- get
+  s <- ensure n
   let (h,t) = B.splitAt n s
   if p h
     then put t >> return h

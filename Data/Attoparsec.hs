@@ -68,7 +68,6 @@ module Data.Attoparsec
     -- * State observation and manipulation functions
     , I.endOfInput
     , I.atEnd
-    , I.ensure
     ) where
 
 import Data.Attoparsec.Combinator

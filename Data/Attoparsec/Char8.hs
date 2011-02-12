@@ -88,7 +88,6 @@ module Data.Attoparsec.Char8
     -- * State observation and manipulation functions
     , I.endOfInput
     , I.atEnd
-    , I.ensure
     ) where
 
 import Control.Applicative ((*>), (<$>), (<|>))

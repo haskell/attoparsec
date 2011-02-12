@@ -447,25 +447,25 @@ scan s0 p = do
     xs  -> return . B.concat . reverse $ xs
  where
   go acc s1 = do
-    input <- wantInput
-    if input
+    let scanner (B.PS fp off len) =
+          withForeignPtr fp $ \ptr -> do
+            let inner !i !s | i == off+len = done (i-off) s
+                            | otherwise = do
+                                        w <- peekByteOff ptr i
+                                        case p s w of
+                                          Just s' -> inner (i+1) s'
+                                          Nothing -> done (i-off) s
+                done !i !s = return (B.PS fp off i, B.PS fp (off+i) (len-i),s)
+            inner off s1
+    (h,t,s') <- (unsafePerformIO . scanner) <$> get
+    put t
+    if B.null t
       then do
-        let scanner (B.PS fp off len) =
-              withForeignPtr fp $ \ptr -> do
-                let inner !i !s | i == off+len = done (i-off) s
-                                | otherwise = do
-                                            w <- peekByteOff ptr i
-                                            case p s w of
-                                              Just s' -> inner (i+1) s'
-                                              Nothing -> done (i-off) s
-                    done !i !s = return (B.PS fp off i, B.PS fp (off+i) (len-i),s)
-                inner off s1
-        (h,t,s') <- (unsafePerformIO . scanner) <$> get
-        put t
-        if B.null t
+        input <- wantInput
+        if input
           then go (h:acc) s'
           else return (h:acc)
-      else return acc
+      else return (h:acc)
 {-# INLINE scan #-}
 
 -- | Consume input as long as the predicate returns 'True', and return

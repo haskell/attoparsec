@@ -3,7 +3,7 @@
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2010
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown
@@ -50,8 +50,13 @@ module Data.Attoparsec.Internal
     , takeWhile1
     , takeTill
 
+    -- ** Consume all remaining input
+    , takeByteString
+    , takeLazyByteString
+
     -- * State observation and manipulation functions
     , endOfInput
+    , atEnd
     , ensure
 
     -- * Utilities
@@ -73,6 +78,7 @@ import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
+import qualified Data.ByteString.Lazy as L
 
 -- | The result of a parse.
 data Result r = Fail B.ByteString [String] String
@@ -183,7 +189,7 @@ apP d e = do
 instance Applicative Parser where
     pure   = returnP
     (<*>)  = apP
-    
+
     -- These definitions are equal to the defaults, but this
     -- way the optimizer doesn't have to work so hard to figure
     -- that out.
@@ -406,6 +412,26 @@ takeWhile p = (B.concat . reverse) `fmap` go []
           else return (h:acc)
       else return acc
 
+takeRest :: Parser [B.ByteString]
+takeRest = go []
+ where
+  go acc = do
+    input <- wantInput
+    if input
+      then do
+        s <- get
+        put B.empty
+        go (s:acc)
+      else return (reverse acc)
+
+-- | Consume all remaining input and return it as a single string.
+takeByteString :: Parser B.ByteString
+takeByteString = B.concat `fmap` takeRest
+
+-- | Consume all remaining input and return it as a single string.
+takeLazyByteString :: Parser L.ByteString
+takeLazyByteString = L.fromChunks `fmap` takeRest
+
 -- | A stateful scanner.  The predicate consumes and transforms a
 -- state argument, and each transformed state is passed to successive
 -- invocations of the predicate on each byte of the input until one
@@ -510,7 +536,13 @@ endOfInput = Parser $ \i0 a0 m0 kf ks ->
                                                             "endOfInput"
                        in  runParser demandInput i0 a0 m0 kf' ks'
              else kf i0 a0 m0 [] "endOfInput"
-                                               
+
+-- | Return an indication of whether the end of input has been
+-- reached.
+atEnd :: Parser Bool
+atEnd = not <$> wantInput
+{-# INLINE atEnd #-}
+
 -- | Match either a single newline character @\'\\n\'@, or a carriage
 -- return followed by a newline character @\"\\r\\n\"@.
 endOfLine :: Parser ()

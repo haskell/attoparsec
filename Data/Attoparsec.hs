@@ -61,8 +61,13 @@ module Data.Attoparsec
     , I.takeWhile1
     , I.takeTill
 
+    -- ** Consume all remaining input
+    , I.takeByteString
+    , I.takeLazyByteString
+
     -- * State observation and manipulation functions
     , I.endOfInput
+    , I.atEnd
     , I.ensure
     ) where
 

@@ -69,6 +69,10 @@ module Data.Attoparsec.Char8
     , takeWhile1
     , takeTill
 
+    -- ** Consume all remaining input
+    , I.takeByteString
+    , I.takeLazyByteString
+
     -- * Text parsing
     , I.endOfLine
     , isEndOfLine
@@ -83,6 +87,7 @@ module Data.Attoparsec.Char8
 
     -- * State observation and manipulation functions
     , I.endOfInput
+    , I.atEnd
     , I.ensure
     ) where
 

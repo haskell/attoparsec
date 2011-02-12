@@ -365,11 +365,11 @@ skipWhile :: (Word8 -> Bool) -> Parser ()
 skipWhile p = go
  where
   go = do
-    input <- wantInput
-    when input $ do
-      t <- B8.dropWhile p <$> get
-      put t
-      when (B.null t) go
+    t <- B8.dropWhile p <$> get
+    put t
+    when (B.null t) $ do
+      input <- wantInput
+      when input go
 {-# INLINE skipWhile #-}
 
 -- | Consume input as long as the predicate returns 'False'

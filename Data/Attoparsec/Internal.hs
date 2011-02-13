@@ -132,7 +132,10 @@ addS :: Input -> Added -> More
      -> Input -> Added -> More
      -> (Input -> Added -> More -> r) -> r
 addS i0 a0 m0 _i1 a1 m1 f =
-    f (I (unI i0 +++ unA a1)) (A (unA a0 +++ unA a1)) (m0 <> m1)
+    let !i = I (unI i0 +++ unA a1)
+        a  = A (unA a0 +++ unA a1)
+        m  = m0 <> m1
+    in f i a m
   where
     Complete <> _ = Complete
     _ <> Complete = Complete
@@ -214,7 +217,7 @@ failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
 -- | If at least @n@ bytes of input are available, return the current
 -- input, otherwise fail.
 ensure :: Int -> Parser B.ByteString
-ensure n = Parser $ \i0 a0 m0 kf ks ->
+ensure !n = Parser $ \i0 a0 m0 kf ks ->
     if B.length (unI i0) >= n
     then ks i0 a0 m0 (unI i0)
     else runParser (demandInput >> ensure n) i0 a0 m0 kf ks

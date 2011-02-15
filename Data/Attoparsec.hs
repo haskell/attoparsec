@@ -28,6 +28,7 @@ module Data.Attoparsec
     -- * Running parsers
     , parse
     , feed
+    , I.parseOnly
     , parseWith
     , parseTest
 

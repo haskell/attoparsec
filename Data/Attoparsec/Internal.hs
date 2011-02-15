@@ -19,6 +19,7 @@ module Data.Attoparsec.Internal
 
     -- * Running parsers
     , parse
+    , parseOnly
 
     -- * Combinators
     , (<?>)
@@ -560,12 +561,22 @@ infix 0 <?>
 -- | Terminal failure continuation.
 failK :: Failure a
 failK i0 _a0 _m0 stack msg = Fail (unI i0) stack msg
+{-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
 successK i0 _a0 _m0 a = Done (unI i0) a
+{-# INLINE successK #-}
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
 parse m s = runParser m (I s) (A B.empty) Incomplete failK successK
 {-# INLINE parse #-}
+
+-- | Run a parser that cannot be resupplied via a 'Partial' result.
+parseOnly :: Parser a -> B.ByteString -> Either String a
+parseOnly m s = case runParser m (I s) (A B.empty) Complete failK successK of
+                  Fail _ _ err -> Left err
+                  Done _ a     -> Right a
+                  _            -> error "parseOnly: impossible error!"
+{-# INLINE parseOnly #-}

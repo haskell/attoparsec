@@ -58,6 +58,7 @@ library
                    Data.Attoparsec.Combinator
                    Data.Attoparsec.FastSet
                    Data.Attoparsec.Lazy
+                   Data.Attoparsec.Zepto
   other-modules:   Data.Attoparsec.Internal
   ghc-options:     -Wall
 

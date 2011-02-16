@@ -58,9 +58,9 @@ library
                    Data.Attoparsec.Combinator
                    Data.Attoparsec.FastSet
                    Data.Attoparsec.Lazy
+                   Data.Attoparsec.Number
                    Data.Attoparsec.Zepto
   other-modules:   Data.Attoparsec.Internal
-                   Data.Attoparsec.Number
   ghc-options:     -Wall
 
   if flag(developer)

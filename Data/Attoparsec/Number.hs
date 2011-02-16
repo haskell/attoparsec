@@ -10,10 +10,6 @@
 --
 -- A simple number type, useful for parsing both exact and inexact
 -- quantities without losing much precision.
---
--- The constructors are non-strict, but numeric operations are strict
--- just in case you go nuts and try to use this type for actual
--- arithmetic.
 module Data.Attoparsec.Number
     (
       Number(..)
@@ -25,8 +21,8 @@ import Data.Typeable (Typeable)
 
 -- | A numeric type that can represent integers accurately, and
 -- floating point numbers to the precision of a 'Double'.
-data Number = I Integer
-            | D Double
+data Number = I {-# UNPACK #-} !Integer
+            | D {-# UNPACK #-} !Double
               deriving (Typeable, Data)
 
 instance Show Number where

@@ -35,8 +35,8 @@ instance Show Number where
 
 binop :: (Integer -> Integer -> a) -> (Double -> Double -> a)
       -> Number -> Number -> a
-binop i _ (I a) (I b) = i a b
 binop _ d (D a) (D b) = d a b
+binop i _ (I a) (I b) = i a b
 binop _ d (D a) (I b) = d a (fromIntegral b)
 binop _ d (I a) (D b) = d (fromIntegral a) b
 {-# INLINE binop #-}

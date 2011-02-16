@@ -457,7 +457,7 @@ floaty f = do
           else if power == 0
                then f real fraction (10 ^ fracDigits)
                else f real fraction (10 ^ fracDigits) * (10 ^^ power)
-  return $! if sign == plus
-            then n
-            else -n
+  return $ if sign == plus
+           then n
+           else -n
   

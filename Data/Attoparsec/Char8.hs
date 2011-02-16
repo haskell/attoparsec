@@ -427,6 +427,7 @@ number = floaty $ \real frac fracDenom ->
          if frac == 0 && fracDenom == 0
          then I real
          else D (asDouble real frac fracDenom)
+{-# INLINE number #-}
 
 floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
 {-# INLINE floaty #-}

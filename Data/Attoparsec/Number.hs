@@ -21,7 +21,7 @@ import Data.Typeable (Typeable)
 
 -- | A numeric type that can represent integers accurately, and
 -- floating point numbers to the precision of a 'Double'.
-data Number = I {-# UNPACK #-} !Integer
+data Number = I !Integer
             | D {-# UNPACK #-} !Double
               deriving (Typeable, Data)
 

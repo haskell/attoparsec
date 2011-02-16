@@ -83,6 +83,8 @@ module Data.Attoparsec.Char8
     , hexadecimal
     , signed
     , double
+    , Number(..)
+    , number
     , rational
 
     -- * State observation and manipulation functions
@@ -94,6 +96,7 @@ import Control.Applicative ((*>), (<$>), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberChar)
 import Data.Attoparsec.Internal (Parser, (<?>))
+import Data.Attoparsec.Number (Number(..))
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Ratio ((%))
@@ -386,7 +389,7 @@ data T = T !Integer !Int
 --
 -- >rational "3.foo" == Done 3.0 ".foo"
 -- >rational "3e"    == Done 3.0 "e"
-rational :: RealFloat a => Parser a
+rational :: Fractional a => Parser a
 {-# SPECIALIZE rational :: Parser Double #-}
 rational = floaty $ \real frac fracDenom -> fromRational $
                      real % 1 + frac % fracDenom
@@ -404,11 +407,28 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- around the 15th decimal place.  For 0.001% of numbers, this
 -- function will lose precision at the 13th or 14th decimal place.
 double :: Parser Double
-double = floaty $ \real frac fracDenom ->
-                   fromIntegral real +
-                   fromIntegral frac / fromIntegral fracDenom
+double = floaty asDouble
 
-floaty :: RealFloat a => (Integer -> Integer -> Integer -> a) -> Parser a
+asDouble :: Integer -> Integer -> Integer -> Double
+asDouble real frac fracDenom =
+    fromIntegral real + fromIntegral frac / fromIntegral fracDenom
+{-# INLINE asDouble #-}
+
+-- | Parse a number, attempting to preserve both speed and precision.
+--
+-- The syntax accepted by this parser is the same as for 'rational'.
+--
+-- /Note/: This function is almost ten times faster than 'rational'.
+-- On integral inputs, it gives perfectly accurate answers, and on
+-- floating point inputs, it is slightly less accurate than
+-- 'rational'.
+number :: Parser Number
+number = floaty $ \real frac fracDenom ->
+         if frac == 0 && fracDenom == 0
+         then I real
+         else D (asDouble real frac fracDenom)
+
+floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
 {-# INLINE floaty #-}
 floaty f = do
   let minus = 45

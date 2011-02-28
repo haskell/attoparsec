@@ -100,7 +100,7 @@ import Data.Attoparsec.Internal (Result(..), parse)
 --   monad transformer.
 --
 -- * Attoparsec is specialised to deal only with strict 'B.ByteString'
---   input.  Efficiency concernts rule out both lists and lazy
+--   input.  Efficiency concerns rule out both lists and lazy
 --   bytestrings.  The usual use for lazy bytestrings would be to
 --   allow consumption of very large input without a large footprint.
 --   For this need, Attoparsec's incremental input provides an

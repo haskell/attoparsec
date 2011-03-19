@@ -71,8 +71,8 @@ import Data.Attoparsec.FastSet (charClass, memberWord8)
 import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
-import Foreign.Ptr (castPtr, plusPtr)
-import Foreign.Storable (Storable(peek, sizeOf), peekByteOff)
+import Foreign.Ptr (castPtr, minusPtr, plusPtr)
+import Foreign.Storable (Storable(peek, sizeOf))
 import Prelude hiding (getChar, take, takeWhile)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as B8
@@ -432,6 +432,8 @@ takeByteString = B.concat `fmap` takeRest
 takeLazyByteString :: Parser L.ByteString
 takeLazyByteString = L.fromChunks `fmap` takeRest
 
+data T s = T {-# UNPACK #-} !Int s
+
 -- | A stateful scanner.  The predicate consumes and transforms a
 -- state argument, and each transformed state is passed to successive
 -- invocations of the predicate on each byte of the input until one
@@ -452,16 +454,22 @@ scan s0 p = do
  where
   go acc s1 = do
     let scanner (B.PS fp off len) =
-          withForeignPtr fp $ \ptr -> do
-            let inner !i !s | i == off+len = done (i-off) s
-                            | otherwise = do
-                                        w <- peekByteOff ptr i
-                                        case p s w of
-                                          Just s' -> inner (i+1) s'
-                                          Nothing -> done (i-off) s
-                done !i !s = return (B.PS fp off i, B.PS fp (off+i) (len-i),s)
-            inner off s1
-    (h,t,s') <- (unsafePerformIO . scanner) <$> get
+          withForeignPtr fp $ \ptr0 -> do
+            let start = ptr0 `plusPtr` off
+                end   = start `plusPtr` len
+                inner ptr !s
+                  | ptr < end = do
+                    w <- peek ptr
+                    case p s w of
+                      Just s' -> inner (ptr `plusPtr` 1) s'
+                      _       -> done (ptr `minusPtr` start) s
+                  | otherwise = done (ptr `minusPtr` start) s
+                done !i !s = return (T i s)
+            inner start s1
+    bs <- get
+    let T i s' = unsafePerformIO $ scanner bs
+        h = B.unsafeTake i bs
+        t = B.unsafeDrop i bs
     put t
     if B.null t
       then do

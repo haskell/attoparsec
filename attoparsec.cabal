@@ -52,6 +52,8 @@ library
   else
     build-depends: base < 2.0
 
+  build-depends: deepseq
+
   extensions:      CPP
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.Char8

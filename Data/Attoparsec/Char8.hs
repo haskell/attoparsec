@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
@@ -99,9 +99,10 @@ import Data.Attoparsec.Internal (Parser, (<?>))
 import Data.Attoparsec.Number (Number(..))
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.ByteString.Internal (c2w, w2c)
+import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.String (IsString(..))
-import Data.Word (Word8)
+import Data.Word (Word8, Word16, Word32, Word64, Word)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec as A
 import qualified Data.Attoparsec.Internal as I
@@ -337,7 +338,6 @@ isHorizontalSpace w = w == 32 || w == 9
 --
 -- This parser does not accept a leading @\"0x\"@ string.
 hexadecimal :: (Integral a, Bits a) => Parser a
-{-# SPECIALISE hexadecimal :: Parser Int #-}
 hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
   where
     isHexDigit w = (w >= 48 && w <= 57) ||
@@ -346,24 +346,47 @@ hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
     step a w | w >= 48 && w <= 57  = (a `shiftL` 4) .|. fromIntegral (w - 48)
              | w >= 97             = (a `shiftL` 4) .|. fromIntegral (w - 87)
              | otherwise           = (a `shiftL` 4) .|. fromIntegral (w - 55)
+{-# SPECIALISE hexadecimal :: Parser Int #-}
+{-# SPECIALISE hexadecimal :: Parser Int8 #-}
+{-# SPECIALISE hexadecimal :: Parser Int16 #-}
+{-# SPECIALISE hexadecimal :: Parser Int32 #-}
+{-# SPECIALISE hexadecimal :: Parser Int64 #-}
+{-# SPECIALISE hexadecimal :: Parser Integer #-}
+{-# SPECIALISE hexadecimal :: Parser Word #-}
+{-# SPECIALISE hexadecimal :: Parser Word8 #-}
+{-# SPECIALISE hexadecimal :: Parser Word16 #-}
+{-# SPECIALISE hexadecimal :: Parser Word32 #-}
+{-# SPECIALISE hexadecimal :: Parser Word64 #-}
 
 -- | Parse and decode an unsigned decimal number.
 decimal :: Integral a => Parser a
-{-# SPECIALISE decimal :: Parser Int #-}
-{-# SPECIALISE decimal :: Parser Integer #-}
 decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDig
   where isDig w  = w >= 48 && w <= 57
         step a w = a * 10 + fromIntegral (w - 48)
+{-# SPECIALISE decimal :: Parser Int #-}
+{-# SPECIALISE decimal :: Parser Int8 #-}
+{-# SPECIALISE decimal :: Parser Int16 #-}
+{-# SPECIALISE decimal :: Parser Int32 #-}
+{-# SPECIALISE decimal :: Parser Int64 #-}
+{-# SPECIALISE decimal :: Parser Integer #-}
+{-# SPECIALISE decimal :: Parser Word #-}
+{-# SPECIALISE decimal :: Parser Word8 #-}
+{-# SPECIALISE decimal :: Parser Word16 #-}
+{-# SPECIALISE decimal :: Parser Word32 #-}
+{-# SPECIALISE decimal :: Parser Word64 #-}
 
 -- | Parse a number with an optional leading @\'+\'@ or @\'-\'@ sign
 -- character.
 signed :: Num a => Parser a -> Parser a
 {-# SPECIALISE signed :: Parser Int -> Parser Int #-}
+{-# SPECIALISE signed :: Parser Int8 -> Parser Int8 #-}
+{-# SPECIALISE signed :: Parser Int16 -> Parser Int16 #-}
+{-# SPECIALISE signed :: Parser Int32 -> Parser Int32 #-}
+{-# SPECIALISE signed :: Parser Int64 -> Parser Int64 #-}
+{-# SPECIALISE signed :: Parser Integer -> Parser Integer #-}
 signed p = (negate <$> (char8 '-' *> p))
        <|> (char8 '+' *> p)
        <|> p
-
-data T = T !Integer !Int
 
 -- | Parse a rational number.
 --
@@ -391,6 +414,8 @@ data T = T !Integer !Int
 -- >rational "3e"    == Done 3.0 "e"
 rational :: Fractional a => Parser a
 {-# SPECIALIZE rational :: Parser Double #-}
+{-# SPECIALIZE rational :: Parser Float #-}
+{-# SPECIALIZE rational :: Parser Rational #-}
 rational = floaty $ \real frac fracDenom -> fromRational $
                      real % 1 + frac % fracDenom
 
@@ -429,12 +454,15 @@ number = floaty $ \real frac fracDenom ->
          else D (asDouble real frac fracDenom)
 {-# INLINE number #-}
 
+data T = T !Integer !Int
+
 floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
 {-# INLINE floaty #-}
 floaty f = do
   let minus = 45
       plus  = 43
-  sign <- I.satisfy (\c -> c == minus || c == plus) <|> return plus
+  !positive <- ((== plus) <$> I.satisfy (\c -> c == minus || c == plus)) <|>
+               return True
   real <- decimal
   let tryFraction = do
         let dot = 46
@@ -455,7 +483,6 @@ floaty f = do
           else if power == 0
                then f real fraction (10 ^ fracDigits)
                else f real fraction (10 ^ fracDigits) * (10 ^^ power)
-  return $ if sign == plus
+  return $ if positive
            then n
            else -n
-  

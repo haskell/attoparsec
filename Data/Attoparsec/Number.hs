@@ -15,6 +15,7 @@ module Data.Attoparsec.Number
       Number(..)
     ) where
 
+import Control.DeepSeq (NFData(rnf))
 import Data.Data (Data)
 import Data.Function (on)
 import Data.Typeable (Typeable)
@@ -28,6 +29,11 @@ data Number = I !Integer
 instance Show Number where
     show (I a) = show a
     show (D a) = show a
+
+instance NFData Number where
+    rnf (I _) = ()
+    rnf (D _) = ()
+    {-# INLINE rnf #-}
 
 binop :: (Integer -> Integer -> a) -> (Double -> Double -> a)
       -> Number -> Number -> a

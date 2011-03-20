@@ -65,6 +65,7 @@ module Data.Attoparsec.Internal
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
+import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..), when)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberWord8)
@@ -102,6 +103,12 @@ instance Show r => Show (Result r) where
         "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
     show (Partial _)       = "Partial _"
     show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
+
+instance (NFData r) => NFData (Result r) where
+    rnf (Fail _ _ _) = ()
+    rnf (Partial _)  = ()
+    rnf (Done _ r)   = rnf r
+    {-# INLINE rnf #-}
 
 fmapR :: (a -> b) -> Result a -> Result b
 fmapR _ (Fail st stk msg) = Fail st stk msg
@@ -330,7 +337,8 @@ storable = hack undefined
 takeWith :: Int -> (B.ByteString -> Bool) -> Parser B.ByteString
 takeWith n p = do
   s <- ensure n
-  let (h,t) = B.splitAt n s
+  let h = B.unsafeTake n s
+      t = B.unsafeDrop n s
   if p h
     then put t >> return h
     else failDesc "takeWith"

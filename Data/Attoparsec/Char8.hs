@@ -440,11 +440,9 @@ floaty f = do
         let dot = 46
         _ <- I.satisfy (==dot)
         ds <- I.takeWhile isDigit_w8
-        case (case I.parse decimal ds of
-                I.Partial k -> k B.empty
-                r           -> r) of
-          I.Done _ n -> return $ T n (B.length ds)
-          _          -> fail "no digits after decimal"
+        case I.parseOnly decimal ds of
+                Right n -> return $ T n (B.length ds)
+                _       -> fail "no digits after decimal"
   T fraction fracDigits <- tryFraction <|> return (T 0 0)
   let littleE = 101
       bigE    = 69

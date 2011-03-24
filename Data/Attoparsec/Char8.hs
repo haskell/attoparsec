@@ -24,9 +24,9 @@ module Data.Attoparsec.Char8
 
     -- * Running parsers
     , A.parse
+    , A.feed
     , A.parseTest
     , A.parseWith
-    , A.feed
 
     -- * Combinators
     , (I.<?>)
@@ -34,11 +34,11 @@ module Data.Attoparsec.Char8
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual characters
-    , satisfy
     , char
-    , anyChar
     , char8
+    , anyChar
     , notChar
+    , satisfy
 
     -- ** Special character parsers
     , digit

@@ -29,6 +29,10 @@ module Data.Attoparsec.Char8
     , A.parseTest
     , A.parseWith
 
+    -- ** Result conversion
+    , A.maybeResult
+    , A.eitherResult
+
     -- * Combinators
     , (I.<?>)
     , I.try

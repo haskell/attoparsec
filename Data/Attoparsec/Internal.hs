@@ -142,7 +142,7 @@ addS :: Input -> Added -> More
 addS i0 a0 m0 _i1 a1 m1 f =
     let !i = I (unI i0 +++ unA a1)
         a  = A (unA a0 +++ unA a1)
-        m  = m0 <> m1
+        !m = m0 <> m1
     in f i a m
   where
     Complete <> _ = Complete

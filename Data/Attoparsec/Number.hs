@@ -64,7 +64,7 @@ instance Num Number where
     (-) = binop (((I$!).) . (-)) (((D$!).) . (-))
     {-# INLINE (-) #-}
 
-    (*) = binop (((I$!).) . (+)) (((D$!).) . (+))
+    (*) = binop (((I$!).) . (*)) (((D$!).) . (*))
     {-# INLINE (*) #-}
 
     abs (I a) = I $! abs a

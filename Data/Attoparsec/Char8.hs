@@ -417,6 +417,9 @@ signed p = (negate <$> (char8 '-' *> p))
 --
 -- >rational "3.foo" == Done 3.0 ".foo"
 -- >rational "3e"    == Done 3.0 "e"
+--
+-- This function does not accept string representations of \"NaN\" or
+-- \"Infinity\".
 rational :: Fractional a => Parser a
 {-# SPECIALIZE rational :: Parser Double #-}
 {-# SPECIALIZE rational :: Parser Float #-}
@@ -436,6 +439,9 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- results, but for the remaining 5.8%, this function loses precision
 -- around the 15th decimal place.  For 0.001% of numbers, this
 -- function will lose precision at the 13th or 14th decimal place.
+--
+-- This function does not accept string representations of \"NaN\" or
+-- \"Infinity\".
 double :: Parser Double
 double = floaty asDouble
 
@@ -452,6 +458,9 @@ asDouble real frac fracDenom =
 -- On integral inputs, it gives perfectly accurate answers, and on
 -- floating point inputs, it is slightly less accurate than
 -- 'rational'.
+--
+-- This function does not accept string representations of \"NaN\" or
+-- \"Infinity\".
 number :: Parser Number
 number = floaty $ \real frac fracDenom ->
          if frac == 0 && fracDenom == 0

@@ -33,11 +33,13 @@ module Data.Attoparsec.Combinator
 
 import Control.Applicative (Alternative, Applicative(..), empty, liftA2,
                             (<|>), (*>), (<$>))
+import Data.Attoparsec.Internal.Types (Parser)
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
 -- until one of them succeeds. Returns the value of the succeeding
 -- action.
 choice :: Alternative f => [f a] -> f a
+{-# SPECIALIZE choice :: [Parser a] -> Parser a #-}
 choice = foldr (<|>) empty
 
 -- | @option x p@ tries to apply action @p@. If @p@ fails without
@@ -46,6 +48,7 @@ choice = foldr (<|>) empty
 --
 -- > priority  = option 0 (digitToInt <$> digit)
 option :: Alternative f => a -> f a -> f a
+{-# SPECIALIZE option :: a -> Parser a -> Parser a #-}
 option x p = p <|> pure x
 
 -- | @many1 p@ applies the action @p@ /one/ or more times. Returns a
@@ -61,6 +64,7 @@ many1 p = liftA2 (:) p (many p)
 --
 -- > commaSep p  = p `sepBy` (symbol ",")
 sepBy :: Alternative f => f a -> f s -> f [a]
+{-# SPECIALIZE sepBy :: Parser a -> Parser s -> Parser [a] #-}
 sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 
 -- | @sepBy1 p sep@ applies /one/ or more occurrences of @p@, separated
@@ -68,6 +72,7 @@ sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 --
 -- > commaSep p  = p `sepBy` (symbol ",")
 sepBy1 :: Alternative f => f a -> f s -> f [a]
+{-# SPECIALIZE sepBy1 :: Parser a -> Parser s -> Parser [a] #-}
 sepBy1 p s = scan
     where scan = liftA2 (:) p ((s *> scan) <|> pure [])
 
@@ -80,16 +85,19 @@ sepBy1 p s = scan
 -- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
 -- therefore the use of the 'try' combinator.
 manyTill :: Alternative f => f a -> f b -> f [a]
+{-# SPECIALIZE manyTill :: Parser a -> Parser b -> Parser [a] #-}
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
 
 -- | Skip zero or more instances of an action.
 skipMany :: Alternative f => f a -> f ()
+{-# SPECIALIZE skipMany :: Parser a -> Parser () #-}
 skipMany p = scan
     where scan = (p *> scan) <|> pure ()
 
 -- | Skip one or more instances of an action.
 skipMany1 :: Alternative f => f a -> f ()
+{-# SPECIALIZE skipMany1 :: Parser a -> Parser () #-}
 skipMany1 p = p *> skipMany p
 
 -- | Apply the given action repeatedly, returning every result.

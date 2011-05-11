@@ -1,16 +1,16 @@
 name:            attoparsec
-version:         0.8.5.3
+version:         0.8.6.0
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
-tested-with:     GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.1
+tested-with:     GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
 synopsis:        Fast combinator parsing for bytestrings
 cabal-version:   >= 1.6
-homepage:        http://bitbucket.org/bos/attoparsec
-bug-reports:     http://bitbucket.org/bos/attoparsec/issues
+homepage:        https://bitbucket.org/bos/attoparsec
+bug-reports:     https://bitbucket.org/bos/attoparsec/issues
 build-type:      Simple
 description:
     A fast parser combinator library, aimed particularly at dealing
@@ -71,4 +71,8 @@ library
 
 source-repository head
   type:     mercurial
-  location: http://bitbucket.org/bos/attoparsec
+  location: https://bitbucket.org/bos/attoparsec
+
+source-repository head
+  type:     git
+  location: https://github.com/bos/attoparsec

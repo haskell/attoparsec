@@ -33,16 +33,20 @@ module Data.Attoparsec.Combinator
 
 import Control.Applicative (Alternative, Applicative(..), empty, liftA2,
                             (<|>), (*>), (<$>))
+#if __GLASGOW_HASKELL__ >= 700
 import Data.Attoparsec.Internal.Types (Parser)
 import qualified Data.Attoparsec.Zepto as Z
+#endif
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
 -- until one of them succeeds. Returns the value of the succeeding
 -- action.
 choice :: Alternative f => [f a] -> f a
+choice = foldr (<|>) empty
+#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE choice :: [Parser a] -> Parser a #-}
 {-# SPECIALIZE choice :: [Z.Parser a] -> Z.Parser a #-}
-choice = foldr (<|>) empty
+#endif
 
 -- | @option x p@ tries to apply action @p@. If @p@ fails without
 -- consuming input, it returns the value @x@, otherwise the value
@@ -50,9 +54,11 @@ choice = foldr (<|>) empty
 --
 -- > priority  = option 0 (digitToInt <$> digit)
 option :: Alternative f => a -> f a -> f a
+option x p = p <|> pure x
+#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE option :: a -> Parser a -> Parser a #-}
 {-# SPECIALIZE option :: a -> Z.Parser a -> Z.Parser a #-}
-option x p = p <|> pure x
+#endif
 
 -- | @many1 p@ applies the action @p@ /one/ or more times. Returns a
 -- list of the returned values of @p@.
@@ -67,19 +73,23 @@ many1 p = liftA2 (:) p (many p)
 --
 -- > commaSep p  = p `sepBy` (symbol ",")
 sepBy :: Alternative f => f a -> f s -> f [a]
+sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
+#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy :: Parser a -> Parser s -> Parser [a] #-}
 {-# SPECIALIZE sepBy :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
-sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
+#endif
 
 -- | @sepBy1 p sep@ applies /one/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@.
 --
 -- > commaSep p  = p `sepBy` (symbol ",")
 sepBy1 :: Alternative f => f a -> f s -> f [a]
-{-# SPECIALIZE sepBy1 :: Parser a -> Parser s -> Parser [a] #-}
-{-# SPECIALIZE sepBy1 :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 sepBy1 p s = scan
     where scan = liftA2 (:) p ((s *> scan) <|> pure [])
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE sepBy1 :: Parser a -> Parser s -> Parser [a] #-}
+{-# SPECIALIZE sepBy1 :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
+#endif
 
 -- | @manyTill p end@ applies action @p@ /zero/ or more times until
 -- action @end@ succeeds, and returns the list of values returned by
@@ -90,23 +100,29 @@ sepBy1 p s = scan
 -- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
 -- therefore the use of the 'try' combinator.
 manyTill :: Alternative f => f a -> f b -> f [a]
-{-# SPECIALIZE manyTill :: Parser a -> Parser b -> Parser [a] #-}
-{-# SPECIALIZE manyTill :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE manyTill :: Parser a -> Parser b -> Parser [a] #-}
+{-# SPECIALIZE manyTill :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
+#endif
 
 -- | Skip zero or more instances of an action.
 skipMany :: Alternative f => f a -> f ()
-{-# SPECIALIZE skipMany :: Parser a -> Parser () #-}
-{-# SPECIALIZE skipMany :: Z.Parser a -> Z.Parser () #-}
 skipMany p = scan
     where scan = (p *> scan) <|> pure ()
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE skipMany :: Parser a -> Parser () #-}
+{-# SPECIALIZE skipMany :: Z.Parser a -> Z.Parser () #-}
+#endif
 
 -- | Skip one or more instances of an action.
 skipMany1 :: Alternative f => f a -> f ()
+skipMany1 p = p *> skipMany p
+#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE skipMany1 :: Parser a -> Parser () #-}
 {-# SPECIALIZE skipMany1 :: Z.Parser a -> Z.Parser () #-}
-skipMany1 p = p *> skipMany p
+#endif
 
 -- | Apply the given action repeatedly, returning every result.
 count :: Monad m => Int -> m a -> m [a]

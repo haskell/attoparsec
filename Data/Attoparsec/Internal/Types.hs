@@ -67,6 +67,7 @@ fmapR f (Done bs r)       = Done bs (f r)
 
 instance Functor Result where
     fmap = fmapR
+    {-# INLINE fmap #-}
 
 newtype Input = I {unI :: B.ByteString}
 newtype Added = A {unA :: B.ByteString}
@@ -139,6 +140,7 @@ fmapP p m = Parser $ \i0 a0 m0 f k ->
 
 instance Functor Parser where
     fmap = fmapP
+    {-# INLINE fmap #-}
 
 apP :: Parser (a -> b) -> Parser a -> Parser b
 apP d e = do
@@ -149,23 +151,29 @@ apP d e = do
 
 instance Applicative Parser where
     pure   = returnP
+    {-# INLINE pure #-}
     (<*>)  = apP
+    {-# INLINE (<*>) #-}
 
     -- These definitions are equal to the defaults, but this
     -- way the optimizer doesn't have to work so hard to figure
     -- that out.
     (*>)   = (>>)
+    {-# INLINE (*>) #-}
     x <* y = x >>= \a -> y >> return a
+    {-# INLINE (<*) #-}
 
 instance Monoid (Parser a) where
     mempty  = failDesc "mempty"
     {-# INLINE mempty #-}
     mappend = plus
+    {-# INLINE mappend #-}
 
 instance Alternative Parser where
     empty = failDesc "empty"
     {-# INLINE empty #-}
     (<|>) = plus
+    {-# INLINE (<|>) #-}
 
 failDesc :: String -> Parser a
 failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)

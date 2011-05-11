@@ -86,7 +86,9 @@ instance MonadPlus Parser where
 
 instance Applicative Parser where
     pure   = return
+    {-# INLINE pure #-}
     (<*>)  = ap
+    {-# INLINE (<*>) #-}
 
 gets :: (S -> a) -> Parser a
 gets f = Parser $ \s -> (# OK (f s), s #)
@@ -106,11 +108,13 @@ instance Monoid (Parser a) where
     mempty  = fail "mempty"
     {-# INLINE mempty #-}
     mappend = mplus
+    {-# INLINE mappend #-}
 
 instance Alternative Parser where
     empty = fail "empty"
     {-# INLINE empty #-}
     (<|>) = mplus
+    {-# INLINE (<|>) #-}
 
 -- | Consume input while the predicate returns 'True'.
 takeWhile :: (Word8 -> Bool) -> Parser ByteString

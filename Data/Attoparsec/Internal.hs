@@ -69,6 +69,7 @@ import Control.Monad (when)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Internal.Types
+import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
@@ -98,7 +99,7 @@ prompt :: Input -> Added -> More
 prompt i0 a0 _m0 kf ks = Partial $ \s ->
     if B.null s
     then kf i0 a0 Complete
-    else ks (I (unI i0 +++ s)) (A (unA a0 +++ s)) Incomplete
+    else ks (i0 `mappend` I s) (a0 `mappend` Added s) Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
@@ -140,6 +141,19 @@ try p = Parser $ \i0 a0 m0 kf ks ->
         noAdds i0 a0 m0 $ \i1 a1 m1 ->
             let kf' i2 a2 m2 = addS i0 a0 m0 i2 a2 m2 kf
             in runParser p i1 a1 m1 kf' ks
+  where noAdds i0 _a0 m0 f = f i0 mempty m0
+    
+addS :: Input -> Added -> More
+     -> Input -> Added -> More
+     -> (Input -> Added -> More -> r) -> r
+addS i0 a0 m0 _i1 a1 m1 f =
+    let !i = case a1 of
+               Dropped -> i0
+               Added s -> i0 `mappend` I s
+        !a = a0 `mappend` a1
+        !m = m0 `mappend` m1
+    in f i a m
+{-# INLINE addS #-}
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -441,12 +455,12 @@ successK i0 _a0 _m0 a = Done (unI i0) a
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = runParser m (I s) (A B.empty) Incomplete failK successK
+parse m s = runParser m (I s) mempty Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
 parseOnly :: Parser a -> B.ByteString -> Either String a
-parseOnly m s = case runParser m (I s) (A B.empty) Complete failK successK of
+parseOnly m s = case runParser m (I s) mempty Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"

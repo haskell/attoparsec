@@ -20,8 +20,6 @@ module Data.Attoparsec.Internal.Types
     , Input(..)
     , Added(..)
     , More(..)
-    , addS
-    , noAdds
     , (+++)
     ) where
 
@@ -70,7 +68,21 @@ instance Functor Result where
     {-# INLINE fmap #-}
 
 newtype Input = I {unI :: B.ByteString}
-newtype Added = A {unA :: B.ByteString}
+    deriving (Show)
+
+instance Monoid Input where
+    mempty              = I B.empty
+    mappend (I a) (I b) = I (a +++ b)
+
+data Added = Dropped
+           | Added B.ByteString
+             deriving (Show)
+
+instance Monoid Added where
+    mempty                      = Dropped
+    mappend a@Dropped _         = a
+    mappend a         Dropped   = a
+    mappend (Added a) (Added b) = Added (a +++ b)
 
 -- | The 'Parser' type is a monad.
 newtype Parser a = Parser {
@@ -87,19 +99,11 @@ type Success a r = Input -> Added -> More -> a -> Result r
 data More = Complete | Incomplete
             deriving (Eq, Show)
 
-addS :: Input -> Added -> More
-     -> Input -> Added -> More
-     -> (Input -> Added -> More -> r) -> r
-addS i0 a0 m0 _i1 a1 m1 f =
-    let !i = I (unI i0 +++ unA a1)
-        a  = A (unA a0 +++ unA a1)
-        !m = m0 <> m1
-    in f i a m
-  where
-    Complete <> _ = Complete
-    _ <> Complete = Complete
-    _ <> _        = Incomplete
-{-# INLINE addS #-}
+instance Monoid More where
+    mempty                    = Incomplete
+    mappend Complete _        = Complete
+    mappend _        Complete = Complete
+    mappend _        _        = Incomplete
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
 bindP m g =
@@ -116,16 +120,10 @@ instance Monad Parser where
     (>>=)  = bindP
     fail   = failDesc
 
-noAdds :: Input -> Added -> More
-       -> (Input -> Added -> More -> r) -> r
-noAdds i0 _a0 m0 f = f i0 (A B.empty) m0
-{-# INLINE noAdds #-}
-
 plus :: Parser a -> Parser a -> Parser a
 plus a b = Parser $ \i0 a0 m0 kf ks ->
-           let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
-                                  \ i2 a2 m2 -> runParser b i2 a2 m2 kf ks
-           in  noAdds i0 a0 m0 $ \i2 a2 m2 -> runParser a i2 a2 m2 kf' ks
+           let kf' i1 a1 m1 _ _ = runParser b i1 a1 m1 kf ks
+           in  runParser a i0 a0 m0 kf' ks
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where

@@ -18,6 +18,7 @@ module Data.Attoparsec.Internal.Types
     , Success
     , Result(..)
     , Input(..)
+    , Status(..)
     , Added(..)
     , More(..)
     , (+++)
@@ -86,14 +87,23 @@ instance Monoid Added where
 
 -- | The 'Parser' type is a monad.
 newtype Parser a = Parser {
-      runParser :: forall r. Input -> Added -> More
+      runParser :: forall r. Input -> Status -> Added -> More
                 -> Failure   r
                 -> Success a r
                 -> Result r
     }
 
-type Failure   r = Input -> Added -> More -> [String] -> String -> Result r
-type Success a r = Input -> Added -> More -> a -> Result r
+type Failure   r = Input -> Status -> Added -> More -> [String] -> String -> Result r
+type Success a r = Input -> Status -> Added -> More -> a -> Result r
+
+data Status = Uncommitted | Committed
+              deriving (Eq, Show)
+
+instance Monoid Status where
+    mempty = Uncommitted
+    mappend c@Committed _ = c
+    mappend _ c@Committed = c
+    mappend _ _           = Uncommitted
 
 -- | Have we read all available input?
 data More = Complete | Incomplete
@@ -106,13 +116,13 @@ instance Monoid More where
     mappend _        _        = Incomplete
 
 bindP :: Parser a -> (a -> Parser b) -> Parser b
-bindP m g =
-    Parser $ \i0 a0 m0 kf ks -> runParser m i0 a0 m0 kf $
-                                \i1 a1 m1 a -> runParser (g a) i1 a1 m1 kf ks
+bindP m g = Parser $ \i0 s0 a0 m0 kf ks ->
+            runParser m i0 s0 a0 m0 kf $ \i1 s1 a1 m1 a ->
+                runParser (g a) i1 s1 a1 m1 kf ks
 {-# INLINE bindP #-}
 
 returnP :: a -> Parser a
-returnP a = Parser (\i0 a0 m0 _kf ks -> ks i0 a0 m0 a)
+returnP a = Parser (\i0 s0 a0 m0 _kf ks -> ks i0 s0 a0 m0 a)
 {-# INLINE returnP #-}
 
 instance Monad Parser where
@@ -121,9 +131,10 @@ instance Monad Parser where
     fail   = failDesc
 
 plus :: Parser a -> Parser a -> Parser a
-plus a b = Parser $ \i0 a0 m0 kf ks ->
-           let kf' i1 a1 m1 _ _ = runParser b i1 a1 m1 kf ks
-           in  runParser a i0 a0 m0 kf' ks
+plus a b = Parser $ \i0 _s0 a0 m0 kf ks ->
+    let kf' i1 s1@Uncommitted a1 m1 _ _     = runParser b i1 s1 a1 m1 kf ks
+        kf' i1 s1             a1 m1 kf1 ks1 = kf i1 s1 a1 m1 kf1 ks1
+    in  runParser a i0 Uncommitted a0 m0 kf' ks
 {-# INLINE plus #-}
 
 instance MonadPlus Parser where
@@ -132,8 +143,8 @@ instance MonadPlus Parser where
     mplus = plus
 
 fmapP :: (a -> b) -> Parser a -> Parser b
-fmapP p m = Parser $ \i0 a0 m0 f k ->
-            runParser m i0 a0 m0 f $ \i1 a1 s1 a -> k i1 a1 s1 (p a)
+fmapP p m = Parser $ \i0 s0 a0 m0 f k ->
+            runParser m i0 s0 a0 m0 f $ \i1 s1 a1 m1 a -> k i1 s1 a1 m1 (p a)
 {-# INLINE fmapP #-}
 
 instance Functor Parser where
@@ -174,7 +185,7 @@ instance Alternative Parser where
     {-# INLINE (<|>) #-}
 
 failDesc :: String -> Parser a
-failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
+failDesc err = Parser (\i0 s0 a0 m0 kf _ks -> kf i0 s0 a0 m0 [] msg)
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 

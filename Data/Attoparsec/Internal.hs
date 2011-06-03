@@ -85,49 +85,49 @@ import qualified Data.ByteString.Unsafe as B
 -- | If at least @n@ bytes of input are available, return the current
 -- input, otherwise fail.
 ensure :: Int -> Parser B.ByteString
-ensure !n = Parser $ \i0 a0 m0 kf ks ->
+ensure !n = Parser $ \i0 s0 a0 m0 kf ks ->
     if B.length (unI i0) >= n
-    then ks i0 a0 m0 (unI i0)
-    else runParser (demandInput >> ensure n) i0 a0 m0 kf ks
+    then ks i0 s0 a0 m0 (unI i0)
+    else runParser (demandInput >> ensure n) i0 s0 a0 m0 kf ks
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
-prompt :: Input -> Added -> More
-       -> (Input -> Added -> More -> Result r)
-       -> (Input -> Added -> More -> Result r)
+prompt :: Input -> Status -> Added -> More
+       -> (Input -> Status -> Added -> More -> Result r)
+       -> (Input -> Status -> Added -> More -> Result r)
        -> Result r
-prompt i0 a0 _m0 kf ks = Partial $ \s ->
+prompt i0 s0 a0 _m0 kf ks = Partial $ \s ->
     if B.null s
-    then kf i0 a0 Complete
-    else ks (i0 `mappend` I s) (a0 `mappend` Added s) Incomplete
+    then kf i0 s0 a0 Complete
+    else ks (i0 `mappend` I s) s0 (a0 `mappend` Added s) Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
 demandInput :: Parser ()
-demandInput = Parser $ \i0 a0 m0 kf ks ->
+demandInput = Parser $ \i0 s0 a0 m0 kf ks ->
     if m0 == Complete
-    then kf i0 a0 m0 ["demandInput"] "not enough bytes"
-    else let kf' i a m = kf i a m ["demandInput"] "not enough bytes"
-             ks' i a m = ks i a m ()
-         in prompt i0 a0 m0 kf' ks'
+    then kf i0 s0 a0 m0 ["demandInput"] "not enough bytes"
+    else let kf' i s a m = kf i s a m ["demandInput"] "not enough bytes"
+             ks' i s a m = ks i s a m ()
+         in prompt i0 s0 a0 m0 kf' ks'
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end
 -- of all input has been reached.
 wantInput :: Parser Bool
-wantInput = Parser $ \i0 a0 m0 _kf ks ->
+wantInput = Parser $ \i0 s0 a0 m0 _kf ks ->
   case () of
-    _ | not (B.null (unI i0)) -> ks i0 a0 m0 True
-      | m0 == Complete  -> ks i0 a0 m0 False
-      | otherwise       -> let kf' i a m = ks i a m False
-                               ks' i a m = ks i a m True
-                           in prompt i0 a0 m0 kf' ks'
+    _ | not (B.null (unI i0)) -> ks i0 s0 a0 m0 True
+      | m0 == Complete  -> ks i0 s0 a0 m0 False
+      | otherwise       -> let kf' i s a m = ks i s a m False
+                               ks' i s a m = ks i s a m True
+                           in prompt i0 s0 a0 m0 kf' ks'
 
 get :: Parser B.ByteString
-get  = Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
+get  = Parser $ \i0 s0 a0 m0 _kf ks -> ks i0 s0 a0 m0 (unI i0)
 
 put :: B.ByteString -> Parser ()
-put s = Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
+put s = Parser $ \_i0 _s0 a0 m0 _kf ks -> ks (I s) Committed a0 m0 ()
 
 -- | Attempt a parse, and if it fails, rewind the input so that no
 -- input appears to have been consumed.
@@ -137,22 +137,23 @@ put s = Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
 -- lookahead.  The downside to using this combinator is that it can
 -- retain input for longer than is desirable.
 try :: Parser a -> Parser a
-try p = Parser $ \i0 a0 m0 kf ks ->
-        noAdds i0 a0 m0 $ \i1 a1 m1 ->
-            let kf' i2 a2 m2 = addS i0 a0 m0 i2 a2 m2 kf
-            in runParser p i1 a1 m1 kf' ks
-  where noAdds i0 _a0 m0 f = f i0 mempty m0
+try p = Parser $ \i0 s0 a0 m0 kf ks ->
+        noAdds i0 s0 a0 m0 $ \i1 s1 a1 m1 ->
+            let kf' i2 s2 a2 m2 = addS i0 s0 a0 m0 i2 s2 a2 m2 kf
+            in runParser p i1 s1 a1 m1 kf' ks
+  where noAdds i0 s0 _a0 m0 f = f i0 s0 mempty m0
     
-addS :: Input -> Added -> More
-     -> Input -> Added -> More
-     -> (Input -> Added -> More -> r) -> r
-addS i0 a0 m0 _i1 a1 m1 f =
+addS :: Input -> Status -> Added -> More
+     -> Input -> Status -> Added -> More
+     -> (Input -> Status -> Added -> More -> r) -> r
+addS i0 s0 a0 m0 _i1 s1 a1 m1 f =
     let !i = case a1 of
                Dropped -> i0
-               Added s -> i0 `mappend` I s
+               Added bs -> i0 `mappend` I bs
+        !s = s0 `mappend` s1
         !a = a0 `mappend` a1
         !m = m0 `mappend` m1
-    in f i a m
+    in f i s a m
 {-# INLINE addS #-}
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
@@ -410,17 +411,17 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 
 -- | Match only if all input has been consumed.
 endOfInput :: Parser ()
-endOfInput = Parser $ \i0 a0 m0 kf ks ->
+endOfInput = Parser $ \i0 s0 a0 m0 kf ks ->
              if B.null (unI i0)
              then if m0 == Complete
-                  then ks i0 a0 m0 ()
-                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
-                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> kf i2 a2 m2 []
-                                                            "endOfInput"
-                       in  runParser demandInput i0 a0 m0 kf' ks'
-             else kf i0 a0 m0 [] "endOfInput"
+                  then ks i0 s0 a0 m0 ()
+                  else let kf' i1 s1 a1 m1 _ _ = addS i0 s0 a0 m0 i1 s1 a1 m1 $
+                                                 \ i2 s2 a2 m2 -> ks i2 s2 a2 m2 ()
+                           ks' i1 s1 a1 m1 _   = addS i0 s0 a0 m0 i1 s1 a1 m1 $
+                                                 \ i2 s2 a2 m2 -> kf i2 s2 a2 m2 []
+                                                                  "endOfInput"
+                       in  runParser demandInput i0 s0 a0 m0 kf' ks'
+             else kf i0 s0 a0 m0 [] "endOfInput"
 
 -- | Return an indication of whether the end of input has been
 -- reached.
@@ -437,30 +438,30 @@ endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 (<?>) :: Parser a
       -> String                 -- ^ the name to use if parsing fails
       -> Parser a
-p <?> msg0 = Parser $ \i0 a0 m0 kf ks ->
-             let kf' i a m strs msg = kf i a m (msg0:strs) msg
-             in runParser p i0 a0 m0 kf' ks
+p <?> msg0 = Parser $ \i0 s0 a0 m0 kf ks ->
+             let kf' i s a m strs msg = kf i s a m (msg0:strs) msg
+             in runParser p i0 s0 a0 m0 kf' ks
 {-# INLINE (<?>) #-}
 infix 0 <?>
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK i0 _a0 _m0 stack msg = Fail (unI i0) stack msg
+failK i0 _s0 _a0 _m0 stack msg = Fail (unI i0) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK i0 _a0 _m0 a = Done (unI i0) a
+successK i0 _s0 _a0 _m0 a = Done (unI i0) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = runParser m (I s) mempty Incomplete failK successK
+parse m s = runParser m (I s) Uncommitted mempty Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
 parseOnly :: Parser a -> B.ByteString -> Either String a
-parseOnly m s = case runParser m (I s) mempty Complete failK successK of
+parseOnly m s = case runParser m (I s) Uncommitted mempty Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"

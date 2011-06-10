@@ -54,8 +54,17 @@ instance Ord Number where
     (<) = binop (<) (<)
     {-# INLINE (<) #-}
 
+    (<=) = binop (<=) (<=)
+    {-# INLINE (<=) #-}
+
     (>) = binop (>) (>)
     {-# INLINE (>) #-}
+
+    (>=) = binop (>=) (>=)
+    {-# INLINE (>=) #-}
+
+    compare = binop compare compare
+    {-# INLINE compare #-}
 
 instance Num Number where
     (+) = binop (((I$!).) . (+)) (((D$!).) . (+))

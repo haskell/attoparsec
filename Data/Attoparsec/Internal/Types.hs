@@ -155,6 +155,7 @@ instance Applicative Parser where
     (<*>)  = apP
     {-# INLINE (<*>) #-}
 
+#if MIN_VERSION_base(4,2,0)
     -- These definitions are equal to the defaults, but this
     -- way the optimizer doesn't have to work so hard to figure
     -- that out.
@@ -162,6 +163,7 @@ instance Applicative Parser where
     {-# INLINE (*>) #-}
     x <* y = x >>= \a -> y >> return a
     {-# INLINE (<*) #-}
+#endif
 
 instance Monoid (Parser a) where
     mempty  = failDesc "mempty"

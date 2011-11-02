@@ -419,7 +419,7 @@ atEnd = not <$> wantInput
 endOfLine :: Parser ()
 endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 
---- | Name the parser, in case failure occurs.
+-- | Name the parser, in case failure occurs.
 (<?>) :: Parser a
       -> String                 -- ^ the name to use if parsing fails
       -> Parser a

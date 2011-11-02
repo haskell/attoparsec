@@ -10,15 +10,15 @@ I'm happy to receive bug reports, fixes, documentation enhancements,
 and other improvements.
 
 Please report bugs via the
-[bitbucket issue tracker](http://bitbucket.org/bos/attoparsec/issues).
+[github issue tracker](https://github.com/bos/attoparsec/issues).
 
-Master [Mercurial repository](http://bitbucket.org/bos/attoparsec):
-
-* `hg clone http://bitbucket.org/bos/attoparsec`
-
-There's also a [git mirror](http://github.com/bos/attoparsec):
+Master [git repository](https://github.com/bos/attoparsec):
 
 * `git clone git://github.com/bos/attoparsec.git`
+
+There's also a [Mercurial mirror](https://bitbucket.org/bos/attoparsec):
+
+* `hg clone https://bitbucket.org/bos/attoparsec`
 
 (You can create and contribute changes using either Mercurial or git.)
 

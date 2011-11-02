@@ -9,8 +9,8 @@ stability:       experimental
 tested-with:     GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
 synopsis:        Fast combinator parsing for bytestrings
 cabal-version:   >= 1.6
-homepage:        https://bitbucket.org/bos/attoparsec
-bug-reports:     https://bitbucket.org/bos/attoparsec/issues
+homepage:        https://github.com/bos/attoparsec
+bug-reports:     https://github.com/bos/attoparsec/issues
 build-type:      Simple
 description:
     A fast parser combinator library, aimed particularly at dealing
@@ -35,24 +35,11 @@ Flag developer
   Description: Whether to build the library in development mode
   Default: False
 
-flag split-base
-flag applicative-in-base
-
 library
-  if flag(split-base)
-    -- bytestring was in base-2.0 and 2.1.1
-    build-depends: base >= 2.0 && < 2.2
-  else
-    -- in base 1.0 and >= 3.0 bytestring is a separate package
-    build-depends: base < 2.0 || >= 3, bytestring >= 0.9, containers >= 0.1.0.1
-
-  if flag(applicative-in-base)
-    build-depends: base >= 2.0 && < 5.0
-    cpp-options: -DAPPLICATIVE_IN_BASE
-  else
-    build-depends: base < 2.0
-
-  build-depends: deepseq
+  build-depends: base >= 3 && < 5,
+                 bytestring,
+                 containers,
+                 deepseq
 
   extensions:      CPP
   exposed-modules: Data.Attoparsec
@@ -70,9 +57,9 @@ library
     ghc-prof-options: -auto-all
 
 source-repository head
-  type:     mercurial
-  location: https://bitbucket.org/bos/attoparsec
-
-source-repository head
   type:     git
   location: https://github.com/bos/attoparsec
+
+source-repository head
+  type:     mercurial
+  location: https://bitbucket.org/bos/attoparsec

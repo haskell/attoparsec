@@ -43,6 +43,7 @@ module Data.Attoparsec.Text.Internal
     , string
     , stringTransform
     , take
+    , scan
     , takeWhile
     , takeWhile1
     , takeTill
@@ -290,6 +291,44 @@ takeText = T.concat `fmap` takeRest
 -- | Consume all remaining input and return it as a single string.
 takeLazyText :: Parser L.Text
 takeLazyText = L.fromChunks `fmap` takeRest
+
+data Scan s = Continue s
+            | Finished {-# UNPACK #-} !Int T.Text
+
+-- | A stateful scanner.  The predicate consumes and transforms a
+-- state argument, and each transformed state is passed to successive
+-- invocations of the predicate on each character of the input until one
+-- returns 'Nothing' or the input ends.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'Nothing' on the first character of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+scan :: s -> (s -> Char -> Maybe s) -> Parser Text
+scan s0 p = do
+  chunks <- go [] s0
+  case chunks of
+    [x] -> return x
+    xs  -> return . T.concat . reverse $ xs
+ where
+  scanner s !n t =
+    case T.uncons t of
+      Just (c,t') -> case p s c of
+                       Just s' -> scanner s' (n+1) t'
+                       Nothing -> Finished n t
+      Nothing     -> Continue s
+  go acc s = do
+    input <- get
+    case scanner s 0 input of
+      Continue s'  -> do put T.empty
+                         more <- wantInput
+                         if more
+                           then go (input : acc) s'
+                           else return (input : acc)
+      Finished n t -> put t >> return (T.take n input : acc)
+{-# INLINE scan #-}
 
 -- | Consume input as long as the predicate returns 'True', and return
 -- the consumed input.

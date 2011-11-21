@@ -1,20 +1,10 @@
-^dist$
+^(?:cabal-dev|dist)$
+\.(?:aux|eventlog|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
+~$
 benchmarks/Arse
 benchmarks/med.txt
 benchmarks/tiny
 
 syntax: glob
-*.aux
-*.hi
-*.hp
-*.o
-*.orig
-*.out
-*.pdf
-*.prof
-*.ps
-*.rej
-*~
-.*.swp
 .\#*
 \#*

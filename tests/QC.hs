@@ -1,20 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main (main) where
 
+import Control.Applicative ((<$>))
 import Prelude hiding (takeWhile)
-import QCSupport
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck hiding (NonEmpty)
+import Test.QuickCheck
 import qualified Data.Attoparsec as P
 import qualified Data.ByteString as B
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Lazy as L
 
--- Make sure that structures whose types claim they are non-empty
--- really are.
+instance Arbitrary S.ByteString where
+    arbitrary   = S.pack <$> arbitrary
 
-nonEmptyList l = length (nonEmpty l) > 0
-    where types = l :: NonEmpty [Int]
-nonEmptyBS l = B.length (nonEmpty l) > 0
+instance Arbitrary L.ByteString where
+    arbitrary   = sized $ \n -> resize (round (sqrt (toEnum n :: Double)))
+                  ((L.fromChunks . map (S.pack . nonEmpty)) <$> arbitrary)
+      where nonEmpty (NonEmpty a) = a
 
 -- Naming.
 
@@ -40,10 +44,11 @@ anyWord8 s = maybeP P.anyWord8 s == if B.null s
                                     then Nothing
                                     else Just (B.head s)
 
-notWord8 w (NonEmpty s) = maybeP (P.notWord8 w) s == if v == w
+notWord8 w (NonEmpty s) = maybeP (P.notWord8 w) bs == if v == w
                                                       then Nothing
                                                       else Just v
-    where v = B.head s
+    where v = B.head bs
+          bs = B.pack s
 
 string s = maybeP (P.string s) s == Just s
 
@@ -87,8 +92,6 @@ main = defaultMain tests
 
 tests = [
   testGroup "fnord" [
-    testProperty "nonEmptyList" nonEmptyList,
-    testProperty "nonEmptyBS" nonEmptyBS,
     testProperty "satisfy" satisfy,
     testProperty "word8" word8,
     testProperty "notWord8" notWord8,
@@ -102,5 +105,4 @@ tests = [
     testProperty "takeTill" takeTill,
     testProperty "endOfInput" endOfInput
     ]
-
   ]

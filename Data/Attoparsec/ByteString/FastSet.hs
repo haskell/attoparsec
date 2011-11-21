@@ -2,7 +2,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Attoparsec.FastSet
+-- Module      :  Data.Attoparsec.ByteString.FastSet
 -- Copyright   :  Bryan O'Sullivan 2008
 -- License     :  BSD3
 -- 
@@ -16,7 +16,7 @@
 -- a lookup table.
 -- 
 -----------------------------------------------------------------------------
-module Data.Attoparsec.FastSet
+module Data.Attoparsec.ByteString.FastSet
     (
     -- * Data type
       FastSet

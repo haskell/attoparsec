@@ -1,12 +1,12 @@
 name:            attoparsec
-version:         0.9.1.2
+version:         0.10.0.0
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
-tested-with:     GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
+tested-with:     GHC == 6.12.3, GHC == 7.0.3, GHC == 7.2.1
 synopsis:        Fast combinator parsing for bytestrings
 cabal-version:   >= 1.8
 homepage:        https://github.com/bos/attoparsec
@@ -36,21 +36,31 @@ Flag developer
   Default: False
 
 library
-  build-depends: base >= 3 && < 5,
+  build-depends: array,
+                 base >= 3 && < 5,
                  bytestring,
                  containers,
-                 deepseq
+                 deepseq,
+                 text >= 0.11.1.5
 
   extensions:      CPP
   exposed-modules: Data.Attoparsec
+                   Data.Attoparsec.ByteString
+                   Data.Attoparsec.ByteString.Char8
+                   Data.Attoparsec.ByteString.Lazy
                    Data.Attoparsec.Char8
                    Data.Attoparsec.Combinator
-                   Data.Attoparsec.FastSet
                    Data.Attoparsec.Lazy
                    Data.Attoparsec.Number
+                   Data.Attoparsec.Text
+                   Data.Attoparsec.Text.Lazy
+                   Data.Attoparsec.Types
                    Data.Attoparsec.Zepto
-  other-modules:   Data.Attoparsec.Internal
+  other-modules:   Data.Attoparsec.ByteString.FastSet
+                   Data.Attoparsec.ByteString.Internal
                    Data.Attoparsec.Internal.Types
+                   Data.Attoparsec.Text.FastSet
+                   Data.Attoparsec.Text.Internal
   ghc-options:     -Wall
 
   if flag(developer)

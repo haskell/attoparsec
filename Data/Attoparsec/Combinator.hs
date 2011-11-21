@@ -21,21 +21,15 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
-
-    -- * Inlined implementations of existing functions
-    --
-    -- These are exact duplicates of functions already exported by the
-    -- 'Control.Applicative' module, but whose definitions are
-    -- inlined.  In many cases, this leads to 2x performance
-    -- improvements.
-    , many
     ) where
 
-import Control.Applicative (Alternative, Applicative(..), empty, liftA2,
+import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             (<|>), (*>), (<$>))
 #if __GLASGOW_HASKELL__ >= 700
 import Data.Attoparsec.Internal.Types (Parser)
 import qualified Data.Attoparsec.Zepto as Z
+import Data.ByteString (ByteString)
+import Data.Text (Text)
 #endif
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
@@ -44,7 +38,8 @@ import qualified Data.Attoparsec.Zepto as Z
 choice :: Alternative f => [f a] -> f a
 choice = foldr (<|>) empty
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE choice :: [Parser a] -> Parser a #-}
+{-# SPECIALIZE choice :: [Parser ByteString a] -> Parser ByteString a #-}
+{-# SPECIALIZE choice :: [Parser Text a] -> Parser Text a #-}
 {-# SPECIALIZE choice :: [Z.Parser a] -> Z.Parser a #-}
 #endif
 
@@ -56,7 +51,8 @@ choice = foldr (<|>) empty
 option :: Alternative f => a -> f a -> f a
 option x p = p <|> pure x
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE option :: a -> Parser a -> Parser a #-}
+{-# SPECIALIZE option :: a -> Parser ByteString a -> Parser ByteString a #-}
+{-# SPECIALIZE option :: a -> Parser Text a -> Parser Text a #-}
 {-# SPECIALIZE option :: a -> Z.Parser a -> Z.Parser a #-}
 #endif
 
@@ -75,7 +71,9 @@ many1 p = liftA2 (:) p (many p)
 sepBy :: Alternative f => f a -> f s -> f [a]
 sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE sepBy :: Parser a -> Parser s -> Parser [a] #-}
+{-# SPECIALIZE sepBy :: Parser ByteString a -> Parser ByteString s
+                     -> Parser ByteString [a] #-}
+{-# SPECIALIZE sepBy :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 #endif
 
@@ -87,7 +85,9 @@ sepBy1 :: Alternative f => f a -> f s -> f [a]
 sepBy1 p s = scan
     where scan = liftA2 (:) p ((s *> scan) <|> pure [])
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE sepBy1 :: Parser a -> Parser s -> Parser [a] #-}
+{-# SPECIALIZE sepBy1 :: Parser ByteString a -> Parser ByteString s
+                      -> Parser ByteString [a] #-}
+{-# SPECIALIZE sepBy1 :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy1 :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 #endif
 
@@ -103,7 +103,9 @@ manyTill :: Alternative f => f a -> f b -> f [a]
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE manyTill :: Parser a -> Parser b -> Parser [a] #-}
+{-# SPECIALIZE manyTill :: Parser ByteString a -> Parser ByteString b
+                        -> Parser ByteString [a] #-}
+{-# SPECIALIZE manyTill :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
 #endif
 
@@ -112,7 +114,8 @@ skipMany :: Alternative f => f a -> f ()
 skipMany p = scan
     where scan = (p *> scan) <|> pure ()
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE skipMany :: Parser a -> Parser () #-}
+{-# SPECIALIZE skipMany :: Parser ByteString a -> Parser ByteString () #-}
+{-# SPECIALIZE skipMany :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany :: Z.Parser a -> Z.Parser () #-}
 #endif
 
@@ -120,7 +123,8 @@ skipMany p = scan
 skipMany1 :: Alternative f => f a -> f ()
 skipMany1 p = p *> skipMany p
 #if __GLASGOW_HASKELL__ >= 700
-{-# SPECIALIZE skipMany1 :: Parser a -> Parser () #-}
+{-# SPECIALIZE skipMany1 :: Parser ByteString a -> Parser ByteString () #-}
+{-# SPECIALIZE skipMany1 :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany1 :: Z.Parser a -> Z.Parser () #-}
 #endif
 
@@ -133,10 +137,3 @@ count n p = sequence (replicate n p)
 eitherP :: (Alternative f) => f a -> f b -> f (Either a b)
 eitherP a b = (Left <$> a) <|> (Right <$> b)
 {-# INLINE eitherP #-}
-
--- | Zero or more.
-many :: (Alternative f) => f a -> f [a]
-many v = many_v
-    where many_v = some_v <|> pure []
-	  some_v = (:) <$> v <*> many_v
-{-# INLINE many #-}

@@ -8,8 +8,8 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for strings, loosely based on
--- the Parsec library.
+-- Simple, efficient parser combinators, loosely based on the Parsec
+-- library.
 
 module Data.Attoparsec.Internal.Types
     (
@@ -31,24 +31,26 @@ import Control.Monad (MonadPlus(..))
 import Data.Monoid (Monoid(..))
 import Prelude hiding (getChar, take, takeWhile)
 
--- | The result of a parse.
+-- | The result of a parse.  This is parameterised over the type @t@
+-- of string that was processed.
 --
 -- This type is an instance of 'Functor', where 'fmap' transforms the
 -- value in a 'Done' result.
 data IResult t r = Fail t [String] String
-                 -- ^ The parse failed.  The 't' is the input that had
-                 -- not yet been consumed when the failure occurred.
-                 -- The @[@'String'@]@ is a list of contexts in which
-                 -- the error occurred.  The 'String' is the message
-                 -- describing the error, if any.
+                 -- ^ The parse failed.  The 't' parameter is the
+                 -- input that had not yet been consumed when the
+                 -- failure occurred.  The @[@'String'@]@ is a list of
+                 -- contexts in which the error occurred.  The
+                 -- 'String' is the message describing the error, if
+                 -- any.
                  | Partial (t -> IResult t r)
                  -- ^ Supply this continuation with more input so that
                  -- the parser can resume.  To indicate that no more
                  -- input is available, use an empty string.
                  | Done t r
-                 -- ^ The parse succeeded.  The 't' is the input that
-                 -- had not yet been consumed (if any) when the parse
-                 -- succeeded.
+                 -- ^ The parse succeeded.  The 't' parameter is the
+                 -- input that had not yet been consumed (if any) when
+                 -- the parse succeeded.
 
 instance (Show t, Show r) => Show (IResult t r) where
     show (Fail t stk msg) =
@@ -57,7 +59,7 @@ instance (Show t, Show r) => Show (IResult t r) where
     show (Done t r)       = "Done " ++ show t ++ " " ++ show r
 
 instance (NFData t, NFData r) => NFData (IResult t r) where
-    rnf (Fail t _ _) = rnf t
+    rnf (Fail t stk msg) = rnf t `seq` rnf stk `seq` rnf msg
     rnf (Partial _)  = ()
     rnf (Done t r)   = rnf t `seq` rnf r
     {-# INLINE rnf #-}
@@ -74,7 +76,8 @@ instance Functor (IResult t) where
 newtype Input t = I {unI :: t}
 newtype Added t = A {unA :: t}
 
--- | The 'Parser' type.
+-- | The core parser type.  This is parameterised over the type @t@ of
+-- string being processed.
 --
 -- This type is an instance of the following classes:
 --
@@ -85,7 +88,10 @@ newtype Added t = A {unA :: t}
 --
 -- * 'MonadPlus', where 'mzero' fails (with no error message) and
 --   'mplus' executes the right-hand parser if the left-hand one
---   fails.
+--   fails.  When the parser on the right executes, the input is reset
+--   to the same state as the parser on the left started with. (In
+--   other words, Attoparsec is a backtracking parser that supports
+--   arbitrary lookahead.)
 --
 -- * 'Alternative', which follows 'MonadPlus'.
 newtype Parser t a = Parser {

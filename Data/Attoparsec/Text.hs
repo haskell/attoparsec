@@ -58,6 +58,7 @@ module Data.Attoparsec.Text
     -- * Efficient string handling
     , I.string
     , I.skipWhile
+    , I.scan
     , I.take
     , I.takeWhile
     , I.takeWhile1

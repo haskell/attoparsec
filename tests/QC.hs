@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import Control.Monad (forM_)
-import Data.Maybe (isJust)
-import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 import QCSupport
 import Test.Framework (defaultMain, testGroup)
@@ -11,7 +8,6 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding (NonEmpty)
 import qualified Data.Attoparsec as P
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
 
 -- Make sure that structures whose types claim they are non-empty
 -- really are.
@@ -81,11 +77,6 @@ takeTill w s =
          P.Done t' h' -> t == t' && h == h'
          _            -> False
 
-ensure n s = case defP (P.ensure m) s of
-               P.Done _ () -> B.length s >= m
-               _           -> B.length s < m
-    where m = (n `mod` 220) - 20
-
 takeWhile1_empty = maybeP (P.takeWhile1 undefined) B.empty == Nothing
 
 endOfInput s = maybeP P.endOfInput s == if B.null s
@@ -109,8 +100,7 @@ tests = [
     testProperty "takeWhile1" takeWhile1,
     testProperty "takeWhile1_empty" takeWhile1_empty,
     testProperty "takeTill" takeTill,
-    testProperty "endOfInput" endOfInput,
-    testProperty "ensure" ensure
+    testProperty "endOfInput" endOfInput
     ]
 
   ]

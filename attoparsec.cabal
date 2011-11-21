@@ -8,7 +8,7 @@ maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
 tested-with:     GHC == 6.10.4, GHC == 6.12.3, GHC == 7.0.3
 synopsis:        Fast combinator parsing for bytestrings
-cabal-version:   >= 1.6
+cabal-version:   >= 1.8
 homepage:        https://github.com/bos/attoparsec
 bug-reports:     https://github.com/bos/attoparsec/issues
 build-type:      Simple
@@ -55,6 +55,23 @@ library
 
   if flag(developer)
     ghc-prof-options: -auto-all
+
+test-suite tests
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        QC.hs
+
+  ghc-options:
+    -Wall -threaded -rtsopts
+
+  build-depends:
+    attoparsec,
+    base >= 4 && < 5,
+    bytestring,
+    QuickCheck >= 2.4,
+    test-framework >= 0.4,
+    test-framework-quickcheck2 >= 0.2,
+    text
 
 source-repository head
   type:     git

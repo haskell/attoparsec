@@ -2,7 +2,7 @@
 -- Module      :  Data.Attoparsec.Text.Lazy
 -- Copyright   :  Bryan O'Sullivan 2011
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown
@@ -37,43 +37,25 @@ import Data.Text.Lazy.Internal (Text(..), chunk)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Text as T
-import Data.Attoparsec.Text hiding (IResult(..), Result, eitherResult,
+import Data.Attoparsec.Text hiding (Result, eitherResult,
                                     maybeResult, parse, parseWith, parseTest)
 
 -- | The result of a parse.
-data Result r = Fail Text [String] String
-              -- ^ The parse failed.  The 'ByteString' is the input
-              -- that had not yet been consumed when the failure
-              -- occurred.  The @[@'String'@]@ is a list of contexts
-              -- in which the error occurred.  The 'String' is the
-              -- message describing the error, if any.
-              | Done Text r
-              -- ^ The parse succeeded.  The 'ByteString' is the
-              -- input that had not yet been consumed (if any) when
-              -- the parse succeeded.
-
-instance Show r => Show (Result r) where
-    show (Fail bs stk msg) =
-        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
-    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
-
-fmapR :: (a -> b) -> Result a -> Result b
-fmapR _ (Fail st stk msg) = Fail st stk msg
-fmapR f (Done bs r)       = Done bs (f r)
-
-instance Functor Result where
-    fmap = fmapR
+type Result = IResult Text
 
 -- | Run a parser and return its result.
 parse :: A.Parser a -> Text -> Result a
-parse p s = case s of
-              Chunk x xs -> go (A.parse p x) xs
-              empty      -> go (A.parse p T.empty) empty
+parse p = handle (A.parse p)
   where
     go (T.Fail x stk msg) ys      = Fail (chunk x ys) stk msg
     go (T.Done x r) ys            = Done (chunk x ys) r
     go (T.Partial k) (Chunk y ys) = go (k y) ys
-    go (T.Partial k) empty        = go (k T.empty) empty
+    go (T.Partial k) _empty       = Partial (handle k)
+
+    handle k s = case s of
+                   Chunk x xs -> go (k x) xs
+                   empty      -> go (k T.empty) empty
+    {-# INLINE handle #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => A.Parser a -> Text -> IO ()

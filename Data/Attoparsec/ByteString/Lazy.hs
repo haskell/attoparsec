@@ -71,3 +71,4 @@ maybeResult _          = Nothing
 eitherResult :: Result r -> Either String r
 eitherResult (Done _ r)     = Right r
 eitherResult (Fail _ _ msg) = Left msg
+eitherResult _              = Left "Result: incomplete input"

@@ -46,14 +46,17 @@ type Result = IResult ByteString
 
 -- | Run a parser and return its result.
 parse :: A.Parser a -> ByteString -> Result a
-parse p s = case s of
-              Chunk x xs -> go (A.parse p x) xs
-              empty      -> go (A.parse p B.empty) empty
+parse p = handle (A.parse p) 
   where
     go (T.Fail x stk msg) ys      = Fail (chunk x ys) stk msg
     go (T.Done x r) ys            = Done (chunk x ys) r
     go (T.Partial k) (Chunk y ys) = go (k y) ys
-    go p@(T.Partial _)  _empty    = Partial (go p)
+    go (T.Partial k) _empty       = Partial (handle k)
+
+    handle k s = case s of
+                   Chunk x xs -> go (k x) xs
+                   empty      -> go (k B.empty) empty
+    {-# INLINE handle #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => A.Parser a -> ByteString -> IO ()

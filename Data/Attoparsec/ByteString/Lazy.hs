@@ -23,7 +23,7 @@
 
 module Data.Attoparsec.ByteString.Lazy
     (
-      Result(..)
+      Result
     , module Data.Attoparsec.ByteString
     -- * Running parsers
     , parse
@@ -46,7 +46,7 @@ type Result = IResult ByteString
 
 -- | Run a parser and return its result.
 parse :: A.Parser a -> ByteString -> Result a
-parse p = handle (A.parse p) 
+parse p = handle (A.parse p)
   where
     go (T.Fail x stk msg) ys      = Fail (chunk x ys) stk msg
     go (T.Done x r) ys            = Done (chunk x ys) r

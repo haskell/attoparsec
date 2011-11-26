@@ -23,7 +23,7 @@
 
 module Data.Attoparsec.Text.Lazy
     (
-      Result(..)
+      Result
     , module Data.Attoparsec.Text
     -- * Running parsers
     , parse

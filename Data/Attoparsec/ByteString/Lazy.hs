@@ -2,7 +2,7 @@
 -- Module      :  Data.Attoparsec.ByteString.Lazy
 -- Copyright   :  Bryan O'Sullivan 2010, 2011
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown
@@ -38,32 +38,11 @@ import qualified Data.ByteString as B
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.Attoparsec.Internal.Types as T
 import Data.Attoparsec.ByteString
-    hiding (IResult(..), Result, eitherResult, maybeResult,
+    hiding (Result, eitherResult, maybeResult,
             parse, parseWith, parseTest)
 
 -- | The result of a parse.
-data Result r = Fail ByteString [String] String
-              -- ^ The parse failed.  The 'ByteString' is the input
-              -- that had not yet been consumed when the failure
-              -- occurred.  The @[@'String'@]@ is a list of contexts
-              -- in which the error occurred.  The 'String' is the
-              -- message describing the error, if any.
-              | Done ByteString r
-              -- ^ The parse succeeded.  The 'ByteString' is the
-              -- input that had not yet been consumed (if any) when
-              -- the parse succeeded.
-
-instance Show r => Show (Result r) where
-    show (Fail bs stk msg) =
-        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
-    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
-
-fmapR :: (a -> b) -> Result a -> Result b
-fmapR _ (Fail st stk msg) = Fail st stk msg
-fmapR f (Done bs r)       = Done bs (f r)
-
-instance Functor Result where
-    fmap = fmapR
+type Result = IResult ByteString
 
 -- | Run a parser and return its result.
 parse :: A.Parser a -> ByteString -> Result a
@@ -74,7 +53,7 @@ parse p s = case s of
     go (T.Fail x stk msg) ys      = Fail (chunk x ys) stk msg
     go (T.Done x r) ys            = Done (chunk x ys) r
     go (T.Partial k) (Chunk y ys) = go (k y) ys
-    go (T.Partial k) empty        = go (k B.empty) empty
+    go p@(T.Partial _)  _empty    = Partial (go p)
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => A.Parser a -> ByteString -> IO ()

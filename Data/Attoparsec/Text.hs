@@ -51,12 +51,19 @@ module Data.Attoparsec.Text
     , I.satisfyWith
     , I.skip
 
+    -- ** Special character parsers
+    , digit
+    , letter
+    , space
+
     -- ** Character classes
     , I.inClass
     , I.notInClass
 
     -- * Efficient string handling
     , I.string
+    , stringCI
+    , skipSpace
     , I.skipWhile
     , I.scan
     , I.take
@@ -90,9 +97,9 @@ module Data.Attoparsec.Text
 import Control.Applicative ((<$>), (*>), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
-import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
+import Data.Attoparsec.Text.Internal ((<?>), Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
-import Data.Char (ord)
+import Data.Char (isAlpha, isDigit, isSpace, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.Text (Text)
@@ -264,7 +271,7 @@ hexadecimal = T.foldl' step 0 `fmap` takeWhile1 isHexDigit
 
 -- | Parse and decode an unsigned decimal number.
 decimal :: Integral a => Parser a
-decimal = T.foldl' step 0 `fmap` takeWhile1 isDigit
+decimal = T.foldl' step 0 `fmap` takeWhile1 isDecimal
   where step a c = a * 10 + fromIntegral (ord c - 48)
 {-# SPECIALISE decimal :: Parser Int #-}
 {-# SPECIALISE decimal :: Parser Int8 #-}
@@ -278,9 +285,9 @@ decimal = T.foldl' step 0 `fmap` takeWhile1 isDigit
 {-# SPECIALISE decimal :: Parser Word32 #-}
 {-# SPECIALISE decimal :: Parser Word64 #-}
 
-isDigit :: Char -> Bool
-isDigit c = c >= '0' && c <= '9'
-{-# INLINE isDigit #-}
+isDecimal :: Char -> Bool
+isDecimal c = c >= '0' && c <= '9'
+{-# INLINE isDecimal #-}
 
 -- | Parse a number with an optional leading @\'+\'@ or @\'-\'@ sign
 -- character.
@@ -369,6 +376,31 @@ number = floaty $ \real frac fracDenom ->
          then I real
          else D (asDouble real frac fracDenom)
 {-# INLINE number #-}
+
+-- | Parse a single digit, as recognised by 'isDigit'.
+digit :: Parser Char
+digit = I.satisfy isDigit <?> "digit"
+{-# INLINE digit #-}
+
+-- | Parse a letter, as recognised by 'isAlpha'.
+letter :: Parser Char
+letter = I.satisfy isAlpha <?> "letter"
+{-# INLINE letter #-}
+
+-- | Parse a space character, as recognised by 'isSpace'.
+space :: Parser Char
+space = I.satisfy isSpace <?> "space"
+{-# INLINE space #-}
+
+-- | Satisfy a literal string, ignoring case.
+stringCI :: Text -> Parser Text
+stringCI = I.stringTransform T.toCaseFold
+{-# INLINE stringCI #-}
+
+-- | Skip over white space.
+skipSpace :: Parser ()
+skipSpace = I.skipWhile isSpace
+{-# INLINE skipSpace #-}
 
 data T = T !Integer !Int
 

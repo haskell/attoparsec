@@ -27,6 +27,8 @@ module Data.Attoparsec.Text.Lazy
     , module Data.Attoparsec.Text
     -- * Running parsers
     , parse
+    , feed
+    , parseOnly
     , parseTest
     -- ** Result conversion
     , maybeResult
@@ -34,11 +36,13 @@ module Data.Attoparsec.Text.Lazy
     ) where
 
 import Data.Text.Lazy.Internal (Text(..), chunk)
+import qualified Data.Text.Lazy as L
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Text as T
-import Data.Attoparsec.Text hiding (Result, eitherResult,
-                                    maybeResult, parse, parseWith, parseTest)
+import Data.Attoparsec.Text
+    hiding (Result, eitherResult, feed, maybeResult,
+            parse, parseOnly, parseWith, parseTest)
 
 -- | The result of a parse.
 type Result = IResult Text
@@ -56,6 +60,19 @@ parse p = handle (A.parse p)
                    Chunk x xs -> go (k x) xs
                    empty      -> go (k T.empty) empty
     {-# INLINE handle #-}
+
+-- | If a parser has returned a 'T.Partial' result, supply it with more
+-- input.
+feed :: Result a -> Text -> Result a
+feed f@(T.Fail _ _ _) _ = f
+feed (T.Partial k) d    = k d
+feed (T.Done bs r) d    = T.Done (L.append bs d) r
+{-# INLINE feed #-}
+
+-- | Run a parser that cannot be resupplied via a 'Partial' result.
+parseOnly :: A.Parser a -> Text -> Either String a
+parseOnly p s = eitherResult (feed (parse p s) L.empty)
+{-# INLINE parseOnly #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => A.Parser a -> Text -> IO ()

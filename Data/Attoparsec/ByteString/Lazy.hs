@@ -27,6 +27,8 @@ module Data.Attoparsec.ByteString.Lazy
     , module Data.Attoparsec.ByteString
     -- * Running parsers
     , parse
+    , feed
+    , parseOnly
     , parseTest
     -- ** Result conversion
     , maybeResult
@@ -34,12 +36,13 @@ module Data.Attoparsec.ByteString.Lazy
     ) where
 
 import Data.ByteString.Lazy.Internal (ByteString(..), chunk)
+import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.Attoparsec.Internal.Types as T
 import Data.Attoparsec.ByteString
-    hiding (Result, eitherResult, maybeResult,
-            parse, parseWith, parseTest)
+    hiding (Result, eitherResult, feed, maybeResult,
+            parse, parseOnly, parseWith, parseTest)
 
 -- | The result of a parse.
 type Result = IResult ByteString
@@ -57,6 +60,19 @@ parse p = handle (A.parse p)
                    Chunk x xs -> go (k x) xs
                    empty      -> go (k B.empty) empty
     {-# INLINE handle #-}
+
+-- | If a parser has returned a 'T.Partial' result, supply it with more
+-- input.
+feed :: Result a -> ByteString -> Result a
+feed f@(T.Fail _ _ _) _ = f
+feed (T.Partial k) d    = k d
+feed (T.Done bs r) d    = T.Done (L.append bs d) r
+{-# INLINE feed #-}
+
+-- | Run a parser that cannot be resupplied via a 'Partial' result.
+parseOnly :: A.Parser a -> ByteString -> Either String a
+parseOnly p s = eitherResult (feed (parse p s) L.empty)
+{-# INLINE parseOnly #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => A.Parser a -> ByteString -> IO ()

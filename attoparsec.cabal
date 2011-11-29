@@ -34,10 +34,6 @@ Flag developer
   Description: Whether to build the library in development mode
   Default: False
 
-Flag hpc
-  Description: Whether to build the library with coverage support
-  Default: False
-
 library
   build-depends: array,
                  base >= 3 && < 5,
@@ -66,9 +62,6 @@ library
                    Data.Attoparsec.Text.Internal
   ghc-options:     -Wall
 
-  if flag(hpc)
-    ghc-options: -fhpc
-
   if flag(developer)
     ghc-prof-options: -auto-all
 
@@ -80,7 +73,7 @@ test-suite tests
                   QC.Text
 
   ghc-options:
-    -fhpc -Wall -threaded -rtsopts
+    -Wall -threaded -rtsopts
 
   build-depends:
     attoparsec,

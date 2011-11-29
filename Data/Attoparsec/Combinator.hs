@@ -25,6 +25,10 @@ module Data.Attoparsec.Combinator
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             (<|>), (*>), (<$>))
+#if !MIN_VERSION_base(4,2,0)
+import Control.Applicative (many)
+#endif
+
 #if __GLASGOW_HASKELL__ >= 700
 import Data.Attoparsec.Internal.Types (Parser)
 import qualified Data.Attoparsec.Zepto as Z

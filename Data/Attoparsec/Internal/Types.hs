@@ -202,6 +202,7 @@ instance (Monoid t) => Alternative (Parser t) where
     (<|>) = plus
     {-# INLINE (<|>) #-}
 
+#if MIN_VERSION_base(4,2,0)
     many v = many_v
         where many_v = some_v <|> pure []
               some_v = (:) <$> v <*> many_v
@@ -212,6 +213,7 @@ instance (Monoid t) => Alternative (Parser t) where
         many_v = some_v <|> pure []
         some_v = (:) <$> v <*> many_v
     {-# INLINE some #-}
+#endif
 
 failDesc :: String -> Parser t a
 failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)

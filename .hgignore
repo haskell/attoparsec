@@ -1,5 +1,5 @@
 ^(?:cabal-dev|dist)$
-\.(?:aux|eventlog|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
+\.(?:aux|eventlog|h[ip]|log|mix|[oa]|orig|prof|ps|rej|swp)$
 ~$
 benchmarks/Arse
 benchmarks/med.txt

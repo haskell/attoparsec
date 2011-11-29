@@ -7,6 +7,7 @@ import Prelude hiding (takeWhile)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString as P
+import qualified Data.Attoparsec.ByteString.Lazy as PL
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 
@@ -28,61 +29,63 @@ label (NonEmpty s) = case parse (anyWord8 <?> s) B.empty of
 
 -- Basic byte-level combinators.
 
-maybeP p s = case P.parse p s `P.feed` B.empty of
-               P.Done _ i -> Just i
-               _          -> Nothing
+maybeP p = PL.maybeResult . PL.parse p
 
-defP p s = P.parse p s `P.feed` B.empty
+defP p = PL.parse p
 
-satisfy w s = maybeP (P.satisfy (<=w)) (B.cons w s) == Just w
+satisfy w s = maybeP (P.satisfy (<=w)) (L.cons w s) == Just w
 
-word8 w s = maybeP (P.word8 w) (B.cons w s) == Just w
+word8 w s = maybeP (P.word8 w) (L.cons w s) == Just w
 
-anyWord8 s = maybeP P.anyWord8 s == if B.null s
-                                    then Nothing
-                                    else Just (B.head s)
+anyWord8 s
+    | L.null s  = p == Nothing
+    | otherwise = p == Just (L.head s)
+  where p = maybeP P.anyWord8 s
 
 notWord8 w (NonEmpty s) = maybeP (P.notWord8 w) bs == if v == w
                                                       then Nothing
                                                       else Just v
-    where v = B.head bs
-          bs = B.pack s
+    where v = L.head bs
+          bs = L.pack s
 
-string s = maybeP (P.string s) s == Just s
+string s t = maybeP (P.string s') (s `L.append` t) == Just s'
+  where s' = toStrict s
+
+toStrict = B.concat . L.toChunks
 
 skipWhile w s =
-    let t = B.dropWhile (<=w) s
+    let t = L.dropWhile (<=w) s
     in case defP (P.skipWhile (<=w)) s of
-         P.Done t' () -> t == t'
-         _            -> False
+         PL.Done t' () -> t == t'
+         _             -> False
 
 takeCount (Positive k) s =
     case maybeP (P.take k) s of
-      Nothing -> k > B.length s
-      Just s' -> k <= B.length s
+      Nothing -> fromIntegral k > L.length s
+      Just s' -> fromIntegral k <= L.length s
 
 takeWhile w s =
-    let (h,t) = B.span (==w) s
+    let (h,t) = L.span (==w) s
     in case defP (P.takeWhile (==w)) s of
-         P.Done t' h' -> t == t' && h == h'
-         _            -> False
+         PL.Done t' h' -> t == t' && toStrict h == h'
+         _             -> False
 
 takeWhile1 w s =
-    let s'    = B.cons w s
-        (h,t) = B.span (<=w) s'
+    let s'    = L.cons w s
+        (h,t) = L.span (<=w) s'
     in case defP (P.takeWhile1 (<=w)) s' of
-         P.Done t' h' -> t == t' && h == h'
-         _            -> False
+         PL.Done t' h' -> t == t' && toStrict h == h'
+         _             -> False
 
 takeTill w s =
-    let (h,t) = B.break (==w) s
+    let (h,t) = L.break (==w) s
     in case defP (P.takeTill (==w)) s of
-         P.Done t' h' -> t == t' && h == h'
-         _            -> False
+         PL.Done t' h' -> t == t' && toStrict h == h'
+         _             -> False
 
-takeWhile1_empty = maybeP (P.takeWhile1 undefined) B.empty == Nothing
+takeWhile1_empty = maybeP (P.takeWhile1 undefined) L.empty == Nothing
 
-endOfInput s = maybeP P.endOfInput s == if B.null s
+endOfInput s = maybeP P.endOfInput s == if L.null s
                                         then Just ()
                                         else Nothing
 

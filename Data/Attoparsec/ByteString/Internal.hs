@@ -83,8 +83,8 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
-type Parser a = T.Parser B.ByteString a
-type Result a = IResult B.ByteString a
+type Parser = T.Parser B.ByteString
+type Result = IResult B.ByteString
 type Input = T.Input B.ByteString
 type Added = T.Added B.ByteString
 type Failure r = T.Failure B.ByteString r

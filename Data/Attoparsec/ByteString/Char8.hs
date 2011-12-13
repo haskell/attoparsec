@@ -21,6 +21,7 @@ module Data.Attoparsec.ByteString.Char8
     -- * Parser types
       Parser
     , A.Result
+    , A.IResult(..)
 
     -- * Running parsers
     , A.parse

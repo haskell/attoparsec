@@ -15,7 +15,7 @@ module RFC2616
     , lookupHeader
     ) where
 
-import Control.Applicative hiding (many)
+import Control.Applicative
 import Data.Attoparsec as P
 import qualified Data.Attoparsec.Char8 as P8
 import Data.Attoparsec.Char8 (char8, endOfLine, isDigit_w8)

@@ -2,7 +2,7 @@
 -- Module      :  Data.Attoparsec.Text.Lazy
 -- Copyright   :  Bryan O'Sullivan 2011
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown
@@ -23,10 +23,12 @@
 
 module Data.Attoparsec.Text.Lazy
     (
-      Result(..)
+      Result
     , module Data.Attoparsec.Text
     -- * Running parsers
     , parse
+    , feed
+    , parseOnly
     , parseTest
     -- ** Result conversion
     , maybeResult
@@ -34,46 +36,43 @@ module Data.Attoparsec.Text.Lazy
     ) where
 
 import Data.Text.Lazy.Internal (Text(..), chunk)
+import qualified Data.Text.Lazy as L
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Text as T
-import Data.Attoparsec.Text hiding (IResult(..), Result, eitherResult,
-                                    maybeResult, parse, parseWith, parseTest)
+import Data.Attoparsec.Text
+    hiding (Result, eitherResult, feed, maybeResult,
+            parse, parseOnly, parseWith, parseTest)
 
 -- | The result of a parse.
-data Result r = Fail Text [String] String
-              -- ^ The parse failed.  The 'ByteString' is the input
-              -- that had not yet been consumed when the failure
-              -- occurred.  The @[@'String'@]@ is a list of contexts
-              -- in which the error occurred.  The 'String' is the
-              -- message describing the error, if any.
-              | Done Text r
-              -- ^ The parse succeeded.  The 'ByteString' is the
-              -- input that had not yet been consumed (if any) when
-              -- the parse succeeded.
-
-instance Show r => Show (Result r) where
-    show (Fail bs stk msg) =
-        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
-    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
-
-fmapR :: (a -> b) -> Result a -> Result b
-fmapR _ (Fail st stk msg) = Fail st stk msg
-fmapR f (Done bs r)       = Done bs (f r)
-
-instance Functor Result where
-    fmap = fmapR
+type Result = IResult Text
 
 -- | Run a parser and return its result.
 parse :: A.Parser a -> Text -> Result a
-parse p s = case s of
-              Chunk x xs -> go (A.parse p x) xs
-              empty      -> go (A.parse p T.empty) empty
+parse p = handle (A.parse p)
   where
     go (T.Fail x stk msg) ys      = Fail (chunk x ys) stk msg
     go (T.Done x r) ys            = Done (chunk x ys) r
     go (T.Partial k) (Chunk y ys) = go (k y) ys
-    go (T.Partial k) empty        = go (k T.empty) empty
+    go (T.Partial k) _empty       = Partial (handle k)
+
+    handle k s = case s of
+                   Chunk x xs -> go (k x) xs
+                   empty      -> go (k T.empty) empty
+    {-# INLINE handle #-}
+
+-- | If a parser has returned a 'T.Partial' result, supply it with more
+-- input.
+feed :: Result a -> Text -> Result a
+feed f@(T.Fail _ _ _) _ = f
+feed (T.Partial k) d    = k d
+feed (T.Done bs r) d    = T.Done (L.append bs d) r
+{-# INLINE feed #-}
+
+-- | Run a parser that cannot be resupplied via a 'Partial' result.
+parseOnly :: A.Parser a -> Text -> Either String a
+parseOnly p s = eitherResult (feed (parse p s) L.empty)
+{-# INLINE parseOnly #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => A.Parser a -> Text -> IO ()
@@ -88,3 +87,4 @@ maybeResult _          = Nothing
 eitherResult :: Result r -> Either String r
 eitherResult (Done _ r)     = Right r
 eitherResult (Fail _ _ msg) = Left msg
+eitherResult _              = Left "Result: incomplete input"

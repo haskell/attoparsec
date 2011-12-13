@@ -72,8 +72,8 @@ import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 
-type Parser a = T.Parser Text a
-type Result a = IResult Text a
+type Parser = T.Parser Text
+type Result = IResult Text
 type Input = T.Input Text
 type Added = T.Added Text
 type Failure r = T.Failure Text r

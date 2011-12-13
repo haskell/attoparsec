@@ -1,7 +1,7 @@
-import Control.Applicative ((<|>))
+import Control.Applicative ((<|>), many)
 import Control.Monad (forM_)
 import System.Environment (getArgs)
-import qualified Data.Attoparsec.Char8 as A
+import qualified Data.Attoparsec.ByteString.Char8 as A
 import qualified Data.ByteString.Char8 as B
 import qualified Text.Parsec as P
 import qualified Text.Parsec.ByteString as P
@@ -14,8 +14,8 @@ attoparsec = do
       A.Done _ xs -> print (length xs)
       what        -> print what
  where
-  slow = A.many (A.many1 A.letter_ascii <|> A.many1 A.digit)
-  fast = A.many (A.takeWhile1 isLetter <|> A.takeWhile1 isDigit)
+  slow = many (A.many1 A.letter_ascii <|> A.many1 A.digit)
+  fast = many (A.takeWhile1 isLetter <|> A.takeWhile1 isDigit)
   isDigit c  = c >= '0' && c <= '9'
   isLetter c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
   p = fast

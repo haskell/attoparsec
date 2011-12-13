@@ -18,8 +18,10 @@ description:
     file formats.
 extra-source-files:
     README.markdown
+    benchmarks/Benchmarks.hs
     benchmarks/Makefile
     benchmarks/Tiny.hs
+    benchmarks/attoparsec-benchmarks.cabal
     benchmarks/med.txt.bz2
     tests/Makefile
     tests/QC.hs

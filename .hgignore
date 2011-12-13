@@ -2,6 +2,7 @@
 \.(?:aux|eventlog|h[ip]|hs.html|log|[mt]ix|[oa]|orig|prof|ps|rej|swp)$
 ~$
 benchmarks/Arse
+benchmarks/dist
 benchmarks/med.txt
 benchmarks/tiny
 hpc.*\.html$

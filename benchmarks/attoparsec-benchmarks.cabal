@@ -1,0 +1,18 @@
+-- These benchmarks are not intended to be installed.
+-- So don't install 'em.
+
+name: attoparsec-benchmarks
+version: 0
+cabal-version: >=1.2
+build-type: Simple
+
+executable attoparsec-benchmarks
+  main-is: Benchmarks.hs
+  build-depends:
+    attoparsec,
+    base,
+    bytestring,
+    criterion >= 0.5,
+    deepseq == 1.1.*,
+    parsec >= 3.1.2,
+    text

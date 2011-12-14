@@ -55,7 +55,6 @@ module Data.Attoparsec.Text.Internal
     -- * State observation and manipulation functions
     , endOfInput
     , atEnd
-    , ensure
 
     -- * Utilities
     , endOfLine

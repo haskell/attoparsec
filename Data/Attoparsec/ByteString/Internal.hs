@@ -58,7 +58,6 @@ module Data.Attoparsec.ByteString.Internal
     -- * State observation and manipulation functions
     , endOfInput
     , atEnd
-    , ensure
 
     -- * Utilities
     , endOfLine

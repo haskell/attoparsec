@@ -62,7 +62,7 @@ library
                    Data.Attoparsec.Internal.Types
                    Data.Attoparsec.Text.FastSet
                    Data.Attoparsec.Text.Internal
-  ghc-options:     -Wall
+  ghc-options: -O2 -Wall
 
   if flag(developer)
     ghc-prof-options: -auto-all

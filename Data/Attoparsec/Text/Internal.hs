@@ -1,4 +1,6 @@
-{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings, Rank2Types,
+    RecordWildCards, TypeSynonymInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Internal
 -- Copyright   :  Bryan O'Sullivan 2011
@@ -64,6 +66,7 @@ import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal.Types hiding (Parser, Input, Added, Failure, Success)
+import Data.String (IsString(..))
 import Data.Text (Text)
 import Prelude hiding (getChar, take, takeWhile)
 import qualified Data.Attoparsec.Internal.Types as T
@@ -77,6 +80,9 @@ type Input = T.Input Text
 type Added = T.Added Text
 type Failure r = T.Failure Text r
 type Success a r = T.Success Text a r
+
+instance IsString (Parser Text) where
+    fromString = string . T.pack
 
 -- | If at least @n@ characters of input are available, return the
 -- current input, otherwise fail.

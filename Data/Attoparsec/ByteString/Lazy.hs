@@ -33,6 +33,7 @@ module Data.Attoparsec.ByteString.Lazy
     , eitherResult
     ) where
 
+import Control.DeepSeq (NFData(rnf))
 import Data.ByteString.Lazy.Internal (ByteString(..), chunk)
 import qualified Data.ByteString as B
 import qualified Data.Attoparsec.ByteString as A
@@ -52,6 +53,16 @@ data Result r = Fail ByteString [String] String
               -- ^ The parse succeeded.  The 'ByteString' is the
               -- input that had not yet been consumed (if any) when
               -- the parse succeeded.
+
+instance NFData r => NFData (Result r) where
+    rnf (Fail bs ctxs msg) = rnfBS bs `seq` rnf ctxs `seq` rnf msg
+    rnf (Done bs r)        = rnfBS bs `seq` rnf r
+    {-# INLINE rnf #-}
+
+rnfBS :: ByteString -> ()
+rnfBS (Chunk _ xs) = rnfBS xs
+rnfBS Empty        = ()
+{-# INLINE rnfBS #-}
 
 instance Show r => Show (Result r) where
     show (Fail bs stk msg) =

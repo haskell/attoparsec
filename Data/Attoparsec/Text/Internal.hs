@@ -43,7 +43,7 @@ module Data.Attoparsec.Text.Internal
     -- * Efficient string handling
     , skipWhile
     , string
-    , stringTransform
+    , stringCI
     , take
     , scan
     , takeWhile
@@ -224,10 +224,25 @@ string :: Text -> Parser Text
 string s = takeWith (T.length s) (==s)
 {-# INLINE string #-}
 
-stringTransform :: (Text -> Text) -> Text
-                -> Parser Text
-stringTransform f s = takeWith (T.length s) ((==f s) . f)
-{-# INLINE stringTransform #-}
+-- | Satisfy a literal string, ignoring case.
+--
+-- Note: this function is currently quite inefficient. Unicode case
+-- folding can change the length of a string (\"&#223;\" becomes
+-- "ss"), which makes a simple, efficient implementation tricky.  We
+-- have (for now) chosen simplicity over efficiency.
+stringCI :: Text -> Parser Text
+stringCI s = go (T.length s)
+  where
+    go !n
+      | n > T.length fs = fail "stringCI"
+      | otherwise = do
+      t <- ensure n
+      let h = unsafeTake n t
+      if T.toCaseFold h == fs
+        then put (unsafeDrop n t) >> return h
+        else go (n+1)
+    fs = T.toCaseFold s
+{-# INLINE stringCI #-}
 
 -- | Skip past input for as long as the predicate returns 'True'.
 skipWhile :: (Char -> Bool) -> Parser ()

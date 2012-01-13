@@ -62,7 +62,7 @@ module Data.Attoparsec.Text
 
     -- * Efficient string handling
     , I.string
-    , stringCI
+    , I.stringCI
     , skipSpace
     , I.skipWhile
     , I.scan
@@ -391,11 +391,6 @@ letter = I.satisfy isAlpha <?> "letter"
 space :: Parser Char
 space = I.satisfy isSpace <?> "space"
 {-# INLINE space #-}
-
--- | Satisfy a literal string, ignoring case.
-stringCI :: Text -> Parser Text
-stringCI = I.stringTransform T.toCaseFold
-{-# INLINE stringCI #-}
 
 -- | Skip over white space.
 skipSpace :: Parser ()

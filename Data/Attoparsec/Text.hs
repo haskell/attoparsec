@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
 -- Module      :  Data.Attoparsec.Text
@@ -104,15 +103,11 @@ import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
-import Data.String (IsString(..))
 import Data.Text (Text)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.Internal as I
 import qualified Data.Text as T
-
-instance IsString (Parser Text) where
-    fromString = I.string . T.pack
 
 -- $parsec
 --

@@ -231,7 +231,7 @@ string s = takeWith (T.length s) (==s)
 -- "ss"), which makes a simple, efficient implementation tricky.  We
 -- have (for now) chosen simplicity over efficiency.
 stringCI :: Text -> Parser Text
-stringCI s = go (T.length s)
+stringCI s = go 0
   where
     go !n
       | n > T.length fs = fail "stringCI"

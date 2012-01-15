@@ -51,6 +51,9 @@ notChar w (NonEmpty s) = maybeP (P.notChar w) bs == if v == w
 string s t = maybeP (P.string s') (s `L.append` t) == Just s'
   where s' = toStrict s
 
+stringCI s = P.parseOnly (P.stringCI fs) s == Right s
+  where fs = T.toCaseFold s
+
 toStrict = T.concat . L.toChunks
 
 skipWhile w s =
@@ -95,6 +98,7 @@ tests = [
     testProperty "notChar" notChar,
     testProperty "anyChar" anyChar,
     testProperty "string" string,
+    testProperty "stringCI" stringCI,
     testProperty "skipWhile" skipWhile,
     testProperty "takeCount" takeCount,
     testProperty "takeWhile" takeWhile,

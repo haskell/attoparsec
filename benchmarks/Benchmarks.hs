@@ -35,44 +35,40 @@ fromLazy :: BL.ByteString -> B.ByteString
 fromLazy = B.concat . BL.toChunks
 
 main = do
-  let s  = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9']
+  let s  = take 1024 . cycle $ ['a'..'z'] ++ ['A'..'Z']
       !b = BC.pack s
       !bl = BL.fromChunks . map BC.pack . chunksOf 4 $ s
       !t = T.pack s
       !tl = TL.fromChunks . map T.pack . chunksOf 4 $ s
-      s1 = take 1024 $ cycle ['a'..'z']
-      !b1 = BC.pack s1
-      !t1 = T.pack s1
-      !bl1 = BL.fromChunks . map BC.pack . chunksOf 4 $ s1
   defaultMain [
      bgroup "many" [
        bgroup "attoparsec" [
-         bench "B" $ whnf (AB.parse (many (AC.satisfy AC.isAlpha_ascii))) b
-       , bench "BL" $ whnf (ABL.parse (many (AC.satisfy AC.isAlpha_ascii))) bl
-       , bench "T" $ whnf (AT.parse (many (AT.satisfy AC.isAlpha_ascii))) t
-       , bench "TL" $ whnf (ATL.parse (many (AT.satisfy AC.isAlpha_ascii))) tl
+         bench "B" $ nf (AB.parse (many (AC.satisfy AC.isAlpha_ascii))) b
+       , bench "BL" $ nf (ABL.parse (many (AC.satisfy AC.isAlpha_ascii))) bl
+       , bench "T" $ nf (AT.parse (many (AT.satisfy AC.isAlpha_ascii))) t
+       , bench "TL" $ nf (ATL.parse (many (AT.satisfy AC.isAlpha_ascii))) tl
        ]
      , bgroup "parsec" [
-         bench "S" $ whnf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") s
-       , bench "B" $ whnf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") b
-       , bench "BL" $ whnf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") bl
-       , bench "T" $ whnf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") t
-       , bench "TL" $ whnf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") tl
+         bench "S" $ nf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") s
+       , bench "B" $ nf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") b
+       , bench "BL" $ nf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") bl
+       , bench "T" $ nf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") t
+       , bench "TL" $ nf (P.parse (many (P.satisfy AC.isAlpha_ascii)) "") tl
        ]
      ]
    , bgroup "comparison" [
        bgroup "many-vs-takeWhile" [
-         bench "many" $ whnf (AB.parse (many (AC.satisfy AC.isAlpha_ascii))) b
-       , bench "takeWhile" $ whnf (AB.parse (AC.takeWhile AC.isAlpha_ascii)) b
+         bench "many" $ nf (AB.parse (many (AC.satisfy AC.isAlpha_ascii))) b
+       , bench "takeWhile" $ nf (AB.parse (AC.takeWhile AC.isAlpha_ascii)) b
        ]
-     , bgroup "letter-vs-many" [
-         bench "letter" $ whnf (AB.parse (many AC.letter_ascii)) b
-       , bench "many" $ whnf (AB.parse (many (AC.satisfy AC.isAlpha_ascii))) b
+     , bgroup "letter-vs-isAlpha" [
+         bench "letter" $ nf (AB.parse (many AC.letter_ascii)) b
+       , bench "isAlpha" $ nf (AB.parse (many (AC.satisfy AC.isAlpha_ascii))) b
        ]
      ]
    , bgroup "takeWhile" [
-       bench "isAlpha" $ whnf (AB.parse (AC.takeWhile isAlpha)) b
-     , bench "isAlpha_ascii" $ whnf (AB.parse (AC.takeWhile AC.isAlpha_ascii)) b
-     , bench "isAlpha_iso8859_15" $ whnf (AB.parse (AC.takeWhile AC.isAlpha_iso8859_15)) b
+       bench "isAlpha" $ nf (ABL.parse (AC.takeWhile isAlpha)) bl
+     , bench "isAlpha_ascii" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_ascii)) bl
+     , bench "isAlpha_iso8859_15" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
      ]
    ]

@@ -17,18 +17,19 @@ description:
     efficiently with network protocols and complicated text/binary
     file formats.
 extra-source-files:
-    README.markdown
     benchmarks/Makefile
-    benchmarks/Tiny.hs
     benchmarks/med.txt.bz2
-    tests/Makefile
-    tests/QC.hs
-    tests/TestFastSet.hs
+    benchmarks/Tiny.hs
     examples/Makefile
     examples/Parsec_RFC2616.hs
+    examples/rfc2616.c
     examples/RFC2616.hs
     examples/TestRFC2616.hs
-    examples/rfc2616.c
+    README.markdown
+    tests/Makefile
+    tests/QC.hs
+    tests/QC/*.hs
+    tests/TestFastSet.hs
 
 Flag developer
   Description: Whether to build the library in development mode

@@ -317,7 +317,7 @@ signed p = (negate <$> (I.char '-' *> p))
 -- >rational "3.1"   == Done 3.1 ""
 -- >rational "3e4"   == Done 30000.0 ""
 -- >rational "3.1e4" == Done 31000.0, ""
-
+--
 -- Examples with behaviour identical to 'read':
 --
 -- >rational ".3"    == Fail "input does not start with a digit"

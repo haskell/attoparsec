@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module QC.Text (tests) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*>))
 import Prelude hiding (takeWhile)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -47,6 +47,11 @@ notChar w (NonEmpty s) = maybeP (P.notChar w) bs == if v == w
                                                       else Just v
     where v = L.head bs
           bs = L.pack s
+
+peekChar s
+    | L.null s  = p == Just (Nothing, s)
+    | otherwise = p == Just (Just (L.head s), s)
+  where p = maybeP ((,) <$> P.peekChar <*> P.takeLazyText) s
 
 string s t = maybeP (P.string s') (s `L.append` t) == Just s'
   where s' = toStrict s
@@ -97,6 +102,7 @@ tests = [
     testProperty "char" char,
     testProperty "notChar" notChar,
     testProperty "anyChar" anyChar,
+    testProperty "peekChar" peekChar,
     testProperty "string" string,
     testProperty "stringCI" stringCI,
     testProperty "skipWhile" skipWhile,

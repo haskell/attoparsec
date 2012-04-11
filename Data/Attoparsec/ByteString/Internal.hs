@@ -33,6 +33,7 @@ module Data.Attoparsec.ByteString.Internal
     , skip
     , word8
     , notWord8
+    , peekWord8
 
     -- ** Byte classes
     , inClass
@@ -398,6 +399,22 @@ word8 c = satisfy (== c) <?> show c
 notWord8 :: Word8 -> Parser Word8
 notWord8 c = satisfy (/= c) <?> "not " ++ show c
 {-# INLINE notWord8 #-}
+
+-- | Match any byte. Returns 'Nothing' if end of input has been
+-- reached. Does not consume any input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+peekWord8 :: Parser (Maybe Word8)
+peekWord8 = T.Parser $ \i0 a0 m0 _kf ks ->
+            let ks' i a m = let w = B.unsafeHead (unI i)
+                            in w `seq` ks i a m (Just w)
+                kf' i a m = ks i a m Nothing
+            in if B.null (unI i0)
+               then prompt i0 a0 m0 kf' ks'
+               else ks' i0 a0 m0
+{-# INLINE peekWord8 #-}
 
 -- | Match only if all input has been consumed.
 endOfInput :: Parser ()

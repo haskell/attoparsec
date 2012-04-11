@@ -44,6 +44,7 @@ module Data.Attoparsec.ByteString.Char8
     , char8
     , anyChar
     , notChar
+    , peekChar
     , satisfy
 
     -- ** Special character parsers
@@ -213,6 +214,16 @@ isDigit_w8 w = w >= 48 && w <= 57
 anyChar :: Parser Char
 anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
+
+-- | Match any character. Returns 'Nothing' if end of input has been
+-- reached. Does not consume any input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+peekChar :: Parser (Maybe Char)
+peekChar = (fmap w2c) `fmap` I.peekWord8
+{-# INLINE peekChar #-}
 
 -- | Fast predicate for matching ASCII space characters.
 --

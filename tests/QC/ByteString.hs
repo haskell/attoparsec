@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module QC.ByteString (tests) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*>))
 import Prelude hiding (takeWhile)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -47,6 +47,11 @@ notWord8 w (NonEmpty s) = maybeP (P.notWord8 w) bs == if v == w
                                                       else Just v
     where v = L.head bs
           bs = L.pack s
+
+peekWord8 s
+    | L.null s  = p == Just (Nothing, s)
+    | otherwise = p == Just (Just (L.head s), s)
+  where p = maybeP ((,) <$> P.peekWord8 <*> P.takeLazyByteString) s
 
 string s t = maybeP (P.string s') (s `L.append` t) == Just s'
   where s' = toStrict s
@@ -94,6 +99,7 @@ tests = [
     testProperty "word8" word8,
     testProperty "notWord8" notWord8,
     testProperty "anyWord8" anyWord8,
+    testProperty "peekWord8" peekWord8,
     testProperty "string" string,
     testProperty "skipWhile" skipWhile,
     testProperty "takeCount" takeCount,

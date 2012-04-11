@@ -51,6 +51,7 @@ module Data.Attoparsec.Text
     , I.satisfy
     , I.satisfyWith
     , I.skip
+    , I.peekChar
 
     -- ** Special character parsers
     , digit

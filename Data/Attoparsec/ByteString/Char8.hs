@@ -76,6 +76,11 @@ module Data.Attoparsec.ByteString.Char8
     , takeWhile1
     , takeTill
 
+    -- ** String combinators
+    -- $specalt
+    , (.*>)
+    , (<*.)
+
     -- ** Consume all remaining input
     , I.takeByteString
     , I.takeLazyByteString
@@ -99,7 +104,7 @@ module Data.Attoparsec.ByteString.Char8
     , I.atEnd
     ) where
 
-import Control.Applicative ((*>), (<$>), (<|>))
+import Control.Applicative ((*>), (<*), (<$>), (<|>))
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser, (<?>))
 import Data.Attoparsec.Combinator
@@ -337,6 +342,33 @@ skipWhile p = I.skipWhile (p . w2c)
 skipSpace :: Parser ()
 skipSpace = I.skipWhile isSpace_w8
 {-# INLINE skipSpace #-}
+
+-- $specalt
+--
+-- The '.*>' and '<*.' combinators are intended for use with the
+-- @OverloadedStrings@ language extension.  They simplify the common
+-- task of matching a statically known string, then immediately
+-- parsing something else.
+--
+-- An example makes this easier to understand:
+--
+-- @{-\# LANGUAGE OverloadedStrings #-}
+--
+-- shoeSize = \"Shoe size: \" '.*>' 'decimal'
+-- @
+--
+-- If we were to try to use '*>' above instead, the type checker would
+-- not be able to tell which 'IsString' instance to use for the text
+-- in quotes.  We would have to be explicit, using either a type
+-- signature or the 'I.string' parser.
+
+-- | Type-specialized version of '*>' for 'B.ByteString'.
+(.*>) :: B.ByteString -> Parser a -> Parser a
+s .*> f = I.string s *> f
+
+-- | Type-specialized version of '<*' for 'B.ByteString'.
+(<*.) :: Parser a -> B.ByteString -> Parser a
+f <*. s = f <* I.string s
 
 -- | A predicate that matches either a carriage return @\'\\r\'@ or
 -- newline @\'\\n\'@ character.

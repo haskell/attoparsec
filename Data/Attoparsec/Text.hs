@@ -73,6 +73,11 @@ module Data.Attoparsec.Text
     , I.takeWhile1
     , I.takeTill
 
+    -- ** String combinators
+    -- $specalt
+    , (.*>)
+    , (<*.)
+
     -- ** Consume all remaining input
     , I.takeText
     , I.takeLazyText
@@ -96,7 +101,7 @@ module Data.Attoparsec.Text
     , I.atEnd
     ) where
 
-import Control.Applicative ((<$>), (*>), (<|>))
+import Control.Applicative ((<$>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Attoparsec.Text.Internal ((<?>), Parser, Result, parse, takeWhile1)
@@ -398,6 +403,33 @@ space = I.satisfy isSpace <?> "space"
 skipSpace :: Parser ()
 skipSpace = I.skipWhile isSpace
 {-# INLINE skipSpace #-}
+
+-- $specalt
+--
+-- The '.*>' and '<*.' combinators are intended for use with the
+-- @OverloadedStrings@ language extension.  They simplify the common
+-- task of matching a statically known string, then immediately
+-- parsing something else.
+--
+-- An example makes this easier to understand:
+--
+-- @{-\# LANGUAGE OverloadedStrings #-}
+--
+-- shoeSize = \"Shoe size: \" '.*>' 'decimal'
+-- @
+--
+-- If we were to try to use '*>' above instead, the type checker would
+-- not be able to tell which 'IsString' instance to use for the text
+-- in quotes.  We would have to be explicit, using either a type
+-- signature or the 'I.string' parser.
+
+-- | Type-specialized version of '*>' for 'Text'.
+(.*>) :: Text -> Parser a -> Parser a
+s .*> f = I.string s *> f
+
+-- | Type-specialized version of '<*' for 'Text'.
+(<*.) :: Parser a -> Text -> Parser a
+f <*. s = f <* I.string s
 
 data T = T !Integer !Int
 

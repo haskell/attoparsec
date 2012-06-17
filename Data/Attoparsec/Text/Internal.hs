@@ -217,7 +217,7 @@ take n = takeWith n (const True)
 --
 -- >string "foo" <|> string "for"
 --
--- The reason for its failure is that that the first branch is a
+-- The reason for its failure is that the first branch is a
 -- partial match, and will consume the letters @\'f\'@ and @\'o\'@
 -- before failing.  In Attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.

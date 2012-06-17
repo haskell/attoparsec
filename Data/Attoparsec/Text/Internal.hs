@@ -213,7 +213,7 @@ take n = takeWith n (const True)
 -- /Note/: The behaviour of this parser is different to that of the
 -- similarly-named parser in Parsec, as this one is all-or-nothing.
 -- To illustrate the difference, the following parser will fail under
--- Parsec given an input of @"for"@:
+-- Parsec given an input of @\"for\"@:
 --
 -- >string "foo" <|> string "for"
 --

@@ -6,6 +6,7 @@ import Control.Applicative ((<$>), (<*>))
 import Prelude hiding (takeWhile)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+import qualified Data.Char as Char
 import qualified Data.Attoparsec.Text as P
 import qualified Data.Attoparsec.Text.Lazy as PL
 import qualified Data.Text as T
@@ -59,6 +60,15 @@ string s t = maybeP (P.string s') (s `L.append` t) == Just s'
 stringCI s = P.parseOnly (P.stringCI fs) s == Right s
   where fs = T.toCaseFold s
 
+asciiCI x =
+  (\s i -> P.parseOnly (P.asciiCI s) i == Right i)
+    <$> maybeModifyCase x
+    <*> maybeModifyCase x
+  where
+    maybeModifyCase s = elements [s, toLower s, toUpper s]
+    toLower = T.map (\c -> if c < Char.chr 127 then Char.toLower c else c)
+    toUpper = T.map (\c -> if c < Char.chr 127 then Char.toUpper c else c)
+
 toStrict = T.concat . L.toChunks
 
 skipWhile w s =
@@ -105,6 +115,7 @@ tests = [
     testProperty "peekChar" peekChar,
     testProperty "string" string,
     testProperty "stringCI" stringCI,
+    testProperty "asciiCI" asciiCI,
     testProperty "skipWhile" skipWhile,
     testProperty "takeCount" takeCount,
     testProperty "takeWhile" takeWhile,

@@ -45,6 +45,7 @@ module Data.Attoparsec.Text.Internal
     , skipWhile
     , string
     , stringCI
+    , asciiCI
     , take
     , scan
     , takeWhile
@@ -70,6 +71,7 @@ import Data.Attoparsec.Internal.Types hiding (Parser, Input, Added, Failure, Suc
 import Data.String (IsString(..))
 import Data.Text (Text)
 import Prelude hiding (getChar, take, takeWhile)
+import Data.Char (chr, ord)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
@@ -244,6 +246,26 @@ stringCI s = go 0
         else go (n+1)
     fs = T.toCaseFold s
 {-# INLINE stringCI #-}
+
+-- | Satisfy a literal string, ignoring case for characters in the ASCII range.
+asciiCI :: Text -> Parser Text
+asciiCI input = do
+  t <- ensure n
+  let h = unsafeTake n t
+  if asciiToLower h == s
+    then put (unsafeDrop n t) >> return h
+    else fail "asciiCI"
+  where
+    n = T.length input
+    s = asciiToLower input
+
+    -- convert letters in the ASCII range to lower-case
+    asciiToLower = T.map f
+      where
+        offset = ord 'a' - ord 'A'
+        f c | 'A' <= c && c <= 'Z' = chr (ord c + offset)
+            | otherwise            = c
+{-# INLINE asciiCI #-}
 
 -- | Skip past input for as long as the predicate returns 'True'.
 skipWhile :: (Char -> Bool) -> Parser ()

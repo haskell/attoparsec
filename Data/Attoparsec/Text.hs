@@ -66,6 +66,7 @@ module Data.Attoparsec.Text
     -- * Efficient string handling
     , I.string
     , I.stringCI
+    , I.asciiCI
     , skipSpace
     , I.skipWhile
     , I.scan

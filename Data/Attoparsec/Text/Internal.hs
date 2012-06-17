@@ -246,6 +246,7 @@ stringCI s = go 0
         else go (n+1)
     fs = T.toCaseFold s
 {-# INLINE stringCI #-}
+{-# DEPRECATED stringCI "this is very inefficient, use asciiCI instead" #-}
 
 -- | Satisfy a literal string, ignoring case for characters in the ASCII range.
 asciiCI :: Text -> Parser Text

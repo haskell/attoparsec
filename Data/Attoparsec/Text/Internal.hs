@@ -410,14 +410,16 @@ notChar c = satisfy (/= c) <?> "not " ++ show c
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 peekChar :: Parser (Maybe Char)
-peekChar = T.Parser $ \i0 a0 m0 _kf ks -> case m0 of
-    Complete   -> ks i0 a0 m0 Nothing
-    Incomplete -> let ks' i a m = let w = unsafeHead (unI i)
-                                  in w `seq` ks i a m (Just w)
-                      kf' i a m = ks i a m Nothing
-                  in if T.null (unI i0)
-                     then prompt i0 a0 m0 kf' ks'
-                     else ks' i0 a0 m0
+peekChar = T.Parser $ \i0 a0 m0 _kf ks ->
+           if T.null (unI i0)
+           then if m0 == Complete
+                then ks i0 a0 m0 Nothing
+                else let ks' i a m = let !c = unsafeHead (unI i)
+                                     in ks i a m (Just c)
+                         kf' i a m = ks i a m Nothing
+                     in prompt i0 a0 m0 kf' ks'
+           else let !c = unsafeHead (unI i0)
+                in ks i0 a0 m0 (Just c)
 {-# INLINE peekChar #-}
 
 -- | Match only if all input has been consumed.

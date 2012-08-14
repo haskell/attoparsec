@@ -407,14 +407,16 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 peekWord8 :: Parser (Maybe Word8)
-peekWord8 = T.Parser $ \i0 a0 m0 _kf ks -> case m0 of
-    Complete   -> ks i0 a0 m0 Nothing
-    Incomplete -> let ks' i a m = let w = B.unsafeHead (unI i)
-                                  in w `seq` ks i a m (Just w)
-                      kf' i a m = ks i a m Nothing
-                  in if B.null (unI i0)
-                     then prompt i0 a0 m0 kf' ks'
-                     else ks' i0 a0 m0
+peekWord8 = T.Parser $ \i0 a0 m0 _kf ks ->
+            if B.null (unI i0)
+            then if m0 == Complete
+                 then ks i0 a0 m0 Nothing
+                 else let ks' i a m = let !w = B.unsafeHead (unI i)
+                                      in ks i a m (Just w)
+                          kf' i a m = ks i a m Nothing
+                      in prompt i0 a0 m0 kf' ks'
+            else let !w = B.unsafeHead (unI i0)
+                 in ks i0 a0 m0 (Just w)
 {-# INLINE peekWord8 #-}
 
 -- | Match only if all input has been consumed.

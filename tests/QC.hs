@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Main (main) where
 
 import qualified QC.ByteString as ByteString

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings, RecordWildCards, CPP #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
 -- Copyright   :  Bryan O'Sullivan 2007-2011

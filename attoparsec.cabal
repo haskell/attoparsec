@@ -45,7 +45,6 @@ library
                  deepseq,
                  text >= 0.11.1.5
 
-  extensions:      CPP
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.ByteString
                    Data.Attoparsec.ByteString.Char8

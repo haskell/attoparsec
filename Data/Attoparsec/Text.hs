@@ -4,7 +4,7 @@
 -- Module      :  Data.Attoparsec.Text
 -- Copyright   :  Bryan O'Sullivan 2011
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown

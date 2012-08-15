@@ -3,7 +3,7 @@
 -- Module      :  Data.Attoparsec.Combinator
 -- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2009-2010
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  portable

@@ -2,7 +2,7 @@
 -- Module      :  Data.Attoparsec.Lazy
 -- Copyright   :  Bryan O'Sullivan 2010
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown

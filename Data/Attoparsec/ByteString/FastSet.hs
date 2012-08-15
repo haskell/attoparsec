@@ -5,7 +5,7 @@
 -- Module      :  Data.Attoparsec.ByteString.FastSet
 -- Copyright   :  Bryan O'Sullivan 2008
 -- License     :  BSD3
--- 
+--
 -- Maintainer  :  bos@serpentine.com
 -- Stability   :  experimental
 -- Portability :  unknown
@@ -14,7 +14,7 @@
 -- set representation is unboxed for efficiency.  For small sets, we
 -- test for membership using a binary search.  For larger sets, we use
 -- a lookup table.
--- 
+--
 -----------------------------------------------------------------------------
 module Data.Attoparsec.ByteString.FastSet
     (

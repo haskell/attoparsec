@@ -25,6 +25,7 @@ module Data.Attoparsec.ByteString
       I.Parser
     , Result
     , T.IResult(..)
+    , I.compareResults
 
     -- * Running parsers
     , parse
@@ -75,6 +76,7 @@ module Data.Attoparsec.ByteString
 
 import Data.Attoparsec.Combinator
 import qualified Data.Attoparsec.ByteString.Internal as I
+import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B
 import Data.Attoparsec.ByteString.Internal (Result, parse)
 import qualified Data.Attoparsec.Internal.Types as T

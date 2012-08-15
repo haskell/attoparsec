@@ -27,6 +27,7 @@ module Data.Attoparsec.Text
       Parser
     , Result
     , T.IResult(..)
+    , I.compareResults
 
     -- * Running parsers
     , parse
@@ -111,6 +112,7 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.Text (Text)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
+import qualified Data.Attoparsec.Internal as I
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.Internal as I
 import qualified Data.Text as T

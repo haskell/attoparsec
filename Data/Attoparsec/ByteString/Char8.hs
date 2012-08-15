@@ -22,6 +22,7 @@ module Data.Attoparsec.ByteString.Char8
       Parser
     , A.Result
     , A.IResult(..)
+    , I.compareResults
 
     -- * Running parsers
     , A.parse
@@ -118,6 +119,7 @@ import Data.Word (Word8, Word16, Word32, Word64, Word)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.Attoparsec.ByteString.Internal as I
+import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
 

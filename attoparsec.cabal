@@ -60,6 +60,7 @@ library
                    Data.Attoparsec.Zepto
   other-modules:   Data.Attoparsec.ByteString.FastSet
                    Data.Attoparsec.ByteString.Internal
+                   Data.Attoparsec.Internal
                    Data.Attoparsec.Internal.Types
                    Data.Attoparsec.Text.FastSet
                    Data.Attoparsec.Text.Internal

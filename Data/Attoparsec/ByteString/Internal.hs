@@ -215,11 +215,11 @@ take n = takeWith n (const True)
 -- /Note/: The behaviour of this parser is different to that of the
 -- similarly-named parser in Parsec, as this one is all-or-nothing.
 -- To illustrate the difference, the following parser will fail under
--- Parsec given an input of @"for"@:
+-- Parsec given an input of @\"for\"@:
 --
 -- >string "foo" <|> string "for"
 --
--- The reason for its failure is that that the first branch is a
+-- The reason for its failure is that the first branch is a
 -- partial match, and will consume the letters @\'f\'@ and @\'o\'@
 -- before failing.  In Attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.

@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings, Rank2Types,
-    RecordWildCards, TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
+    Rank2Types, RecordWildCards, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Internal
@@ -73,7 +73,15 @@ import Prelude hiding (getChar, take, takeWhile)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
+import qualified Data.Text.Internal as T
 import qualified Data.Text.Lazy as L
+
+#if defined(__GLASGOW_HASKELL__)
+import GHC.Exts (inline)
+#else
+inline :: a -> a
+inline x = x
+#endif
 
 type Parser = T.Parser Text
 type Result = IResult Text
@@ -85,13 +93,23 @@ type Success a r = T.Success Text a r
 instance IsString (Parser Text) where
     fromString = string . T.pack
 
+lengthAtLeast :: T.Text -> Int -> Bool
+lengthAtLeast t@(T.Text _ _ l) n = l >= n * 4 || T.length t >= n
+{-# INLINE lengthAtLeast #-}
+
 -- | If at least @n@ characters of input are available, return the
 -- current input, otherwise fail.
 ensure :: Int -> Parser Text
 ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
-    if T.length (unI i0) >= n
-    then ks i0 a0 m0 (unI i0)
-    else runParser (demandInput >> ensure n) i0 a0 m0 kf ks
+    if lengthAtLeast (unI i0) n
+    then inline ks i0 a0 m0 (unI i0)
+    else runParser (demandInput >> go n) i0 a0 m0 kf ks
+  where
+    go n' = T.Parser $ \i0 a0 m0 kf ks ->
+        if lengthAtLeast (unI i0) n'
+        then ks i0 a0 m0 (unI i0)
+        else runParser (demandInput >> go n') i0 a0 m0 kf ks
+{-# INLINE ensure #-}
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
@@ -162,10 +180,11 @@ unsafeDrop = T.drop
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p = do
   s <- ensure 1
-  let w = unsafeHead s
+  let !w = unsafeHead s
   if p w
     then put (unsafeTail s) >> return w
     else fail "satisfy"
+{-# INLINE satisfy #-}
 
 -- | The parser @skip p@ succeeds for any character for which the
 -- predicate @p@ returns 'True'.
@@ -185,10 +204,12 @@ skip p = do
 satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
   s <- ensure 1
-  let c = f (unsafeHead s)
+  let c = f $! unsafeHead s
   if p c
-    then put (unsafeTail s) >> return c
+    then let !t = unsafeTail s
+         in put t >> return c
     else fail "satisfyWith"
+{-# INLINE satisfyWith #-}
 
 -- | Consume @n@ characters of input, but succeed only if the
 -- predicate returns 'True'.

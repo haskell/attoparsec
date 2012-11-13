@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types, OverloadedStrings,
+    RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2011
@@ -83,6 +84,13 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
+#if defined(__GLASGOW_HASKELL__)
+import GHC.Exts (inline)
+#else
+inline :: a -> a
+inline x = x
+#endif
+
 type Parser = T.Parser B.ByteString
 type Result = IResult B.ByteString
 type Input = T.Input B.ByteString
@@ -95,8 +103,14 @@ type Success a r = T.Success B.ByteString a r
 ensure :: Int -> Parser B.ByteString
 ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
     if B.length (unI i0) >= n
-    then ks i0 a0 m0 (unI i0)
-    else T.runParser (demandInput >> ensure n) i0 a0 m0 kf ks
+    then inline ks i0 a0 m0 (unI i0)
+    else T.runParser (demandInput >> go n) i0 a0 m0 kf ks
+  where
+    go n' = T.Parser $ \i0 a0 m0 kf ks ->
+        if B.length (unI i0) >= n'
+        then ks i0 a0 m0 (unI i0)
+        else T.runParser (demandInput >> go n') i0 a0 m0 kf ks
+{-# INLINE ensure #-}
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
@@ -155,10 +169,11 @@ try p = p
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p = do
   s <- ensure 1
-  let w = B.unsafeHead s
+  let !w = B.unsafeHead s
   if p w
     then put (B.unsafeTail s) >> return w
     else fail "satisfy"
+{-# INLINE satisfy #-}
 
 -- | The parser @skip p@ succeeds for any byte for which the predicate
 -- @p@ returns 'True'.
@@ -178,10 +193,12 @@ skip p = do
 satisfyWith :: (Word8 -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
   s <- ensure 1
-  let c = f (B.unsafeHead s)
+  let c = f $! B.unsafeHead s
   if p c
-    then put (B.unsafeTail s) >> return c
+    then let !t = B.unsafeTail s
+         in put t >> return c
     else fail "satisfyWith"
+{-# INLINE satisfyWith #-}
 
 storable :: Storable a => Parser a
 storable = hack undefined
@@ -279,6 +296,7 @@ takeWhile p = (B.concat . reverse) `fmap` go []
           then go (h:acc)
           else return (h:acc)
       else return (h:acc)
+{-# INLINE takeWhile #-}
 
 takeRest :: Parser [B.ByteString]
 takeRest = go []

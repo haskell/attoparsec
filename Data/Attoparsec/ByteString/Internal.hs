@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, Rank2Types, OverloadedStrings,
-    RecordWildCards #-}
+    RecordWildCards, MagicHash, UnboxedTuples #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2011
@@ -76,7 +76,6 @@ import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
 import Prelude hiding (getChar, take, takeWhile)
-import System.IO.Unsafe (unsafeDupablePerformIO)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
@@ -85,8 +84,12 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
 #if defined(__GLASGOW_HASKELL__)
+import GHC.Base (realWorld#)
 import GHC.Exts (inline)
+import GHC.IO (IO(IO))
 #else
+import System.IO.Unsafe (unsafePerformIO)
+
 inline :: a -> a
 inline x = x
 #endif
@@ -362,7 +365,7 @@ scan s0 p = do
                 done !i !s = return (T i s)
             inner start s1
     bs <- get
-    let T i s' = unsafeDupablePerformIO $ scanner bs
+    let T i s' = inlinePerformIO $ scanner bs
         !h = B.unsafeTake i bs
         !t = B.unsafeDrop i bs
     put t
@@ -503,3 +506,15 @@ parseOnly m s = case T.runParser m (I s) (A B.empty) Complete failK successK of
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
+
+-- | Just like unsafePerformIO, but we inline it. Big performance gains as
+-- it exposes lots of things to further inlining. /Very unsafe/. In
+-- particular, you should do no memory allocation inside an
+-- 'inlinePerformIO' block. On Hugs this is just @unsafePerformIO@.
+inlinePerformIO :: IO a -> a
+#if defined(__GLASGOW_HASKELL__)
+inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
+#else
+inlinePerformIO = unsafePerformIO
+#endif
+{-# INLINE inlinePerformIO #-}

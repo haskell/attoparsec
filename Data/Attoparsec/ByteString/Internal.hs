@@ -76,7 +76,7 @@ import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
 import Prelude hiding (getChar, take, takeWhile)
-import System.IO.Unsafe (unsafePerformIO)
+import System.IO.Unsafe (unsafeDupablePerformIO)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
@@ -345,7 +345,7 @@ scan s0 p = do
   chunks <- go [] s0
   case chunks of
     [x] -> return x
-    xs  -> return . B.concat . reverse $ xs
+    xs  -> return $! B.concat $ reverse xs
  where
   go acc s1 = do
     let scanner (B.PS fp off len) =
@@ -362,9 +362,9 @@ scan s0 p = do
                 done !i !s = return (T i s)
             inner start s1
     bs <- get
-    let T i s' = unsafePerformIO $ scanner bs
-        h = B.unsafeTake i bs
-        t = B.unsafeDrop i bs
+    let T i s' = unsafeDupablePerformIO $ scanner bs
+        !h = B.unsafeTake i bs
+        !t = B.unsafeDrop i bs
     put t
     if B.null t
       then do

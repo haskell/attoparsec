@@ -19,6 +19,7 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import Data.Word (Word8)
 import qualified Text.Parsec as P
 
 instance NFData ByteString where
@@ -74,6 +75,7 @@ main = do
      , bench "isAlpha_iso8859_15" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
      ]
    , bench "word32LE" $ nf (AB.parse word32LE) b
+   , bench "scan" $ nf (AB.parse quotedString) b
    ]
 
 -- Benchmarks bind and (potential) bounds-check merging.
@@ -87,3 +89,16 @@ word32LE = do
         fromIntegral w2 `unsafeShiftL` 8 +
         fromIntegral w3 `unsafeShiftL` 16 +
         fromIntegral w4 `unsafeShiftL` 32
+
+doubleQuote, backslash :: Word8
+doubleQuote = 34
+backslash = 92
+{-# INLINE backslash #-}
+{-# INLINE doubleQuote #-}
+
+-- | Parse a string without a leading quote.
+quotedString :: AB.Parser B.ByteString
+quotedString = AB.scan False $ \s c -> if s then Just False
+                                       else if c == doubleQuote
+                                            then Nothing
+                                            else Just (c == backslash)

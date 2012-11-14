@@ -75,7 +75,10 @@ main = do
      , bench "isAlpha_iso8859_15" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
      ]
    , bench "word32LE" $ nf (AB.parse word32LE) b
-   , bench "scan" $ nf (AB.parse quotedString) b
+   , bgroup "scan" [
+       bench "short" $ nf (AB.parse quotedString) (BC.pack "abcdefghijk\"")
+     , bench "long" $ nf (AB.parse quotedString) b
+     ]
    ]
 
 -- Benchmarks bind and (potential) bounds-check merging.

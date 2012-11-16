@@ -3,8 +3,10 @@
 import Control.Applicative
 import Control.DeepSeq (NFData(rnf))
 import Criterion.Main (bench, bgroup, defaultMain, nf, whnf)
+import Data.Bits (unsafeShiftL)
 import Data.ByteString.Internal (ByteString(..))
 import Data.Char
+import Data.Word (Word32)
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
 import qualified Data.Attoparsec.ByteString as AB
@@ -71,4 +73,17 @@ main = do
      , bench "isAlpha_ascii" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_ascii)) bl
      , bench "isAlpha_iso8859_15" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
      ]
+   , bench "word32LE" $ nf (AB.parse word32LE) b
    ]
+
+-- Benchmarks bind and (potential) bounds-check merging.
+word32LE :: AB.Parser Word32
+word32LE = do
+    w1 <- AB.anyWord8
+    w2 <- AB.anyWord8
+    w3 <- AB.anyWord8
+    w4 <- AB.anyWord8
+    return $! (fromIntegral w1 :: Word32) +
+        fromIntegral w2 `unsafeShiftL` 8 +
+        fromIntegral w3 `unsafeShiftL` 16 +
+        fromIntegral w4 `unsafeShiftL` 32

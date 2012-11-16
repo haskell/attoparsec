@@ -100,10 +100,10 @@ type Success a r = T.Success B.ByteString a r
 
 ensure' :: Int -> Input -> Added -> More -> Failure r -> Success B.ByteString r
         -> IResult B.ByteString r
-ensure' n0 i0 a0 m0 kf0 ks0 =
+ensure' !n0 i0 a0 m0 kf0 ks0 =
     T.runParser (demandInput >> go n0) i0 a0 m0 kf0 ks0
   where
-    go n = T.Parser $ \i a m kf ks ->
+    go !n = T.Parser $ \i a m kf ks ->
         if B.length (unI i) >= n
         then ks i a m (unI i)
         else T.runParser (demandInput >> go n) i a m kf ks

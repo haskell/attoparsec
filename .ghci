@@ -1,1 +1,1 @@
-:set -fobject-code -optP-include -optPdist/build/autogen/cabal_macros.h
+:set -fobject-code -optP-include -optPdist/build/autogen/cabal_macros.h -itests

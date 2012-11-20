@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-orphans #-}
 module QC.ByteString (tests) where
 
@@ -94,6 +94,10 @@ endOfInput s = maybeP P.endOfInput s == if L.null s
                                         then Just ()
                                         else Nothing
 
+scan s (Positive k) = maybeP p s == (Just $ toStrict $ L.take k s)
+  where p = P.scan k $ \ n _ ->
+            if n > 0 then let !n' = n - 1 in Just n' else Nothing
+
 tests = [
     testProperty "satisfy" satisfy,
     testProperty "word8" word8,
@@ -107,5 +111,6 @@ tests = [
     testProperty "takeWhile1" takeWhile1,
     testProperty "takeWhile1_empty" takeWhile1_empty,
     testProperty "takeTill" takeTill,
-    testProperty "endOfInput" endOfInput
+    testProperty "endOfInput" endOfInput,
+    testProperty "scan" scan
   ]

@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
-    Rank2Types, RecordWildCards, TypeSynonymInstances #-}
+    Rank2Types, RecordWildCards, TypeSynonymInstances, GADTs #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Internal
@@ -92,7 +92,7 @@ type Added = T.Added Text
 type Failure r = T.Failure Text r
 type Success a r = T.Success Text a r
 
-instance IsString (Parser Text) where
+instance (a ~ Text) => IsString (Parser a) where
     fromString = string . T.pack
 
 lengthAtLeast :: T.Text -> Int -> Bool

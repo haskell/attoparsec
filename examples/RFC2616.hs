@@ -36,7 +36,7 @@ data Request = Request {
     } deriving (Eq, Ord, Show)
 
 httpVersion :: Parser B.ByteString
-httpVersion = string "HTTP/" *> P.takeWhile (\c -> isDigit_w8 c || c == 46)
+httpVersion = "HTTP/" *> P.takeWhile (\c -> isDigit_w8 c || c == 46)
 
 requestLine :: Parser Request
 requestLine = do

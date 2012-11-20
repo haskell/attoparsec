@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances, GADTs #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
@@ -123,7 +123,7 @@ import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
 
-instance IsString (Parser B.ByteString) where
+instance (a ~ B.ByteString) => IsString (Parser a) where
     fromString = I.string . B.pack
 
 -- $encodings

@@ -30,6 +30,7 @@ module Data.Attoparsec.Combinator
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             (<|>), (*>), (<$>))
+import Control.Monad (MonadPlus(..))
 #if !MIN_VERSION_base(4,2,0)
 import Control.Applicative (many)
 #endif
@@ -65,18 +66,24 @@ option x p = p <|> pure x
 {-# SPECIALIZE option :: a -> Z.Parser a -> Z.Parser a #-}
 #endif
 
+-- | A version of 'liftM2' that is strict in the result of its first
+-- action.
+liftM2' :: (Monad m) => (a -> b -> c) -> m a -> m b -> m c
+liftM2' f a b = do
+  !x <- a
+  y <- b
+  return (f x y)
+{-# INLINE liftM2' #-}
+
 -- | @many' p@ applies the action @p@ /zero/ or more times. Returns a
 -- list of the returned values of @p@. The value returned by @p@ is
 -- forced to WHNF.
 --
 -- >  word  = many' letter
-many' :: (Alternative f, Monad f) => f a -> f [a]
+many' :: (MonadPlus m) => m a -> m [a]
 many' p = many_p
-  where many_p = some_p <|> pure []
-        some_p = do
-            !a <- p
-            as <- many_p
-            return (a : as)
+  where many_p = some_p `mplus` return []
+        some_p = liftM2' (:) p many_p
 {-# INLINE many' #-}
 
 -- | @many1 p@ applies the action @p@ /one/ or more times. Returns a
@@ -92,11 +99,8 @@ many1 p = liftA2 (:) p (many p)
 -- forced to WHNF.
 --
 -- >  word  = many1' letter
-many1' :: (Alternative f, Monad f) => f a -> f [a]
-many1' p = do
-    !a <- p
-    as <- many' p
-    return (a : as)
+many1' :: (MonadPlus m) => m a -> m [a]
+many1' p = liftM2' (:) p (many' p)
 {-# INLINE many1' #-}
 
 -- | @sepBy p sep@ applies /zero/ or more occurrences of @p@, separated
@@ -117,13 +121,9 @@ sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 -- returned by @p@ is forced to WHNF.
 --
 -- > commaSep p  = p `sepBy'` (symbol ",")
-sepBy' :: (Alternative f, Monad f) => f a -> f s -> f [a]
-sepBy' p s = scan <|> pure []
-  where
-    scan = do
-        !a <- p
-        as <- (s *> sepBy1' p s) <|> pure []
-        return (a : as)
+sepBy' :: (MonadPlus m) => m a -> m s -> m [a]
+sepBy' p s = scan `mplus` return []
+  where scan = liftM2' (:) p ((s >> sepBy1' p s) `mplus` return [])
 #if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy' :: Parser ByteString a -> Parser ByteString s
                       -> Parser ByteString [a] #-}
@@ -150,11 +150,9 @@ sepBy1 p s = scan
 -- returned by @p@ is forced to WHNF.
 --
 -- > commaSep p  = p `sepBy1'` (symbol ",")
-sepBy1' :: (Alternative f, Monad f) => f a -> f s -> f [a]
+sepBy1' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy1' p s = scan
-    where scan = do !a <- p
-                    as <- (s *> scan) <|> pure []
-                    return (a : as)
+    where scan = liftM2' (:) p ((s >> scan) `mplus` return [])
 #if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy1' :: Parser ByteString a -> Parser ByteString s
                        -> Parser ByteString [a] #-}
@@ -189,13 +187,9 @@ manyTill p end = scan
 -- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
 -- therefore the use of the 'try' combinator. The value returned by @p@
 -- is forced to WHNF.
-manyTill' :: (Alternative f, Monad f) => f a -> f b -> f [a]
+manyTill' :: (MonadPlus m) => m a -> m b -> m [a]
 manyTill' p end = scan
-    where scan = (end *> pure []) <|> scan'
-          scan' = do
-              !a <- p
-              as <- scan
-              return (a : as)
+    where scan = (end >> return []) `mplus` liftM2' (:) p scan
 #if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE manyTill' :: Parser ByteString a -> Parser ByteString b
                          -> Parser ByteString [a] #-}

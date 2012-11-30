@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances, GADTs #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, TypeFamilies,
+    TypeSynonymInstances, GADTs #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |

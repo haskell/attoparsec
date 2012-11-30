@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
-    Rank2Types, RecordWildCards, TypeSynonymInstances, GADTs #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, GADTs, OverloadedStrings,
+    Rank2Types, RecordWildCards, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Internal

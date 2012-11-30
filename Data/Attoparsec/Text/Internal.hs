@@ -78,13 +78,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Internal as T
 import qualified Data.Text.Lazy as L
 
-#if defined(__GLASGOW_HASKELL__)
-import GHC.Exts (inline)
-#else
-inline :: a -> a
-inline x = x
-#endif
-
 type Parser = T.Parser Text
 type Result = IResult Text
 type Input = T.Input Text
@@ -104,7 +97,7 @@ lengthAtLeast t@(T.Text _ _ len) n = (len `div` 2) >= n || T.length t >= n
 ensure :: Int -> Parser Text
 ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
     if lengthAtLeast (unI i0) n
-    then inline ks i0 a0 m0 (unI i0)
+    then ks i0 a0 m0 (unI i0)
     else runParser (demandInput >> go n) i0 a0 m0 kf ks
   where
     go n' = T.Parser $ \i0 a0 m0 kf ks ->

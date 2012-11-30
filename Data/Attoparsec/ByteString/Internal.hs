@@ -85,13 +85,9 @@ import qualified Data.ByteString.Unsafe as B
 
 #if defined(__GLASGOW_HASKELL__)
 import GHC.Base (realWorld#)
-import GHC.Exts (inline)
 import GHC.IO (IO(IO))
 #else
 import System.IO.Unsafe (unsafePerformIO)
-
-inline :: a -> a
-inline x = x
 #endif
 
 type Parser = T.Parser B.ByteString
@@ -116,9 +112,7 @@ ensure' !n0 i0 a0 m0 kf0 ks0 =
 ensure :: Int -> Parser B.ByteString
 ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
     if B.length (unI i0) >= n
-    -- Inline the success continuation to avoid creating a closure in
-    -- the common case of enough data in the buffer:
-    then inline ks i0 a0 m0 (unI i0)
+    then ks i0 a0 m0 (unI i0)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensure' n i0 a0 m0 kf ks
 -- Non-recursive so the bounds check can be inlined:

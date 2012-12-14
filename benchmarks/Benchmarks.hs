@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 
 import Control.Applicative
 import Control.DeepSeq (NFData(rnf))
@@ -22,8 +22,10 @@ import qualified Data.Text.Lazy as TL
 import Data.Word (Word8)
 import qualified Text.Parsec as P
 
+#if !MIN_VERSION_bytestring(0,10,0)
 instance NFData ByteString where
     rnf (PS _ _ _) = ()
+#endif
 
 instance NFData P.ParseError where
     rnf = rnf . show

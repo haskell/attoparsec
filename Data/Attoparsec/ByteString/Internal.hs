@@ -218,7 +218,8 @@ storable = hack undefined
 -- | Consume @n@ bytes of input, but succeed only if the predicate
 -- returns 'True'.
 takeWith :: Int -> (B.ByteString -> Bool) -> Parser B.ByteString
-takeWith n p = do
+takeWith n0 p = do
+  let n = max n0 0
   s <- ensure n
   let h = B.unsafeTake n s
       t = B.unsafeDrop n s

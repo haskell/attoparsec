@@ -211,8 +211,7 @@ satisfyWith f p = do
 takeWith :: Int -> (Text -> Bool) -> Parser Text
 takeWith n p = do
   s <- ensure n
-  let h = unsafeTake n s
-      t = unsafeDrop n s
+  let (h,t) = T.splitAt n s
   if p h
     then put t >> return h
     else fail "takeWith"

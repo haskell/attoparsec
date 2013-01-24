@@ -21,7 +21,6 @@ module Data.Attoparsec.Internal.Types
     , Added(..)
     , More(..)
     , addS
-    , noAdds
     , (<>)
     ) where
 

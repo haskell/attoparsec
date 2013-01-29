@@ -148,7 +148,8 @@ plus :: (Monoid t) => Parser t a -> Parser t a -> Parser t a
 plus a b = Parser $ \i0 a0 m0 kf ks ->
            let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
                                   \ i2 a2 m2 -> runParser b i2 a2 m2 kf ks
-           in  noAdds i0 a0 m0 $ \i2 a2 m2 -> runParser a i2 a2 m2 kf' ks
+               ks' i1 a1 m1 = ks i1 (A (unA a0 <> unA a1)) m1
+           in  noAdds i0 a0 m0 $ \i2 a2 m2 -> runParser a i2 a2 m2 kf' ks'
 {-# INLINE plus #-}
 
 instance (Monoid t) => MonadPlus (Parser t) where

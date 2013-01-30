@@ -127,7 +127,7 @@ prompt :: Input -> Added -> More
 prompt i0 a0 _m0 kf ks = Partial $ \s ->
     if B.null s
     then kf i0 a0 Complete
-    else ks (I (unI i0 <> s)) (A (unA a0 <> s)) Incomplete
+    else ks (i0 <> I s) (a0 <> A s) Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.

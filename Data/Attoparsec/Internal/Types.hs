@@ -143,7 +143,7 @@ instance Monad (Parser t) where
 noAdds :: (Monoid t) =>
           Input t -> Added t -> More
        -> (Input t -> Added t -> More -> r) -> r
-noAdds i0 _a0 m0 f = f i0 (A mempty) m0
+noAdds i0 _a0 m0 f = f i0 mempty m0
 {-# INLINE noAdds #-}
 
 plus :: (Monoid t) => Parser t a -> Parser t a -> Parser t a

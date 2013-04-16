@@ -100,13 +100,15 @@ module Data.Attoparsec.ByteString.Char8
     , Number(..)
     , number
     , rational
-
+    , laxDouble
+    , laxNumber
+    , laxRational
     -- * State observation and manipulation functions
     , I.endOfInput
     , I.atEnd
     ) where
 
-import Control.Applicative ((*>), (<*), (<$>), (<|>))
+import Control.Applicative ((<*>), (*>), (<*), (<$>), (<|>))
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser, (<?>))
 import Data.Attoparsec.Combinator
@@ -430,12 +432,7 @@ decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDig
 -- | Parse a number with an optional leading @\'+\'@ or @\'-\'@ sign
 -- character.
 signed :: Num a => Parser a -> Parser a
-{-# SPECIALISE signed :: Parser Int -> Parser Int #-}
-{-# SPECIALISE signed :: Parser Int8 -> Parser Int8 #-}
-{-# SPECIALISE signed :: Parser Int16 -> Parser Int16 #-}
-{-# SPECIALISE signed :: Parser Int32 -> Parser Int32 #-}
-{-# SPECIALISE signed :: Parser Int64 -> Parser Int64 #-}
-{-# SPECIALISE signed :: Parser Integer -> Parser Integer #-}
+{-# INLINE signed #-}
 signed p = (negate <$> (char8 '-' *> p))
        <|> (char8 '+' *> p)
        <|> p
@@ -492,11 +489,6 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 double :: Parser Double
 double = floaty asDouble
 
-asDouble :: Integer -> Integer -> Integer -> Double
-asDouble real frac fracDenom =
-    fromIntegral real + fromIntegral frac / fromIntegral fracDenom
-{-# INLINE asDouble #-}
-
 -- | Parse a number, attempting to preserve both speed and precision.
 --
 -- The syntax accepted by this parser is the same as for 'rational'.
@@ -509,41 +501,108 @@ asDouble real frac fracDenom =
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 number :: Parser Number
-number = floaty $ \real frac fracDenom ->
-         if frac == 0 && fracDenom == 0
-         then I real
-         else D (asDouble real frac fracDenom)
+number = floaty asNumber
 {-# INLINE number #-}
+
+-- | Same as 'rational' but accepts more inputs. Numbers with either
+-- leading or trailing dot are accepted. For example
+--
+-- >laxRational ".1"   == Done 0.1 ""
+-- >laxRational "+.1"  == Done 0.1 ""
+-- >laxRational "-.1"  == Done (-0.1) ""
+-- >laxRational "2."   == Done 2.0 ""
+-- >laxRational "2.e2" == Done 200.0 ""
+--
+-- Number must have either integral or fractional part. Fro example:
+--
+-- >laxRational "." == Fail "No fractional part"
+laxRational :: Fractional a => Parser a
+{-# SPECIALIZE laxRational :: Parser Double   #-}
+{-# SPECIALIZE laxRational :: Parser Float    #-}
+{-# SPECIALIZE laxRational :: Parser Rational #-}
+laxRational = laxFloaty asRational
+
+-- | Version of 'double' which accepts more inputs. Check
+-- 'laxRational' for more details
+laxDouble :: Parser Double
+laxDouble = laxFloaty asDouble
+
+-- | Version of 'number' which accepts more inputs. Check
+-- 'laxRational' for more details
+laxNumber :: Parser Number
+laxNumber = laxFloaty asNumber
+
+asDouble :: Integer -> Integer -> Integer -> Double
+asDouble real frac fracDenom =
+    fromIntegral real + fromIntegral frac / fromIntegral fracDenom
+{-# INLINE asDouble #-}
+
+asRational :: Fractional a => Integer -> Integer -> Integer -> a
+asRational real frac fracDenom =
+    fromRational $ real % 1 + frac % fracDenom
+{-# INLINE asRational #-}
+
+asNumber :: Integer -> Integer -> Integer -> Number
+asNumber real 0    0         = I real
+asNumber real frac fracDenom = D $! asDouble real frac fracDenom
+{-# INLINE asNumber #-}
+
 
 data T = T !Integer !Int
 
 floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
 {-# INLINE floaty #-}
 floaty f = do
+  !positive <- floatyPositive
+  real      <- decimal
+  frac      <- tryFraction <|> return (T 0 0)
+  power     <- floatyPower
+  let n = finiFloaty f real frac power
+  return $! if positive then n else -n
+
+laxFloaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
+{-# INLINE laxFloaty #-}
+laxFloaty f = do
+  !positive     <- floatyPositive
+  (!real,!frac) <-  (,) <$> decimal  <*> (tryFraction <|> return (T 0 0))
+                <|> (,) <$> return 0 <*>  tryFraction
+  power         <- floatyPower
+  let n = finiFloaty f real frac power
+  return $! if positive then n else -n
+
+floatyPositive :: Parser Bool
+{-# INLINE floatyPositive #-}
+floatyPositive = do
   let minus = 45
       plus  = 43
-  !positive <- ((== plus) <$> I.satisfy (\c -> c == minus || c == plus)) <|>
-               return True
-  real <- decimal
-  let tryFraction = do
-        let dot = 46
-        _ <- I.satisfy (==dot)
-        ds <- I.takeWhile isDigit_w8
-        case I.parseOnly decimal ds of
-                Right n -> return $ T n (B.length ds)
-                _       -> fail "no digits after decimal"
-  T fraction fracDigits <- tryFraction <|> return (T 0 0)
+  ((== plus) <$> I.satisfy (\c -> c == minus || c == plus)) <|>
+    return True
+
+tryFraction :: Parser T
+{-# INLINE tryFraction #-}
+tryFraction = do
+  let dot = 46
+  _  <- I.satisfy (== dot)
+  ds <- I.takeWhile isDigit_w8
+  case I.parseOnly decimal ds of
+    Right n -> return $ T n (B.length ds)
+    _       -> fail "no digits after decimal"
+
+floatyPower :: Parser Int
+{-# INLINE floatyPower #-}
+floatyPower = do
   let littleE = 101
       bigE    = 69
       e w = w == littleE || w == bigE
-  power <- (I.satisfy e *> signed decimal) <|> return (0::Int)
-  let n = if fracDigits == 0
-          then if power == 0
-               then fromIntegral real
-               else fromIntegral real * (10 ^^ power)
-          else if power == 0
-               then f real fraction (10 ^ fracDigits)
-               else f real fraction (10 ^ fracDigits) * (10 ^^ power)
-  return $ if positive
-           then n
-           else -n
+  (I.satisfy e *> signed decimal) <|> return 0
+
+finiFloaty :: Fractional a
+           => (Integer -> Integer -> Integer -> a)
+           -> Integer -> T -> Int -> a
+{-# INLINE finiFloaty #-}
+finiFloaty _ real (T _ 0) 0     = fromIntegral real
+finiFloaty _ real (T _ 0) power = fromIntegral real * (10^^power)
+finiFloaty f real (T fraction fracDigits) 0
+  = f real fraction (10^fracDigits)
+finiFloaty f real (T fraction fracDigits) power
+  = f real fraction (10^fracDigits) * (10^^power)

@@ -106,7 +106,7 @@ module Data.Attoparsec.Text
     , I.atEnd
     ) where
 
-import Control.Applicative ((<$>), (<*>), (*>), (<*), (<|>))
+import Control.Applicative ((<$>), (<$), (<*>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Attoparsec.Text.Internal ((<?>), Parser, Result, parse, takeWhile1)
@@ -495,7 +495,9 @@ laxFloaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
 {-# INLINE laxFloaty #-}
 laxFloaty f = do
   !positive     <- floatyPositive
-  (!real,!frac) <-  (,) <$> decimal  <*> (tryFraction <|> return (T 0 0))
+  (!real,!frac) <-  (,) <$> decimal  <*> (  tryFraction
+                                        <|> T 0 0 <$ I.char '.'
+                                        <|> return (T 0 0))
                 <|> (,) <$> return 0 <*>  tryFraction
   power         <- floatyPower
   let n = finiFloaty f real frac power

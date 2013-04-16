@@ -108,7 +108,7 @@ module Data.Attoparsec.ByteString.Char8
     , I.atEnd
     ) where
 
-import Control.Applicative ((<*>), (*>), (<*), (<$>), (<|>))
+import Control.Applicative ((<*>), (*>), (<*), (<$>), (<$), (<|>))
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser, (<?>))
 import Data.Attoparsec.Combinator
@@ -564,7 +564,9 @@ laxFloaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
 {-# INLINE laxFloaty #-}
 laxFloaty f = do
   !positive     <- floatyPositive
-  (!real,!frac) <-  (,) <$> decimal  <*> (tryFraction <|> return (T 0 0))
+  (!real,!frac) <-  (,) <$> decimal  <*> (  tryFraction
+                                        <|> (T 0 0 <$ dot)
+                                        <|> return (T 0 0))
                 <|> (,) <$> return 0 <*>  tryFraction
   power         <- floatyPower
   let n = finiFloaty f real frac power
@@ -578,11 +580,14 @@ floatyPositive = do
   ((== plus) <$> I.satisfy (\c -> c == minus || c == plus)) <|>
     return True
 
+dot :: Parser Word8
+{-# INLINE dot #-}
+dot = I.satisfy (== 46)
+
 tryFraction :: Parser T
 {-# INLINE tryFraction #-}
 tryFraction = do
-  let dot = 46
-  _  <- I.satisfy (== dot)
+  _  <- dot
   ds <- I.takeWhile isDigit_w8
   case I.parseOnly decimal ds of
     Right n -> return $ T n (B.length ds)

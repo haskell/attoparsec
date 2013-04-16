@@ -81,6 +81,16 @@ main = do
        bench "short" $ nf (AB.parse quotedString) (BC.pack "abcdefghijk\"")
      , bench "long" $ nf (AB.parse quotedString) b
      ]
+   , bgroup "number" [
+       bench "double 12.2"      $ nf (AB.parse AC.double) (BC.pack "11.2"  )
+     , bench "double 12.23"     $ nf (AB.parse AC.double) (BC.pack "11.23" )
+     , bench "double 12.234"    $ nf (AB.parse AC.double) (BC.pack "11.234")
+     , bench "double 12.2e4"    $ nf (AB.parse AC.double) (BC.pack "11.2e4")
+     , bench "laxDouble 12.2"   $ nf (AB.parse AC.laxDouble) (BC.pack "11.2"  )
+     , bench "laxDouble 12.23"  $ nf (AB.parse AC.laxDouble) (BC.pack "11.23" )
+     , bench "laxDouble 12.234" $ nf (AB.parse AC.laxDouble) (BC.pack "11.234")
+     , bench "laxDouble 12.2e4" $ nf (AB.parse AC.laxDouble) (BC.pack "11.2e4")
+     ]
    ]
 
 -- Benchmarks bind and (potential) bounds-check merging.

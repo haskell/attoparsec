@@ -2,10 +2,15 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-orphans #-}
 module QC.Text (tests) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), (<*))
 import Prelude hiding (takeWhile)
+
+import Test.Framework                       (testGroup)
+import Test.Framework.Providers.HUnit       (testCase)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
+import Test.HUnit
+
 import qualified Data.Char as Char
 import qualified Data.Attoparsec.Text as P
 import qualified Data.Attoparsec.Text.Lazy as PL
@@ -107,6 +112,22 @@ endOfInput s = maybeP P.endOfInput s == if L.null s
                                         then Just ()
                                         else Nothing
 
+mustParseTo name parser bs r
+  = testCase    testName
+  $ assertEqual testName
+      (Right r)
+      (P.parseOnly (parser <* P.endOfInput) bs)
+  where
+    testName = name ++ " " ++ show bs ++ " -> " ++ show r
+
+mustFailParse name parser bs
+  = testCase testName
+  $ case P.parseOnly (parser <* P.endOfInput) bs of
+      Right _ -> assertFailure "Must not parse"
+      Left  _ -> return ()
+  where
+    testName = name ++ " must fail on " ++ show bs
+
 tests = [
     testProperty "satisfy" satisfy,
     testProperty "char" char,
@@ -123,4 +144,21 @@ tests = [
     testProperty "takeWhile1_empty" takeWhile1_empty,
     testProperty "takeTill" takeTill,
     testProperty "endOfInput" endOfInput
+  , testGroup "numbers"
+    [ mustParseTo   "rational" P.rational "1"      (1       :: Rational)
+    , mustParseTo   "rational" P.rational "1.3"    (1.3     :: Rational)
+    , mustParseTo   "rational" P.rational "1.3e3"  (1300    :: Rational)
+    , mustParseTo   "rational" P.rational "-1.3e3" ((-1300) :: Rational)
+    , mustParseTo   "rational" P.rational "+1.3e3" (1300    :: Rational)
+    , mustFailParse "rational" P.rational "1."
+    , mustFailParse "rational" P.rational ".2"
+      --
+    , mustParseTo "laxRational" P.laxRational "1"      (1       :: Rational)
+    , mustParseTo "laxRational" P.laxRational "1.3"    (1.3     :: Rational)
+    , mustParseTo "laxRational" P.laxRational "1.3e3"  (1300    :: Rational)
+    , mustParseTo "laxRational" P.laxRational "-1.3e3" ((-1300) :: Rational)
+    , mustParseTo "laxRational" P.laxRational "+1.3e3" (1300    :: Rational)
+    , mustParseTo "laxRational" P.laxRational "1."     (1       :: Rational)
+    , mustParseTo "laxRational" P.laxRational ".2"     (0.2     :: Rational)
+    ]
   ]

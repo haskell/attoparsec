@@ -2,12 +2,17 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-orphans #-}
 module QC.ByteString (tests) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), (<*))
 import Prelude hiding (takeWhile)
+import Test.Framework                       (testGroup)
+import Test.Framework.Providers.HUnit       (testCase)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
-import qualified Data.Attoparsec.ByteString as P
-import qualified Data.Attoparsec.ByteString.Lazy as PL
+import Test.HUnit
+
+import qualified Data.Attoparsec.ByteString       as P
+import qualified Data.Attoparsec.ByteString.Lazy  as PL
+import qualified Data.Attoparsec.ByteString.Char8 as PC
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 
@@ -98,6 +103,23 @@ scan s (Positive k) = maybeP p s == (Just $ toStrict $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
 
+
+mustParseTo name parser bs r
+  = testCase    testName
+  $ assertEqual testName
+      (Right r)
+      (P.parseOnly (parser <* P.endOfInput) bs)
+  where
+    testName = name ++ " " ++ show bs ++ " -> " ++ show r
+
+mustFailParse name parser bs
+  = testCase testName
+  $ case P.parseOnly (parser <* P.endOfInput) bs of
+      Right _ -> assertFailure "Must not parse"
+      Left  _ -> return ()
+  where
+    testName = name ++ " must fail on " ++ show bs
+
 tests = [
     testProperty "satisfy" satisfy,
     testProperty "word8" word8,
@@ -113,4 +135,21 @@ tests = [
     testProperty "takeTill" takeTill,
     testProperty "endOfInput" endOfInput,
     testProperty "scan" scan
+  , testGroup "numbers"
+    [ mustParseTo   "rational" PC.rational "1"      (1       :: Rational)
+    , mustParseTo   "rational" PC.rational "1.3"    (1.3     :: Rational)
+    , mustParseTo   "rational" PC.rational "1.3e3"  (1300    :: Rational)
+    , mustParseTo   "rational" PC.rational "-1.3e3" ((-1300) :: Rational)
+    , mustParseTo   "rational" PC.rational "+1.3e3" (1300    :: Rational)
+    , mustFailParse "rational" PC.rational "1."
+    , mustFailParse "rational" PC.rational ".2"
+      --
+    , mustParseTo "laxRational" PC.laxRational "1"      (1       :: Rational)
+    , mustParseTo "laxRational" PC.laxRational "1.3"    (1.3     :: Rational)
+    , mustParseTo "laxRational" PC.laxRational "1.3e3"  (1300    :: Rational)
+    , mustParseTo "laxRational" PC.laxRational "-1.3e3" ((-1300) :: Rational)
+    , mustParseTo "laxRational" PC.laxRational "+1.3e3" (1300    :: Rational)
+    , mustParseTo "laxRational" PC.laxRational "1."     (1       :: Rational)
+    , mustParseTo "laxRational" PC.laxRational ".2"     (0.2     :: Rational)
+    ]
   ]

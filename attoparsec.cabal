@@ -85,6 +85,8 @@ test-suite tests
     QuickCheck >= 2.4,
     test-framework >= 0.4,
     test-framework-quickcheck2 >= 0.2,
+    HUnit,
+    test-framework-hunit,
     text
 
 benchmark benchmarks

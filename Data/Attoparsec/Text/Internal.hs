@@ -90,7 +90,7 @@ instance (a ~ Text) => IsString (Parser a) where
     fromString = string . T.pack
 
 lengthAtLeast :: T.Text -> Int -> Bool
-lengthAtLeast t@(T.Text _ _ len) n = (len `div` 2) >= n || T.length t >= n
+lengthAtLeast t@(T.Text _ _ len) n = (len `quot` 2) >= n || T.length t >= n
 {-# INLINE lengthAtLeast #-}
 
 -- | If at least @n@ characters of input are available, return the

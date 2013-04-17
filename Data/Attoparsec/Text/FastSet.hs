@@ -50,7 +50,7 @@ member c (FastSet a) = uncurry search (A.bounds a)
     where search lo hi
               | hi < lo = False
               | otherwise =
-                  let mid = (lo + hi) `div` 2
+                  let mid = (lo + hi) `quot` 2
                   in case compare c (AB.unsafeAt a mid) of
                        GT -> search (mid + 1) hi
                        LT -> search lo (mid - 1)

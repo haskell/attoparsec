@@ -14,6 +14,7 @@ module Data.Attoparsec.Combinator
       choice
     , count
     , option
+    , optionMaybe
     , many'
     , many1
     , many1'
@@ -65,6 +66,18 @@ option x p = p <|> pure x
 {-# SPECIALIZE option :: a -> Parser Text a -> Parser Text a #-}
 {-# SPECIALIZE option :: a -> Z.Parser a -> Z.Parser a #-}
 #endif
+
+-- | @option@ specialized to @Maybe@. @optionMaybe p@ tries to apply
+-- action @p@. If @p@ fails without consuming input, it returns
+-- @Nothing@, otherwise @Just@ the value returned by @p@.
+--
+-- > mDecimal :: Integral a => Parser (Maybe a)
+-- > mDecimal = optionMaybe decimal
+optionMaybe :: Alternative f => f a -> f (Maybe a)
+optionMaybe = option Nothing . fmap Just
+{-# SPECIALIZE optionMaybe :: Parser ByteString a -> Parser ByteString (Maybe a) #-}
+{-# SPECIALIZE optionMaybe :: Parser Text a -> Parser Text (Maybe a) #-}
+{-# SPECIALIZE optionMaybe :: Z.Parser a -> Z.Parser (Maybe a) #-}
 
 -- | A version of 'liftM2' that is strict in the result of its first
 -- action.

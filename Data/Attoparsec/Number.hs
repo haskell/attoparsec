@@ -10,10 +10,7 @@
 --
 -- A simple number type, useful for parsing both exact and inexact
 -- quantities without losing much precision.
-module Data.Attoparsec.Number
-    (
-      Number(..)
-    ) where
+module Data.Attoparsec.Number ( Number(..) ) where
 
 import Control.DeepSeq (NFData(rnf))
 import Data.Data (Data)

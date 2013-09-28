@@ -103,14 +103,14 @@ module Data.Attoparsec.Text
     , I.atEnd
     ) where
 
-import Control.Applicative ((<$>), (*>), (<*), (<|>))
+import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
+import Data.Scientific (Scientific, scientific, coefficient, base10Exponent)
 import Data.Attoparsec.Text.Internal ((<?>), Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
-import Data.Ratio ((%))
 import Data.Text (Text)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import qualified Data.Attoparsec.Internal as I
@@ -343,8 +343,8 @@ rational :: Fractional a => Parser a
 {-# SPECIALIZE rational :: Parser Double #-}
 {-# SPECIALIZE rational :: Parser Float #-}
 {-# SPECIALIZE rational :: Parser Rational #-}
-rational = floaty $ \real frac fracDenom -> fromRational $
-                     real % 1 + frac % fracDenom
+{-# SPECIALIZE rational :: Parser Scientific #-}
+rational = scientifically realToFrac
 
 -- | Parse a rational number.
 --
@@ -362,12 +362,7 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = floaty asDouble
-
-asDouble :: Integer -> Integer -> Integer -> Double
-asDouble real frac fracDenom =
-    fromIntegral real + fromIntegral frac / fromIntegral fracDenom
-{-# INLINE asDouble #-}
+double = rational
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -381,11 +376,34 @@ asDouble real frac fracDenom =
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 number :: Parser Number
-number = floaty $ \real frac fracDenom ->
-         if frac == 0 && fracDenom == 0
-         then I real
-         else D (asDouble real frac fracDenom)
-{-# INLINE number #-}
+number = scientifically $ \s ->
+            let e = base10Exponent s
+                c = coefficient s
+            in if e >= 0
+               then I (c * 10 ^ e)
+               else D (fromInteger c / 10 ^ negate e)
+
+{-# INLINE scientifically #-}
+scientifically :: (Scientific -> a) -> Parser a
+scientifically h = do
+  !positive <- ((== '+') <$> I.satisfy (\c -> c == '-' || c == '+')) <|>
+               pure True
+
+  n <- decimal
+
+  let f fracDigits = scientific (T.foldl' step n fracDigits)
+                                (negate $ T.length fracDigits)
+      step a c = a * 10 + fromIntegral (ord c - 48)
+
+  s <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
+         pure (scientific n 0)
+
+  let !signedCoeff | positive  =          coefficient s
+                   | otherwise = negate $ coefficient s
+
+  (I.satisfy (\c -> c == 'e' || c == 'E') *>
+      fmap (h . scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
+    return (h $ scientific signedCoeff   (base10Exponent s))
 
 -- | Parse a single digit, as recognised by 'isDigit'.
 digit :: Parser Char
@@ -433,31 +451,3 @@ s .*> f = I.string s *> f
 -- | Type-specialized version of '<*' for 'Text'.
 (<*.) :: Parser a -> Text -> Parser a
 f <*. s = f <* I.string s
-
-data T = T !Integer !Int
-
-floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
-{-# INLINE floaty #-}
-floaty f = do
-  !positive <- ((== '+') <$> I.satisfy (\c -> c == '-' || c == '+')) <|>
-               return True
-  real <- decimal
-  let tryFraction = do
-        _ <- I.satisfy (=='.')
-        ds <- I.takeWhile isDigit
-        case I.parseOnly decimal ds of
-                Right n -> return $ T n (T.length ds)
-                _       -> fail "no digits after decimal"
-  T fraction fracDigits <- tryFraction <|> return (T 0 0)
-  let e c = c == 'e' || c == 'E'
-  power <- (I.satisfy e *> signed decimal) <|> return (0::Int)
-  let n = if fracDigits == 0
-          then if power == 0
-               then fromIntegral real
-               else fromIntegral real * (10 ^^ power)
-          else if power == 0
-               then f real fraction (10 ^ fracDigits)
-               else f real fraction (10 ^ fracDigits) * (10 ^^ power)
-  return $ if positive
-           then n
-           else -n

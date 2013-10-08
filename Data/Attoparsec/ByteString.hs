@@ -39,8 +39,6 @@ module Data.Attoparsec.ByteString
     , eitherResult
 
     -- * Combinators
-    , (I.<?>)
-    , I.try
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual bytes

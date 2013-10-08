@@ -37,8 +37,6 @@ module Data.Attoparsec.ByteString.Char8
     , A.eitherResult
 
     -- * Combinators
-    , (I.<?>)
-    , I.try
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual characters
@@ -111,7 +109,7 @@ module Data.Attoparsec.ByteString.Char8
 
 import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
-import Data.Attoparsec.ByteString.Internal (Parser, (<?>))
+import Data.Attoparsec.ByteString.Internal (Parser)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Bits (Bits, (.|.), shiftL)

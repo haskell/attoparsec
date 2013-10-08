@@ -23,8 +23,6 @@ module Data.Attoparsec.ByteString.Internal
     , parseOnly
 
     -- * Combinators
-    , (<?>)
-    , try
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual bytes
@@ -160,15 +158,6 @@ get  = T.Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
 
 put :: B.ByteString -> Parser ()
 put s = T.Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
-
--- | Attempt a parse, and if it fails, rewind the input so that no
--- input appears to have been consumed.
---
--- This combinator is provided for compatibility with Parsec.
--- Attoparsec parsers always backtrack on failure.
-try :: Parser a -> Parser a
-try p = p
-{-# INLINE try #-}
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -480,16 +469,6 @@ atEnd = not <$> wantInput
 -- return followed by a newline character @\"\\r\\n\"@.
 endOfLine :: Parser ()
 endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
-
--- | Name the parser, in case failure occurs.
-(<?>) :: Parser a
-      -> String                 -- ^ the name to use if parsing fails
-      -> Parser a
-p <?> msg0 = T.Parser $ \i0 a0 m0 kf ks ->
-             let kf' i a m strs msg = kf i a m (msg0:strs) msg
-             in T.runParser p i0 a0 m0 kf' ks
-{-# INLINE (<?>) #-}
-infix 0 <?>
 
 -- | Terminal failure continuation.
 failK :: Failure a

@@ -10,8 +10,9 @@
 --
 -- Useful parser combinators, similar to those provided by Parsec.
 module Data.Attoparsec.Combinator
-    (
-      choice
+    ( try
+    , (<?>)
+    , choice
     , count
     , option
     , many'
@@ -35,12 +36,31 @@ import Control.Monad (MonadPlus(..))
 import Control.Applicative (many)
 #endif
 
+import Data.Attoparsec.Internal.Types (Parser(..))
 #if __GLASGOW_HASKELL__ >= 700
-import Data.Attoparsec.Internal.Types (Parser)
 import qualified Data.Attoparsec.Zepto as Z
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 #endif
+
+-- | Attempt a parse, and if it fails, rewind the input so that no
+-- input appears to have been consumed.
+--
+-- This combinator is provided for compatibility with Parsec.
+-- Attoparsec parsers always backtrack on failure.
+try :: Parser t a -> Parser t a
+try p = p
+{-# INLINE try #-}
+
+-- | Name the parser, in case failure occurs.
+(<?>) :: Parser t a
+      -> String                 -- ^ the name to use if parsing fails
+      -> Parser t a
+p <?> msg0 = Parser $ \i0 a0 m0 kf ks ->
+             let kf' i a m strs msg = kf i a m (msg0:strs) msg
+             in runParser p i0 a0 m0 kf' ks
+{-# INLINE (<?>) #-}
+infix 0 <?>
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
 -- until one of them succeeds. Returns the value of the succeeding

@@ -106,7 +106,7 @@ module Data.Attoparsec.ByteString.Char8
     , I.atEnd
     ) where
 
-import Control.Applicative ((*>), (<*), (<$>), (<|>))
+import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser, (<?>))
 import Data.Attoparsec.Combinator
@@ -114,8 +114,8 @@ import Data.Attoparsec.Number (Number(..))
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Int (Int8, Int16, Int32, Int64)
-import Data.Ratio ((%))
 import Data.String (IsString(..))
+import Data.Scientific (Scientific, scientific, coefficient, base10Exponent)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.ByteString as A
@@ -471,8 +471,8 @@ rational :: Fractional a => Parser a
 {-# SPECIALIZE rational :: Parser Double #-}
 {-# SPECIALIZE rational :: Parser Float #-}
 {-# SPECIALIZE rational :: Parser Rational #-}
-rational = floaty $ \real frac fracDenom -> fromRational $
-                     real % 1 + frac % fracDenom
+{-# SPECIALIZE rational :: Parser Scientific #-}
+rational = scientifically realToFrac
 
 -- | Parse a rational number.
 --
@@ -490,12 +490,7 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = floaty asDouble
-
-asDouble :: Integer -> Integer -> Integer -> Double
-asDouble real frac fracDenom =
-    fromIntegral real + fromIntegral frac / fromIntegral fracDenom
-{-# INLINE asDouble #-}
+double = rational
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -507,43 +502,38 @@ asDouble real frac fracDenom =
 -- 'rational'.
 --
 -- This function does not accept string representations of \"NaN\" or
--- \"Infinity\".
+-- \"
 number :: Parser Number
-number = floaty $ \real frac fracDenom ->
-         if frac == 0 && fracDenom == 0
-         then I real
-         else D (asDouble real frac fracDenom)
-{-# INLINE number #-}
+number = scientifically $ \s ->
+            let e = base10Exponent s
+                c = coefficient s
+            in if e >= 0
+               then I (c * 10 ^ e)
+               else D (fromInteger c / 10 ^ negate e)
 
-data T = T !Integer !Int
-
-floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Parser a
-{-# INLINE floaty #-}
-floaty f = do
+{-# INLINE scientifically #-}
+scientifically :: (Scientific -> a) -> Parser a
+scientifically h = do
   let minus = 45
       plus  = 43
   !positive <- ((== plus) <$> I.satisfy (\c -> c == minus || c == plus)) <|>
-               return True
-  real <- decimal
-  let tryFraction = do
-        let dot = 46
-        _ <- I.satisfy (==dot)
-        ds <- I.takeWhile isDigit_w8
-        case I.parseOnly decimal ds of
-                Right n -> return $ T n (B.length ds)
-                _       -> fail "no digits after decimal"
-  T fraction fracDigits <- tryFraction <|> return (T 0 0)
+               pure True
+
+  n <- decimal
+
+  let f fracDigits = scientific (B8.foldl' step n fracDigits)
+                                (negate $ B8.length fracDigits)
+      step a w = a * 10 + fromIntegral (w - 48)
+
+  s <- let dot = 46 in
+       (I.satisfy (==dot) *> (f <$> I.takeWhile isDigit_w8)) <|>
+         pure (scientific n 0)
+
+  let !signedCoeff | positive  =          coefficient s
+                   | otherwise = negate $ coefficient s
+
   let littleE = 101
       bigE    = 69
-      e w = w == littleE || w == bigE
-  power <- (I.satisfy e *> signed decimal) <|> return (0::Int)
-  let n = if fracDigits == 0
-          then if power == 0
-               then fromIntegral real
-               else fromIntegral real * (10 ^^ power)
-          else if power == 0
-               then f real fraction (10 ^ fracDigits)
-               else f real fraction (10 ^ fracDigits) * (10 ^^ power)
-  return $ if positive
-           then n
-           else -n
+  (I.satisfy (\c -> c == littleE || c == bigE) *>
+      fmap (h . scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
+    return (h $ scientific signedCoeff   (base10Exponent s))

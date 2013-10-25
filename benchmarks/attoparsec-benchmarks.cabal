@@ -3,16 +3,16 @@
 
 name: attoparsec-benchmarks
 version: 0
-cabal-version: >=1.2
+cabal-version: >=1.6
 build-type: Simple
 
 executable attoparsec-benchmarks
   main-is: Benchmarks.hs
   build-depends:
     attoparsec,
-    base,
+    base == 4.*,
     bytestring,
     criterion >= 0.5,
-    deepseq == 1.1.*,
+    deepseq >= 1.1,
     parsec >= 3.1.2,
     text

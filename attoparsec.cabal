@@ -1,12 +1,12 @@
 name:            attoparsec
-version:         0.10.4.0
+version:         0.11.0.0
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>
 stability:       experimental
-tested-with:     GHC == 6.12.3, GHC == 7.0.3, GHC == 7.2.1, GHC == 7.4.2, GHC == 7.6.1
+tested-with:     GHC == 7.0, GHC == 7.2, GHC == 7.4, GHC == 7.6, GHC == 7.8
 synopsis:        Fast combinator parsing for bytestrings and text
 cabal-version:   >= 1.8
 homepage:        https://github.com/bos/attoparsec

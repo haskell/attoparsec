@@ -17,4 +17,5 @@ executable attoparsec-benchmarks
     criterion >= 0.5,
     deepseq >= 1.1,
     parsec >= 3.1.2,
+    scientific,
     text

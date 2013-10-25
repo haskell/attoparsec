@@ -6,6 +6,7 @@ import Criterion.Main (bench, bgroup, defaultMain, nf, whnf)
 import Data.Bits (unsafeShiftL)
 import Data.ByteString.Internal (ByteString(..))
 import Data.Char
+import Data.Scientific (Scientific(..))
 import Data.Word (Word32)
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
@@ -96,16 +97,19 @@ main = do
          [ bench "double"     $ nf (AT.parseOnly AT.double)                            tN
          , bench "number"     $ nf (AT.parseOnly AT.number)                            tN
          , bench "rational"   $ nf (AT.parseOnly (AT.rational :: AT.Parser Rational))  tN
+         , bench "scientific" $ nf (AT.parseOnly (AT.rational :: AT.Parser Scientific)) tN
          ]
        , bgroup "positive power"
          [ bench "double"     $ nf (AT.parseOnly AT.double)                            tNePos
          , bench "number"     $ nf (AT.parseOnly AT.number)                            tNePos
          , bench "rational"   $ nf (AT.parseOnly (AT.rational :: AT.Parser Rational))  tNePos
+         , bench "scientific" $ nf (AT.parseOnly (AT.rational :: AT.Parser Scientific)) tNePos
          ]
        , bgroup "negative power"
          [ bench "double"     $ nf (AT.parseOnly AT.double)                            tNeNeg
          , bench "number"     $ nf (AT.parseOnly AT.number)                            tNeNeg
          , bench "rational"   $ nf (AT.parseOnly (AT.rational :: AT.Parser Rational))  tNeNeg
+         , bench "scientific" $ nf (AT.parseOnly (AT.rational :: AT.Parser Scientific)) tNeNeg
          ]
        ]
      , let !bN     = BC.pack strN
@@ -116,16 +120,19 @@ main = do
          [ bench "double"     $ nf (AC.parseOnly AC.double)                             bN
          , bench "number"     $ nf (AC.parseOnly AC.number)                             bN
          , bench "rational"   $ nf (AC.parseOnly (AC.rational :: AC.Parser Rational))   bN
+         , bench "scientific" $ nf (AC.parseOnly (AC.rational :: AC.Parser Scientific)) bN
          ]
        , bgroup "positive power"
          [ bench "double"     $ nf (AC.parseOnly AC.double)                             bNePos
          , bench "number"     $ nf (AC.parseOnly AC.number)                             bNePos
          , bench "rational"   $ nf (AC.parseOnly (AC.rational :: AC.Parser Rational))   bNePos
+         , bench "scientific" $ nf (AC.parseOnly (AC.rational :: AC.Parser Scientific)) bNePos
          ]
        , bgroup "negative power"
          [ bench "double"     $ nf (AC.parseOnly AC.double)                             bNeNeg
          , bench "number"     $ nf (AC.parseOnly AC.number)                             bNeNeg
          , bench "rational"   $ nf (AC.parseOnly (AC.rational :: AC.Parser Rational))   bNeNeg
+         , bench "scientific" $ nf (AC.parseOnly (AC.rational :: AC.Parser Scientific)) bNeNeg
          ]
        ]
      ]

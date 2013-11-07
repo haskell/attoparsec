@@ -1,4 +1,4 @@
-^(?:\.cabal-sandbox|cabal-dev|dist)$
+^(?:\.cabal-sandbox|benchmarks/\.cabal-sandbox|cabal-dev|dist)$
 \.(?:aux|eventlog|h[ip]|hs.html|log|[mt]ix|[oa]|orig|prof|ps|rej|swp)$
 ~$
 benchmarks/Arse

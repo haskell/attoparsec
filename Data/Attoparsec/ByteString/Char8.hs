@@ -46,8 +46,11 @@ module Data.Attoparsec.ByteString.Char8
     , char8
     , anyChar
     , notChar
-    , peekChar
     , satisfy
+
+    -- ** Lookahead
+    , peekChar
+    , peekChar'
 
     -- ** Special character parsers
     , digit
@@ -223,8 +226,8 @@ anyChar :: Parser Char
 anyChar = satisfy $ const True
 {-# INLINE anyChar #-}
 
--- | Match any character. Returns 'Nothing' if end of input has been
--- reached. Does not consume any input.
+-- | Match any character, to perform lookahead. Returns 'Nothing' if
+-- end of input has been reached. Does not consume any input.
 --
 -- /Note/: Because this parser does not fail, do not use it with
 -- combinators such as 'many', because such parsers loop until a
@@ -232,6 +235,12 @@ anyChar = satisfy $ const True
 peekChar :: Parser (Maybe Char)
 peekChar = (fmap w2c) `fmap` I.peekWord8
 {-# INLINE peekChar #-}
+
+-- | Match any character, to perform lookahead.  Does not consume any
+-- input, but will fail if end of input has been reached.
+peekChar' :: Parser Char
+peekChar' = w2c `fmap` I.peekWord8'
+{-# INLINE peekChar' #-}
 
 -- | Fast predicate for matching ASCII space characters.
 --

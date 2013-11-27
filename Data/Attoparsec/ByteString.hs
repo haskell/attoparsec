@@ -47,10 +47,13 @@ module Data.Attoparsec.ByteString
     , I.word8
     , I.anyWord8
     , I.notWord8
-    , I.peekWord8
     , I.satisfy
     , I.satisfyWith
     , I.skip
+
+    -- ** Lookahead
+    , I.peekWord8
+    , I.peekWord8'
 
     -- ** Byte classes
     , I.inClass

@@ -35,7 +35,10 @@ module Data.Attoparsec.Text.Internal
     , skip
     , char
     , notChar
+
+    -- ** Lookahead
     , peekChar
+    , peekChar'
 
     -- ** Character classes
     , inClass
@@ -440,8 +443,8 @@ notChar :: Char -> Parser Char
 notChar c = satisfy (/= c) <?> "not " ++ show c
 {-# INLINE notChar #-}
 
--- | Match any character. Returns 'Nothing' if end of input has been
--- reached. Does not consume any input.
+-- | Match any character, to perform lookahead. Returns 'Nothing' if
+-- end of input has been reached. Does not consume any input.
 --
 -- /Note/: Because this parser does not fail, do not use it with
 -- combinators such as 'many', because such parsers loop until a
@@ -458,6 +461,14 @@ peekChar = T.Parser $ \i0 a0 m0 _kf ks ->
            else let !c = unsafeHead (unI i0)
                 in ks i0 a0 m0 (Just c)
 {-# INLINE peekChar #-}
+
+-- | Match any character, to perform lookahead.  Does not consume any
+-- input, but will fail if end of input has been reached.
+peekChar' :: Parser Char
+peekChar' = do
+  s <- ensure 1
+  return $! unsafeHead s
+{-# INLINE peekChar' #-}
 
 -- | Match only if all input has been consumed.
 endOfInput :: Parser ()

@@ -52,7 +52,10 @@ module Data.Attoparsec.Text
     , I.satisfy
     , I.satisfyWith
     , I.skip
+
+    -- ** Lookahead
     , I.peekChar
+    , I.peekChar'
 
     -- ** Special character parsers
     , digit

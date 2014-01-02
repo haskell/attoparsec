@@ -23,6 +23,7 @@ extra-source-files:
     benchmarks/Tiny.hs
     benchmarks/attoparsec-benchmarks.cabal
     benchmarks/med.txt.bz2
+    changelog
     examples/Makefile
     examples/Parsec_RFC2616.hs
     examples/RFC2616.hs

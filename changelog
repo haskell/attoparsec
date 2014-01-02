@@ -1,0 +1,7 @@
+0.11.1.0
+
+	* New dependency: the scientific package.  This allows us to parse
+	  numbers much more efficiently.
+
+	* peekWord8', peekChar': new primitive parsers that allow
+	  single-character lookahead.

@@ -45,7 +45,7 @@ library
                  containers,
                  deepseq,
                  text >= 0.11.1.5,
-                 scientific >= 0.0.0.2
+                 scientific >= 0.2
 
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.ByteString

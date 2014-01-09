@@ -7,7 +7,7 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient combinator parsing for lazy 'Text'
+-- Simple, efficient combinator parsing that can consume lazy 'Text'
 -- strings, loosely based on the Parsec library.
 --
 -- This is essentially the same code as in the 'Data.Attoparsec.Text'
@@ -16,10 +16,11 @@
 -- more input to be fed in.  Think of this as suitable for use with a
 -- lazily read file, e.g. via 'L.readFile' or 'L.hGetContents'.
 --
--- Behind the scenes, strict 'T.Text' values are still used
--- internally to store parser input and manipulate it efficiently.
--- High-performance parsers such as 'string' still expect strict
--- 'T.Text' parameters.
+-- /Note:/ The various parser functions and combinators such as
+-- 'string' still expect /strict/ 'T.Text' parameters, and return
+-- strict 'T.Text' results.  Behind the scenes, strict 'T.Text' values
+-- are still used internally to store parser input and manipulate it
+-- efficiently.
 
 module Data.Attoparsec.Text.Lazy
     (

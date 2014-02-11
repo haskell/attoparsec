@@ -10,7 +10,9 @@
 --
 -- Useful parser combinators, similar to those provided by Parsec.
 module Data.Attoparsec.Combinator
-    ( try
+    (
+    -- * Combinators
+      try
     , (<?>)
     , choice
     , count
@@ -27,6 +29,8 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
+    -- * Parsing individual chunk elements
+    , satisfyElem
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
@@ -36,7 +40,8 @@ import Control.Monad (MonadPlus(..))
 import Control.Applicative (many)
 #endif
 
-import Data.Attoparsec.Internal.Types (Parser(..))
+import Data.Attoparsec.Internal.Types
+import Data.Attoparsec.Internal
 #if __GLASGOW_HASKELL__ >= 700
 import qualified Data.Attoparsec.Zepto as Z
 import Data.ByteString (ByteString)
@@ -245,3 +250,18 @@ count n p = sequence (replicate n p)
 eitherP :: (Alternative f) => f a -> f b -> f (Either a b)
 eitherP a b = (Left <$> a) <|> (Right <$> b)
 {-# INLINE eitherP #-}
+
+-- | The parser @satisfyElem p@ succeeds for any chunk element for which the
+-- predicate @p@ returns 'True'. Returns the element that is
+-- actually parsed.
+--
+-- >digit = satisfyElem isDigit
+-- >    where isDigit c = c >= '0' && c <= '9'
+satisfyElem :: Chunk t => (ChunkElem t -> Bool) -> Parser t (ChunkElem t)
+satisfyElem p = do
+  c <- ensure 1
+  let !h = unsafeChunkHead c
+  if p h
+    then put (unsafeChunkTail c) >> return h
+    else fail "satisfyElem"
+{-# INLINE satisfyElem #-}

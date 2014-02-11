@@ -107,12 +107,7 @@ unsafeDrop = T.drop
 -- >digit = satisfy isDigit
 -- >    where isDigit c = c >= '0' && c <= '9'
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = do
-  s <- ensure 1
-  let !w = unsafeHead s
-  if p w
-    then put (unsafeTail s) >> return w
-    else fail "satisfy"
+satisfy = satisfyElem
 {-# INLINE satisfy #-}
 
 -- | The parser @skip p@ succeeds for any character for which the

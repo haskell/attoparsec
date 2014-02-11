@@ -32,6 +32,7 @@ import Control.Monad (MonadPlus(..))
 import Data.Word (Word8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Unsafe as BS
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Unsafe as T
@@ -238,6 +239,10 @@ class Monoid c => Chunk c where
   type ChunkElem c
   -- | Test if the chunk is empty.
   nullChunk :: c -> Bool
+  -- | Get the head element of a non-empty chunk.
+  unsafeChunkHead :: c -> ChunkElem c
+  -- | Get the tail of a non-empty chunk.
+  unsafeChunkTail :: c -> c
   -- | Check if the chunk has the length of at least @n@ elements.
   chunkLengthAtLeast :: c -> Int -> Bool
 
@@ -245,6 +250,10 @@ instance Chunk ByteString where
   type ChunkElem ByteString = Word8
   nullChunk = BS.null
   {-# INLINE nullChunk #-}
+  unsafeChunkHead = BS.unsafeHead
+  {-# INLINE unsafeChunkHead #-}
+  unsafeChunkTail = BS.unsafeTail
+  {-# INLINE unsafeChunkTail #-}
   chunkLengthAtLeast bs n = BS.length bs >= n
   {-# INLINE chunkLengthAtLeast #-}
 
@@ -252,5 +261,9 @@ instance Chunk Text where
   type ChunkElem Text = Char
   nullChunk = T.null
   {-# INLINE nullChunk #-}
+  unsafeChunkHead = T.unsafeHead
+  {-# INLINE unsafeChunkHead #-}
+  unsafeChunkTail = T.unsafeTail
+  {-# INLINE unsafeChunkTail #-}
   chunkLengthAtLeast t n = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
   {-# INLINE chunkLengthAtLeast #-}

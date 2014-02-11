@@ -105,12 +105,7 @@ type Success a r = T.Success B.ByteString a r
 -- >digit = satisfy isDigit
 -- >    where isDigit w = w >= 48 && w <= 57
 satisfy :: (Word8 -> Bool) -> Parser Word8
-satisfy p = do
-  s <- ensure 1
-  let !w = B.unsafeHead s
-  if p w
-    then put (B.unsafeTail s) >> return w
-    else fail "satisfy"
+satisfy = satisfyElem
 {-# INLINE satisfy #-}
 
 -- | The parser @skip p@ succeeds for any byte for which the predicate

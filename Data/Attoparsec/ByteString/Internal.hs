@@ -121,28 +121,6 @@ ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
 -- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
 
--- | Immediately demand more input via a 'Partial' continuation
--- result.
-demandInput :: Parser ()
-demandInput = T.Parser $ \i0 a0 m0 kf ks ->
-    if m0 == Complete
-    then kf i0 a0 m0 ["demandInput"] "not enough bytes"
-    else let kf' i a m = kf i a m ["demandInput"] "not enough bytes"
-             ks' i a m = ks i a m ()
-         in prompt i0 a0 m0 kf' ks'
-
--- | This parser always succeeds.  It returns 'True' if any input is
--- available either immediately or on demand, and 'False' if the end
--- of all input has been reached.
-wantInput :: Parser Bool
-wantInput = T.Parser $ \i0 a0 m0 _kf ks ->
-  case () of
-    _ | not (B.null (unI i0)) -> ks i0 a0 m0 True
-      | m0 == Complete  -> ks i0 a0 m0 False
-      | otherwise       -> let kf' i a m = ks i a m False
-                               ks' i a m = ks i a m True
-                           in prompt i0 a0 m0 kf' ks'
-
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
 -- parsed.

@@ -17,6 +17,8 @@ module Data.Attoparsec.Internal
     , get
     , put
     , prompt
+    , demandInput
+    , wantInput
     ) where
 
 #if __GLASGOW_HASKELL__ >= 700
@@ -68,4 +70,34 @@ prompt i0 a0 _m0 kf ks = Partial $ \s ->
                       -> (Input Text -> Added Text -> More -> IResult Text r)
                       -> (Input Text -> Added Text-> More -> IResult Text r)
                       -> IResult Text r #-}
+#endif
+
+-- | Immediately demand more input via a 'Partial' continuation
+-- result.
+demandInput :: Chunk t => Parser t ()
+demandInput = Parser $ \i0 a0 m0 kf ks ->
+    if m0 == Complete
+    then kf i0 a0 m0 ["demandInput"] "not enough input"
+    else let kf' i a m = kf i a m ["demandInput"] "not enough input"
+             ks' i a m = ks i a m ()
+         in prompt i0 a0 m0 kf' ks'
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE demandInput :: Parser ByteString () #-}
+{-# SPECIALIZE demandInput :: Parser Text () #-}
+#endif
+
+-- | This parser always succeeds.  It returns 'True' if any input is
+-- available either immediately or on demand, and 'False' if the end
+-- of all input has been reached.
+wantInput :: Chunk t => Parser t Bool
+wantInput = Parser $ \i0 a0 m0 _kf ks ->
+  case () of
+    _ | not (nullChunk (unI i0)) -> ks i0 a0 m0 True
+      | m0 == Complete  -> ks i0 a0 m0 False
+      | otherwise       -> let kf' i a m = ks i a m False
+                               ks' i a m = ks i a m True
+                           in prompt i0 a0 m0 kf' ks'
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE wantInput :: Parser ByteString Bool #-}
+{-# SPECIALIZE wantInput :: Parser Text Bool #-}
 #endif

@@ -121,17 +121,6 @@ ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
 -- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
 
--- | Ask for input.  If we receive any, pass it to a success
--- continuation, otherwise to a failure continuation.
-prompt :: Input -> Added -> More
-       -> (Input -> Added -> More -> Result r)
-       -> (Input -> Added -> More -> Result r)
-       -> Result r
-prompt i0 a0 _m0 kf ks = Partial $ \s ->
-    if B.null s
-    then kf i0 a0 Complete
-    else ks (i0 <> I s) (a0 <> A s) Incomplete
-
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
 demandInput :: Parser ()

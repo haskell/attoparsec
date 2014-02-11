@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, OverloadedStrings,
-    Rank2Types, RecordWildCards #-}
+    Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
 -- Copyright   :  Bryan O'Sullivan 2007-2011
@@ -23,11 +23,17 @@ module Data.Attoparsec.Internal.Types
     , More(..)
     , addS
     , (<>)
+    , Chunk(..)
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
+import Data.Word (Word8)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Monoid (Monoid(..))
 import Prelude hiding (getChar, take, takeWhile)
 
@@ -225,3 +231,19 @@ failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
 (<>) :: (Monoid m) => m -> m -> m
 (<>) = mappend
 {-# INLINE (<>) #-}
+
+-- | A common interface for input chunks.
+class Monoid c => Chunk c where
+  type ChunkElem c
+  -- | Test if the chunk is empty.
+  nullChunk :: c -> Bool
+
+instance Chunk ByteString where
+  type ChunkElem ByteString = Word8
+  nullChunk = BS.null
+  {-# INLINE nullChunk #-}
+
+instance Chunk Text where
+  type ChunkElem Text = Char
+  nullChunk = T.null
+  {-# INLINE nullChunk #-}

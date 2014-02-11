@@ -83,8 +83,6 @@ import qualified Data.Text.Lazy as L
 
 type Parser = T.Parser Text
 type Result = IResult Text
-type Input = T.Input Text
-type Added = T.Added Text
 type Failure r = T.Failure Text r
 type Success a r = T.Success Text a r
 
@@ -108,17 +106,6 @@ ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
         then ks i0 a0 m0 (unI i0)
         else runParser (demandInput >> go n') i0 a0 m0 kf ks
 {-# INLINE ensure #-}
-
--- | Ask for input.  If we receive any, pass it to a success
--- continuation, otherwise to a failure continuation.
-prompt :: Input -> Added -> More
-       -> (Input -> Added -> More -> Result r)
-       -> (Input -> Added -> More -> Result r)
-       -> Result r
-prompt i0 a0 _m0 kf ks = Partial $ \s ->
-    if T.null s
-    then kf i0 a0 Complete
-    else ks (i0 <> I s) (a0 <> A s) Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.

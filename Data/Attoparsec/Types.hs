@@ -14,6 +14,7 @@ module Data.Attoparsec.Types
     (
       Parser
     , IResult(..)
+    , Chunk(..)
     ) where
 
-import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
+import Data.Attoparsec.Internal.Types (Parser(..), IResult(..), Chunk(..))

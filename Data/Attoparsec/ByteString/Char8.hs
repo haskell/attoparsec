@@ -101,10 +101,6 @@ module Data.Attoparsec.ByteString.Char8
     , Number(..)
     , number
     , rational
-
-    -- * State observation and manipulation functions
-    , I.endOfInput
-    , I.atEnd
     ) where
 
 import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))

@@ -69,10 +69,6 @@ module Data.Attoparsec.ByteString
     -- ** Consume all remaining input
     , I.takeByteString
     , I.takeLazyByteString
-
-    -- * State observation and manipulation functions
-    , I.endOfInput
-    , I.atEnd
     ) where
 
 import Data.Attoparsec.Combinator

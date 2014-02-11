@@ -58,10 +58,6 @@ module Data.Attoparsec.ByteString.Internal
     , takeByteString
     , takeLazyByteString
 
-    -- * State observation and manipulation functions
-    , endOfInput
-    , atEnd
-
     -- * Utilities
     , endOfLine
     ) where
@@ -378,26 +374,6 @@ peekWord8' = do
   s <- ensure 1
   return $! B.unsafeHead s
 {-# INLINE peekWord8' #-}
-
--- | Match only if all input has been consumed.
-endOfInput :: Parser ()
-endOfInput = T.Parser $ \i0 a0 m0 kf ks ->
-             if B.null (unI i0)
-             then if m0 == Complete
-                  then ks i0 a0 m0 ()
-                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
-                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> kf i2 a2 m2 []
-                                                            "endOfInput"
-                       in  T.runParser demandInput i0 a0 m0 kf' ks'
-             else kf i0 a0 m0 [] "endOfInput"
-
--- | Return an indication of whether the end of input has been
--- reached.
-atEnd :: Parser Bool
-atEnd = not <$> wantInput
-{-# INLINE atEnd #-}
 
 -- | Match either a single newline character @\'\\n\'@, or a carriage
 -- return followed by a newline character @\"\\r\\n\"@.

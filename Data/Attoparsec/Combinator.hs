@@ -31,6 +31,9 @@ module Data.Attoparsec.Combinator
     , eitherP
     -- * Parsing individual chunk elements
     , satisfyElem
+    -- * State observation and manipulation functions
+    , endOfInput
+    , atEnd
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
@@ -265,3 +268,27 @@ satisfyElem p = do
     then put (unsafeChunkTail c) >> return h
     else fail "satisfyElem"
 {-# INLINE satisfyElem #-}
+
+-- | Match only if all input has been consumed.
+endOfInput :: Chunk t => Parser t ()
+endOfInput = Parser $ \i0 a0 m0 kf ks ->
+             if nullChunk (unI i0)
+             then if m0 == Complete
+                  then ks i0 a0 m0 ()
+                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
+                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
+                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
+                                              \ i2 a2 m2 -> kf i2 a2 m2 []
+                                                            "endOfInput"
+                       in  runParser demandInput i0 a0 m0 kf' ks'
+             else kf i0 a0 m0 [] "endOfInput"
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE endOfInput :: Parser ByteString () #-}
+{-# SPECIALIZE endOfInput :: Parser Text () #-}
+#endif
+
+-- | Return an indication of whether the end of input has been
+-- reached.
+atEnd :: Chunk t => Parser t Bool
+atEnd = not <$> wantInput
+{-# INLINE atEnd #-}

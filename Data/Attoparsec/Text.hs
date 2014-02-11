@@ -98,10 +98,6 @@ module Data.Attoparsec.Text
     , Number(..)
     , number
     , rational
-
-    -- * State observation and manipulation functions
-    , I.endOfInput
-    , I.atEnd
     ) where
 
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))

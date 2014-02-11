@@ -69,6 +69,7 @@ import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal.Types hiding (Parser, Input, Added, Failure, Success)
+import Data.Attoparsec.Internal
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import Data.Text (Text)
@@ -140,12 +141,6 @@ wantInput = T.Parser $ \i0 a0 m0 _kf ks ->
       | otherwise       -> let kf' i a m = ks i a m False
                                ks' i a m = ks i a m True
                            in prompt i0 a0 m0 kf' ks'
-
-get :: Parser Text
-get  = T.Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
-
-put :: Text -> Parser ()
-put s = T.Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
 
 unsafeHead :: Text -> Char
 unsafeHead = T.head

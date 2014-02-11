@@ -72,6 +72,7 @@ import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal.Types
     hiding (Parser, Input, Added, Failure, Success)
+import Data.Attoparsec.Internal
 import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
@@ -152,12 +153,6 @@ wantInput = T.Parser $ \i0 a0 m0 _kf ks ->
       | otherwise       -> let kf' i a m = ks i a m False
                                ks' i a m = ks i a m True
                            in prompt i0 a0 m0 kf' ks'
-
-get :: Parser B.ByteString
-get  = T.Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
-
-put :: B.ByteString -> Parser ()
-put s = T.Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually

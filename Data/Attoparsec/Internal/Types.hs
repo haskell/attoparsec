@@ -34,6 +34,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Unsafe as T
 import Data.Monoid (Monoid(..))
 import Prelude hiding (getChar, take, takeWhile)
 
@@ -237,13 +238,19 @@ class Monoid c => Chunk c where
   type ChunkElem c
   -- | Test if the chunk is empty.
   nullChunk :: c -> Bool
+  -- | Check if the chunk has the length of at least @n@ elements.
+  chunkLengthAtLeast :: c -> Int -> Bool
 
 instance Chunk ByteString where
   type ChunkElem ByteString = Word8
   nullChunk = BS.null
   {-# INLINE nullChunk #-}
+  chunkLengthAtLeast bs n = BS.length bs >= n
+  {-# INLINE chunkLengthAtLeast #-}
 
 instance Chunk Text where
   type ChunkElem Text = Char
   nullChunk = T.null
   {-# INLINE nullChunk #-}
+  chunkLengthAtLeast t n = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
+  {-# INLINE chunkLengthAtLeast #-}

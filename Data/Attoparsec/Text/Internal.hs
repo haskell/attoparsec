@@ -78,7 +78,6 @@ import Data.Char (chr, ord)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
-import qualified Data.Text.Internal as T
 import qualified Data.Text.Lazy as L
 
 type Parser = T.Parser Text
@@ -88,24 +87,6 @@ type Success a r = T.Success Text a r
 
 instance (a ~ Text) => IsString (Parser a) where
     fromString = string . T.pack
-
-lengthAtLeast :: T.Text -> Int -> Bool
-lengthAtLeast t@(T.Text _ _ len) n = (len `quot` 2) >= n || T.length t >= n
-{-# INLINE lengthAtLeast #-}
-
--- | If at least @n@ characters of input are available, return the
--- current input, otherwise fail.
-ensure :: Int -> Parser Text
-ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
-    if lengthAtLeast (unI i0) n
-    then ks i0 a0 m0 (unI i0)
-    else runParser (demandInput >> go n) i0 a0 m0 kf ks
-  where
-    go n' = T.Parser $ \i0 a0 m0 kf ks ->
-        if lengthAtLeast (unI i0) n'
-        then ks i0 a0 m0 (unI i0)
-        else runParser (demandInput >> go n') i0 a0 m0 kf ks
-{-# INLINE ensure #-}
 
 unsafeHead :: Text -> Char
 unsafeHead = T.head

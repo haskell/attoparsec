@@ -95,31 +95,8 @@ import System.IO.Unsafe (unsafePerformIO)
 
 type Parser = T.Parser B.ByteString
 type Result = IResult B.ByteString
-type Input = T.Input B.ByteString
-type Added = T.Added B.ByteString
 type Failure r = T.Failure B.ByteString r
 type Success a r = T.Success B.ByteString a r
-
-ensure' :: Int -> Input -> Added -> More -> Failure r -> Success B.ByteString r
-        -> IResult B.ByteString r
-ensure' !n0 i0 a0 m0 kf0 ks0 =
-    T.runParser (demandInput >> go n0) i0 a0 m0 kf0 ks0
-  where
-    go !n = T.Parser $ \i a m kf ks ->
-        if B.length (unI i) >= n
-        then ks i a m (unI i)
-        else T.runParser (demandInput >> go n) i a m kf ks
-
--- | If at least @n@ bytes of input are available, return the current
--- input, otherwise fail.
-ensure :: Int -> Parser B.ByteString
-ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
-    if B.length (unI i0) >= n
-    then ks i0 a0 m0 (unI i0)
-    -- The uncommon case is kept out-of-line to reduce code size:
-    else ensure' n i0 a0 m0 kf ks
--- Non-recursive so the bounds check can be inlined:
-{-# INLINE ensure #-}
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually

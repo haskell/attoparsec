@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2012
@@ -16,6 +16,7 @@ module Data.Attoparsec.Internal
       compareResults
     , get
     , put
+    , ensure
     , prompt
     , demandInput
     , wantInput
@@ -47,6 +48,37 @@ get = Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
 put :: t -> Parser t ()
 put c = Parser $ \_i0 a0 m0 _kf ks -> ks (I c) a0 m0 ()
 {-# INLINE put #-}
+
+ensure' :: Chunk t
+        => Int -> Input t -> Added t -> More -> Failure t r -> Success t t r
+        -> IResult t r
+ensure' !n0 i0 a0 m0 kf0 ks0 =
+    runParser (demandInput >> go n0) i0 a0 m0 kf0 ks0
+  where
+    go !n = Parser $ \i a m kf ks ->
+        if chunkLengthAtLeast (unI i) n
+        then ks i a m (unI i)
+        else runParser (demandInput >> go n) i a m kf ks
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE ensure' :: Int -> Input ByteString -> Added ByteString -> More
+                       -> Failure ByteString r
+                       -> Success ByteString ByteString r
+                       -> IResult ByteString r #-}
+{-# SPECIALIZE ensure' :: Int -> Input Text -> Added Text -> More
+                       -> Failure Text r -> Success Text Text r
+                       -> IResult Text r #-}
+#endif
+
+-- | If at least @n@ elements of input are available, return the
+-- current input, otherwise fail.
+ensure :: Chunk t => Int -> Parser t t
+ensure !n = Parser $ \i0 a0 m0 kf ks ->
+    if chunkLengthAtLeast (unI i0) n
+    then ks i0 a0 m0 (unI i0)
+    -- The uncommon case is kept out-of-line to reduce code size:
+    else ensure' n i0 a0 m0 kf ks
+-- Non-recursive so the bounds check can be inlined:
+{-# INLINE ensure #-}
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.

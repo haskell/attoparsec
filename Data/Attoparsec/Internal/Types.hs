@@ -33,6 +33,7 @@ import Data.Word (Word8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
+import Data.ByteString.Internal (w2c)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Unsafe as T
@@ -245,6 +246,9 @@ class Monoid c => Chunk c where
   unsafeChunkTail :: c -> c
   -- | Check if the chunk has the length of at least @n@ elements.
   chunkLengthAtLeast :: c -> Int -> Bool
+  -- | Map an element to the corresponding character.
+  --   The first argument is ignored.
+  chunkElemToChar :: c -> ChunkElem c -> Char
 
 instance Chunk ByteString where
   type ChunkElem ByteString = Word8
@@ -256,6 +260,8 @@ instance Chunk ByteString where
   {-# INLINE unsafeChunkTail #-}
   chunkLengthAtLeast bs n = BS.length bs >= n
   {-# INLINE chunkLengthAtLeast #-}
+  chunkElemToChar = const w2c
+  {-# INLINE chunkElemToChar #-}
 
 instance Chunk Text where
   type ChunkElem Text = Char
@@ -267,3 +273,5 @@ instance Chunk Text where
   {-# INLINE unsafeChunkTail #-}
   chunkLengthAtLeast t n = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
   {-# INLINE chunkLengthAtLeast #-}
+  chunkElemToChar = const id
+  {-# INLINE chunkElemToChar #-}

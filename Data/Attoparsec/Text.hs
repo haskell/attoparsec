@@ -41,8 +41,6 @@ module Data.Attoparsec.Text
     , eitherResult
 
     -- * Combinators
-    , (I.<?>)
-    , I.try
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual characters
@@ -100,17 +98,13 @@ module Data.Attoparsec.Text
     , Number(..)
     , number
     , rational
-
-    -- * State observation and manipulation functions
-    , I.endOfInput
-    , I.atEnd
     ) where
 
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Scientific (Scientific, scientific, coefficient, base10Exponent)
-import Data.Attoparsec.Text.Internal ((<?>), Parser, Result, parse, takeWhile1)
+import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
 import Data.Int (Int8, Int16, Int32, Int64)

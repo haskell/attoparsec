@@ -11,7 +11,10 @@
 -- Useful parser combinators, similar to those provided by Parsec.
 module Data.Attoparsec.Combinator
     (
-      choice
+    -- * Combinators
+      try
+    , (<?>)
+    , choice
     , count
     , option
     , many'
@@ -26,6 +29,11 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
+    -- * Parsing individual chunk elements
+    , satisfyElem
+    -- * State observation and manipulation functions
+    , endOfInput
+    , atEnd
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
@@ -35,12 +43,32 @@ import Control.Monad (MonadPlus(..))
 import Control.Applicative (many)
 #endif
 
+import Data.Attoparsec.Internal.Types
+import Data.Attoparsec.Internal
 #if __GLASGOW_HASKELL__ >= 700
-import Data.Attoparsec.Internal.Types (Parser)
 import qualified Data.Attoparsec.Zepto as Z
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 #endif
+
+-- | Attempt a parse, and if it fails, rewind the input so that no
+-- input appears to have been consumed.
+--
+-- This combinator is provided for compatibility with Parsec.
+-- Attoparsec parsers always backtrack on failure.
+try :: Parser t a -> Parser t a
+try p = p
+{-# INLINE try #-}
+
+-- | Name the parser, in case failure occurs.
+(<?>) :: Parser t a
+      -> String                 -- ^ the name to use if parsing fails
+      -> Parser t a
+p <?> msg0 = Parser $ \i0 a0 m0 kf ks ->
+             let kf' i a m strs msg = kf i a m (msg0:strs) msg
+             in runParser p i0 a0 m0 kf' ks
+{-# INLINE (<?>) #-}
+infix 0 <?>
 
 -- | @choice ps@ tries to apply the actions in the list @ps@ in order,
 -- until one of them succeeds. Returns the value of the succeeding
@@ -225,3 +253,42 @@ count n p = sequence (replicate n p)
 eitherP :: (Alternative f) => f a -> f b -> f (Either a b)
 eitherP a b = (Left <$> a) <|> (Right <$> b)
 {-# INLINE eitherP #-}
+
+-- | The parser @satisfyElem p@ succeeds for any chunk element for which the
+-- predicate @p@ returns 'True'. Returns the element that is
+-- actually parsed.
+--
+-- >digit = satisfyElem isDigit
+-- >    where isDigit c = c >= '0' && c <= '9'
+satisfyElem :: Chunk t => (ChunkElem t -> Bool) -> Parser t (ChunkElem t)
+satisfyElem p = do
+  c <- ensure 1
+  let !h = unsafeChunkHead c
+  if p h
+    then put (unsafeChunkTail c) >> return h
+    else fail "satisfyElem"
+{-# INLINE satisfyElem #-}
+
+-- | Match only if all input has been consumed.
+endOfInput :: Chunk t => Parser t ()
+endOfInput = Parser $ \i0 a0 m0 kf ks ->
+             if nullChunk (unI i0)
+             then if m0 == Complete
+                  then ks i0 a0 m0 ()
+                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
+                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
+                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
+                                              \ i2 a2 m2 -> kf i2 a2 m2 []
+                                                            "endOfInput"
+                       in  runParser demandInput i0 a0 m0 kf' ks'
+             else kf i0 a0 m0 [] "endOfInput"
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE endOfInput :: Parser ByteString () #-}
+{-# SPECIALIZE endOfInput :: Parser Text () #-}
+#endif
+
+-- | Return an indication of whether the end of input has been
+-- reached.
+atEnd :: Chunk t => Parser t Bool
+atEnd = not <$> wantInput
+{-# INLINE atEnd #-}

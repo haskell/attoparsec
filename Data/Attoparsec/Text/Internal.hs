@@ -24,8 +24,6 @@ module Data.Attoparsec.Text.Internal
     , parseOnly
 
     -- * Combinators
-    , (<?>)
-    , try
     , module Data.Attoparsec.Combinator
 
     -- * Parsing individual characters
@@ -59,10 +57,6 @@ module Data.Attoparsec.Text.Internal
     , takeText
     , takeLazyText
 
-    -- * State observation and manipulation functions
-    , endOfInput
-    , atEnd
-
     -- * Utilities
     , endOfLine
     ) where
@@ -71,6 +65,7 @@ import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal.Types hiding (Parser, Input, Added, Failure, Success)
+import Data.Attoparsec.Internal
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import Data.Text (Text)
@@ -79,84 +74,15 @@ import Data.Char (chr, ord)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
-import qualified Data.Text.Internal as T
 import qualified Data.Text.Lazy as L
 
 type Parser = T.Parser Text
 type Result = IResult Text
-type Input = T.Input Text
-type Added = T.Added Text
 type Failure r = T.Failure Text r
 type Success a r = T.Success Text a r
 
 instance (a ~ Text) => IsString (Parser a) where
     fromString = string . T.pack
-
-lengthAtLeast :: T.Text -> Int -> Bool
-lengthAtLeast t@(T.Text _ _ len) n = (len `quot` 2) >= n || T.length t >= n
-{-# INLINE lengthAtLeast #-}
-
--- | If at least @n@ characters of input are available, return the
--- current input, otherwise fail.
-ensure :: Int -> Parser Text
-ensure !n = T.Parser $ \i0 a0 m0 kf ks ->
-    if lengthAtLeast (unI i0) n
-    then ks i0 a0 m0 (unI i0)
-    else runParser (demandInput >> go n) i0 a0 m0 kf ks
-  where
-    go n' = T.Parser $ \i0 a0 m0 kf ks ->
-        if lengthAtLeast (unI i0) n'
-        then ks i0 a0 m0 (unI i0)
-        else runParser (demandInput >> go n') i0 a0 m0 kf ks
-{-# INLINE ensure #-}
-
--- | Ask for input.  If we receive any, pass it to a success
--- continuation, otherwise to a failure continuation.
-prompt :: Input -> Added -> More
-       -> (Input -> Added -> More -> Result r)
-       -> (Input -> Added -> More -> Result r)
-       -> Result r
-prompt i0 a0 _m0 kf ks = Partial $ \s ->
-    if T.null s
-    then kf i0 a0 Complete
-    else ks (i0 <> I s) (a0 <> A s) Incomplete
-
--- | Immediately demand more input via a 'Partial' continuation
--- result.
-demandInput :: Parser ()
-demandInput = T.Parser $ \i0 a0 m0 kf ks ->
-    if m0 == Complete
-    then kf i0 a0 m0 ["demandInput"] "not enough input"
-    else let kf' i a m = kf i a m ["demandInput"] "not enough input"
-             ks' i a m = ks i a m ()
-         in prompt i0 a0 m0 kf' ks'
-
--- | This parser always succeeds.  It returns 'True' if any input is
--- available either immediately or on demand, and 'False' if the end
--- of all input has been reached.
-wantInput :: Parser Bool
-wantInput = T.Parser $ \i0 a0 m0 _kf ks ->
-  case () of
-    _ | not (T.null (unI i0)) -> ks i0 a0 m0 True
-      | m0 == Complete  -> ks i0 a0 m0 False
-      | otherwise       -> let kf' i a m = ks i a m False
-                               ks' i a m = ks i a m True
-                           in prompt i0 a0 m0 kf' ks'
-
-get :: Parser Text
-get  = T.Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
-
-put :: Text -> Parser ()
-put s = T.Parser $ \_i0 a0 m0 _kf ks -> ks (I s) a0 m0 ()
-
--- | Attempt a parse, and if it fails, rewind the input so that no
--- input appears to have been consumed.
---
--- This combinator is provided for compatibility with Parsec.
--- Attoparsec parsers always backtrack on failure.
-try :: Parser a -> Parser a
-try p = p
-{-# INLINE try #-}
 
 unsafeHead :: Text -> Char
 unsafeHead = T.head
@@ -177,12 +103,7 @@ unsafeDrop = T.drop
 -- >digit = satisfy isDigit
 -- >    where isDigit c = c >= '0' && c <= '9'
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = do
-  s <- ensure 1
-  let !w = unsafeHead s
-  if p w
-    then put (unsafeTail s) >> return w
-    else fail "satisfy"
+satisfy = satisfyElem
 {-# INLINE satisfy #-}
 
 -- | The parser @skip p@ succeeds for any character for which the
@@ -470,40 +391,10 @@ peekChar' = do
   return $! unsafeHead s
 {-# INLINE peekChar' #-}
 
--- | Match only if all input has been consumed.
-endOfInput :: Parser ()
-endOfInput = T.Parser $ \i0 a0 m0 kf ks ->
-             if T.null (unI i0)
-             then if m0 == Complete
-                  then ks i0 a0 m0 ()
-                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
-                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> kf i2 a2 m2 []
-                                                            "endOfInput"
-                       in  runParser demandInput i0 a0 m0 kf' ks'
-             else kf i0 a0 m0 [] "endOfInput"
-
--- | Return an indication of whether the end of input has been
--- reached.
-atEnd :: Parser Bool
-atEnd = not <$> wantInput
-{-# INLINE atEnd #-}
-
 -- | Match either a single newline character @\'\\n\'@, or a carriage
 -- return followed by a newline character @\"\\r\\n\"@.
 endOfLine :: Parser ()
 endOfLine = (char '\n' >> return ()) <|> (string "\r\n" >> return ())
-
--- | Name the parser, in case failure occurs.
-(<?>) :: Parser a
-      -> String                 -- ^ the name to use if parsing fails
-      -> Parser a
-p <?> msg0 = T.Parser $ \i0 a0 m0 kf ks ->
-             let kf' i a m strs msg = kf i a m (msg0:strs) msg
-             in runParser p i0 a0 m0 kf' ks
-{-# INLINE (<?>) #-}
-infix 0 <?>
 
 -- | Terminal failure continuation.
 failK :: Failure a

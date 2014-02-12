@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, OverloadedStrings,
-    Rank2Types, RecordWildCards #-}
+    Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
 -- Copyright   :  Bryan O'Sullivan 2007-2011
@@ -23,11 +23,20 @@ module Data.Attoparsec.Internal.Types
     , More(..)
     , addS
     , (<>)
+    , Chunk(..)
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
+import Data.Word (Word8)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Unsafe as BS
+import Data.ByteString.Internal (w2c)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Unsafe as T
 import Data.Monoid (Monoid(..))
 import Prelude hiding (getChar, take, takeWhile)
 
@@ -225,3 +234,44 @@ failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
 (<>) :: (Monoid m) => m -> m -> m
 (<>) = mappend
 {-# INLINE (<>) #-}
+
+-- | A common interface for input chunks.
+class Monoid c => Chunk c where
+  type ChunkElem c
+  -- | Test if the chunk is empty.
+  nullChunk :: c -> Bool
+  -- | Get the head element of a non-empty chunk.
+  unsafeChunkHead :: c -> ChunkElem c
+  -- | Get the tail of a non-empty chunk.
+  unsafeChunkTail :: c -> c
+  -- | Check if the chunk has the length of at least @n@ elements.
+  chunkLengthAtLeast :: c -> Int -> Bool
+  -- | Map an element to the corresponding character.
+  --   The first argument is ignored.
+  chunkElemToChar :: c -> ChunkElem c -> Char
+
+instance Chunk ByteString where
+  type ChunkElem ByteString = Word8
+  nullChunk = BS.null
+  {-# INLINE nullChunk #-}
+  unsafeChunkHead = BS.unsafeHead
+  {-# INLINE unsafeChunkHead #-}
+  unsafeChunkTail = BS.unsafeTail
+  {-# INLINE unsafeChunkTail #-}
+  chunkLengthAtLeast bs n = BS.length bs >= n
+  {-# INLINE chunkLengthAtLeast #-}
+  chunkElemToChar = const w2c
+  {-# INLINE chunkElemToChar #-}
+
+instance Chunk Text where
+  type ChunkElem Text = Char
+  nullChunk = T.null
+  {-# INLINE nullChunk #-}
+  unsafeChunkHead = T.unsafeHead
+  {-# INLINE unsafeChunkHead #-}
+  unsafeChunkTail = T.unsafeTail
+  {-# INLINE unsafeChunkTail #-}
+  chunkLengthAtLeast t n = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
+  {-# INLINE chunkLengthAtLeast #-}
+  chunkElemToChar = const id
+  {-# INLINE chunkElemToChar #-}

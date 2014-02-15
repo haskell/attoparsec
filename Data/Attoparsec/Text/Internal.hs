@@ -49,6 +49,7 @@ module Data.Attoparsec.Text.Internal
     , asciiCI
     , take
     , scan
+    , runScanner
     , takeWhile
     , takeWhile1
     , takeTill
@@ -277,23 +278,8 @@ takeLazyText = L.fromChunks `fmap` takeRest
 data Scan s = Continue s
             | Finished {-# UNPACK #-} !Int T.Text
 
--- | A stateful scanner.  The predicate consumes and transforms a
--- state argument, and each transformed state is passed to successive
--- invocations of the predicate on each character of the input until one
--- returns 'Nothing' or the input ends.
---
--- This parser does not fail.  It will return an empty string if the
--- predicate returns 'Nothing' on the first character of input.
---
--- /Note/: Because this parser does not fail, do not use it with
--- combinators such as 'many', because such parsers loop until a
--- failure occurs.  Careless use will thus result in an infinite loop.
-scan :: s -> (s -> Char -> Maybe s) -> Parser Text
-scan s0 p = do
-  chunks <- go [] s0
-  case chunks of
-    [x] -> return x
-    xs  -> return . T.concat . reverse $ xs
+scan_ :: (s -> [Text] -> Parser r) -> s -> (s -> Char -> Maybe s) -> Parser r
+scan_ f s0 p = go [] s0
  where
   scanner s !n t =
     case T.uncons t of
@@ -308,9 +294,33 @@ scan s0 p = do
                          more <- wantInput
                          if more
                            then go (input : acc) s'
-                           else return (input : acc)
-      Finished n t -> put t >> return (T.take n input : acc)
+                           else f s' (input : acc)
+      Finished n t -> put t >> f s (T.take n input : acc)
+{-# INLINE scan_ #-}
+
+-- | A stateful scanner.  The predicate consumes and transforms a
+-- state argument, and each transformed state is passed to successive
+-- invocations of the predicate on each character of the input until one
+-- returns 'Nothing' or the input ends.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'Nothing' on the first character of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+scan :: s -> (s -> Char -> Maybe s) -> Parser Text
+scan = scan_ $ \_ chunks ->
+  case chunks of
+    [x] -> return x
+    xs  -> return . T.concat . reverse $ xs
 {-# INLINE scan #-}
+
+-- | Like 'scan', but generalized to return the final state of the
+-- scanner.
+runScanner :: s -> (s -> Char -> Maybe s) -> Parser (Text, s)
+runScanner = scan_ $ \s xs -> return (T.concat (reverse xs), s)
+{-# INLINE runScanner #-}
 
 -- | Consume input as long as the predicate returns 'True', and return
 -- the consumed input.

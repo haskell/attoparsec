@@ -50,6 +50,7 @@ module Data.Attoparsec.ByteString.Internal
     , stringTransform
     , take
     , scan
+    , runScanner
     , takeWhile
     , takeWhile1
     , takeTill
@@ -246,23 +247,9 @@ takeLazyByteString = L.fromChunks `fmap` takeRest
 
 data T s = T {-# UNPACK #-} !Int s
 
--- | A stateful scanner.  The predicate consumes and transforms a
--- state argument, and each transformed state is passed to successive
--- invocations of the predicate on each byte of the input until one
--- returns 'Nothing' or the input ends.
---
--- This parser does not fail.  It will return an empty string if the
--- predicate returns 'Nothing' on the first byte of input.
---
--- /Note/: Because this parser does not fail, do not use it with
--- combinators such as 'many', because such parsers loop until a
--- failure occurs.  Careless use will thus result in an infinite loop.
-scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
-scan s0 p = do
-  chunks <- go [] s0
-  case chunks of
-    [x] -> return x
-    xs  -> return $! B.concat $ reverse xs
+scan_ :: (s -> [B.ByteString] -> Parser r) -> s -> (s -> Word8 -> Maybe s)
+         -> Parser r
+scan_ f s0 p = go [] s0
  where
   go acc s1 = do
     let scanner (B.PS fp off len) =
@@ -288,9 +275,33 @@ scan s0 p = do
         input <- wantInput
         if input
           then go (h:acc) s'
-          else return (h:acc)
-      else return (h:acc)
+          else f s' (h:acc)
+      else f s' (h:acc)
+{-# INLINE scan_ #-}
+
+-- | A stateful scanner.  The predicate consumes and transforms a
+-- state argument, and each transformed state is passed to successive
+-- invocations of the predicate on each byte of the input until one
+-- returns 'Nothing' or the input ends.
+--
+-- This parser does not fail.  It will return an empty string if the
+-- predicate returns 'Nothing' on the first byte of input.
+--
+-- /Note/: Because this parser does not fail, do not use it with
+-- combinators such as 'many', because such parsers loop until a
+-- failure occurs.  Careless use will thus result in an infinite loop.
+scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
+scan = scan_ $ \_ chunks ->
+  case chunks of
+    [x] -> return x
+    xs  -> return $! B.concat $ reverse xs
 {-# INLINE scan #-}
+
+-- | Like 'scan', but generalized to return the final state of the
+-- scanner.
+runScanner :: s -> (s -> Word8 -> Maybe s) -> Parser (B.ByteString, s)
+runScanner = scan_ $ \s xs -> return (B.concat (reverse xs), s)
+{-# INLINE runScanner #-}
 
 -- | Consume input as long as the predicate returns 'True', and return
 -- the consumed input.

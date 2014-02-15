@@ -182,7 +182,9 @@ sepBy1' p s = scan
 -- >  simpleComment   = string "<!--" *> manyTill anyChar (try (string "-->"))
 --
 -- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
--- therefore the use of the 'try' combinator.
+-- therefore the use of the 'try' combinator. (This is not strictly required
+-- because Attoparsec backtracks automatically, but recommended anyway for
+-- compatibility with Parsec.)
 manyTill :: Alternative f => f a -> f b -> f [a]
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
@@ -198,8 +200,11 @@ manyTill p end = scan
 -- >  simpleComment   = string "<!--" *> manyTill' anyChar (try (string "-->"))
 --
 -- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
--- therefore the use of the 'try' combinator. The value returned by @p@
--- is forced to WHNF.
+-- therefore the use of the 'try' combinator. (This is not strictly required
+-- because Attoparsec backtracks automatically, but recommended anyway for
+-- compatibility with Parsec.)
+--
+-- The value returned by @p@ is forced to WHNF.
 manyTill' :: (MonadPlus m) => m a -> m b -> m [a]
 manyTill' p end = scan
     where scan = (end >> return []) `mplus` liftM2' (:) p scan

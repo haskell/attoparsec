@@ -43,13 +43,12 @@ import Control.Monad (MonadPlus(..))
 import Control.Applicative (many)
 #endif
 
-import Data.Attoparsec.Internal.Types
-import Data.Attoparsec.Internal
-#if __GLASGOW_HASKELL__ >= 700
-import qualified Data.Attoparsec.Zepto as Z
+import Data.Attoparsec.Internal (demandInput, ensure, put, wantInput)
+import Data.Attoparsec.Internal.Types (Chunk(..), Input(..), Parser(..), addS)
+import Data.Attoparsec.Internal.Types (More(..))
 import Data.ByteString (ByteString)
 import Data.Text (Text)
-#endif
+import qualified Data.Attoparsec.Zepto as Z
 
 -- | Attempt a parse, and if it fails, rewind the input so that no
 -- input appears to have been consumed.
@@ -75,11 +74,9 @@ infix 0 <?>
 -- action.
 choice :: Alternative f => [f a] -> f a
 choice = foldr (<|>) empty
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE choice :: [Parser ByteString a] -> Parser ByteString a #-}
 {-# SPECIALIZE choice :: [Parser Text a] -> Parser Text a #-}
 {-# SPECIALIZE choice :: [Z.Parser a] -> Z.Parser a #-}
-#endif
 
 -- | @option x p@ tries to apply action @p@. If @p@ fails without
 -- consuming input, it returns the value @x@, otherwise the value
@@ -88,11 +85,9 @@ choice = foldr (<|>) empty
 -- > priority  = option 0 (digitToInt <$> digit)
 option :: Alternative f => a -> f a -> f a
 option x p = p <|> pure x
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE option :: a -> Parser ByteString a -> Parser ByteString a #-}
 {-# SPECIALIZE option :: a -> Parser Text a -> Parser Text a #-}
 {-# SPECIALIZE option :: a -> Z.Parser a -> Z.Parser a #-}
-#endif
 
 -- | A version of 'liftM2' that is strict in the result of its first
 -- action.
@@ -137,12 +132,10 @@ many1' p = liftM2' (:) p (many' p)
 -- > commaSep p  = p `sepBy` (symbol ",")
 sepBy :: Alternative f => f a -> f s -> f [a]
 sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy :: Parser ByteString a -> Parser ByteString s
                      -> Parser ByteString [a] #-}
 {-# SPECIALIZE sepBy :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
-#endif
 
 -- | @sepBy' p sep@ applies /zero/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@. The value
@@ -152,12 +145,10 @@ sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 sepBy' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy' p s = scan `mplus` return []
   where scan = liftM2' (:) p ((s >> sepBy1' p s) `mplus` return [])
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy' :: Parser ByteString a -> Parser ByteString s
                       -> Parser ByteString [a] #-}
 {-# SPECIALIZE sepBy' :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy' :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
-#endif
 
 -- | @sepBy1 p sep@ applies /one/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@.
@@ -166,12 +157,10 @@ sepBy' p s = scan `mplus` return []
 sepBy1 :: Alternative f => f a -> f s -> f [a]
 sepBy1 p s = scan
     where scan = liftA2 (:) p ((s *> scan) <|> pure [])
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy1 :: Parser ByteString a -> Parser ByteString s
                       -> Parser ByteString [a] #-}
 {-# SPECIALIZE sepBy1 :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy1 :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
-#endif
 
 -- | @sepBy1' p sep@ applies /one/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@. The value
@@ -181,12 +170,10 @@ sepBy1 p s = scan
 sepBy1' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy1' p s = scan
     where scan = liftM2' (:) p ((s >> scan) `mplus` return [])
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE sepBy1' :: Parser ByteString a -> Parser ByteString s
                        -> Parser ByteString [a] #-}
 {-# SPECIALIZE sepBy1' :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy1' :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
-#endif
 
 -- | @manyTill p end@ applies action @p@ /zero/ or more times until
 -- action @end@ succeeds, and returns the list of values returned by
@@ -199,12 +186,10 @@ sepBy1' p s = scan
 manyTill :: Alternative f => f a -> f b -> f [a]
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE manyTill :: Parser ByteString a -> Parser ByteString b
                         -> Parser ByteString [a] #-}
 {-# SPECIALIZE manyTill :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
-#endif
 
 -- | @manyTill' p end@ applies action @p@ /zero/ or more times until
 -- action @end@ succeeds, and returns the list of values returned by
@@ -218,31 +203,25 @@ manyTill p end = scan
 manyTill' :: (MonadPlus m) => m a -> m b -> m [a]
 manyTill' p end = scan
     where scan = (end >> return []) `mplus` liftM2' (:) p scan
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE manyTill' :: Parser ByteString a -> Parser ByteString b
                          -> Parser ByteString [a] #-}
 {-# SPECIALIZE manyTill' :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill' :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
-#endif
 
 -- | Skip zero or more instances of an action.
 skipMany :: Alternative f => f a -> f ()
 skipMany p = scan
     where scan = (p *> scan) <|> pure ()
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE skipMany :: Parser ByteString a -> Parser ByteString () #-}
 {-# SPECIALIZE skipMany :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany :: Z.Parser a -> Z.Parser () #-}
-#endif
 
 -- | Skip one or more instances of an action.
 skipMany1 :: Alternative f => f a -> f ()
 skipMany1 p = p *> skipMany p
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE skipMany1 :: Parser ByteString a -> Parser ByteString () #-}
 {-# SPECIALIZE skipMany1 :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany1 :: Z.Parser a -> Z.Parser () #-}
-#endif
 
 -- | Apply the given action repeatedly, returning every result.
 count :: Monad m => Int -> m a -> m [a]
@@ -282,10 +261,8 @@ endOfInput = Parser $ \i0 a0 m0 kf ks ->
                                                             "endOfInput"
                        in  runParser demandInput i0 a0 m0 kf' ks'
              else kf i0 a0 m0 [] "endOfInput"
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE endOfInput :: Parser ByteString () #-}
 {-# SPECIALIZE endOfInput :: Parser Text () #-}
-#endif
 
 -- | Return an indication of whether the end of input has been
 -- reached.

@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2012
@@ -22,11 +22,9 @@ module Data.Attoparsec.Internal
     , wantInput
     ) where
 
-#if __GLASGOW_HASKELL__ >= 700
+import Data.Attoparsec.Internal.Types
 import Data.ByteString (ByteString)
 import Data.Text (Text)
-#endif
-import Data.Attoparsec.Internal.Types
 
 -- | Compare two 'IResult' values for equality.
 --
@@ -59,7 +57,6 @@ ensure' !n0 i0 a0 m0 kf0 ks0 =
         if chunkLengthAtLeast (unI i) n
         then ks i a m (unI i)
         else runParser (demandInput >> go n) i a m kf ks
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE ensure' :: Int -> Input ByteString -> Added ByteString -> More
                        -> Failure ByteString r
                        -> Success ByteString ByteString r
@@ -67,7 +64,6 @@ ensure' !n0 i0 a0 m0 kf0 ks0 =
 {-# SPECIALIZE ensure' :: Int -> Input Text -> Added Text -> More
                        -> Failure Text r -> Success Text Text r
                        -> IResult Text r #-}
-#endif
 
 -- | If at least @n@ elements of input are available, return the
 -- current input, otherwise fail.
@@ -91,7 +87,6 @@ prompt i0 a0 _m0 kf ks = Partial $ \s ->
     if nullChunk s
     then kf i0 a0 Complete
     else ks (i0 <> I s) (a0 <> A s) Incomplete
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE prompt :: Input ByteString -> Added ByteString -> More
                       -> (Input ByteString -> Added ByteString -> More
                           -> IResult ByteString r)
@@ -102,7 +97,6 @@ prompt i0 a0 _m0 kf ks = Partial $ \s ->
                       -> (Input Text -> Added Text -> More -> IResult Text r)
                       -> (Input Text -> Added Text-> More -> IResult Text r)
                       -> IResult Text r #-}
-#endif
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
@@ -113,10 +107,8 @@ demandInput = Parser $ \i0 a0 m0 kf ks ->
     else let kf' i a m = kf i a m ["demandInput"] "not enough input"
              ks' i a m = ks i a m ()
          in prompt i0 a0 m0 kf' ks'
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE demandInput :: Parser ByteString () #-}
 {-# SPECIALIZE demandInput :: Parser Text () #-}
-#endif
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end
@@ -129,7 +121,5 @@ wantInput = Parser $ \i0 a0 m0 _kf ks ->
       | otherwise       -> let kf' i a m = ks i a m False
                                ks' i a m = ks i a m True
                            in prompt i0 a0 m0 kf' ks'
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE wantInput :: Parser ByteString Bool #-}
 {-# SPECIALIZE wantInput :: Parser Text Bool #-}
-#endif

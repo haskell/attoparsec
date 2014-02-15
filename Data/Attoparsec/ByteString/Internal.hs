@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types, OverloadedStrings,
+{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings,
     RecordWildCards, MagicHash, UnboxedTuples #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
@@ -82,12 +82,8 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
-#if defined(__GLASGOW_HASKELL__)
 import GHC.Base (realWorld#)
 import GHC.IO (IO(IO))
-#else
-import System.IO.Unsafe (unsafePerformIO)
-#endif
 
 type Parser = T.Parser B.ByteString
 type Result = IResult B.ByteString
@@ -408,9 +404,5 @@ parseOnly m s = case T.runParser m (I s) mempty Complete failK successK of
 -- particular, you should do no memory allocation inside an
 -- 'inlinePerformIO' block. On Hugs this is just @unsafePerformIO@.
 inlinePerformIO :: IO a -> a
-#if defined(__GLASGOW_HASKELL__)
 inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
-#else
-inlinePerformIO = unsafePerformIO
-#endif
 {-# INLINE inlinePerformIO #-}

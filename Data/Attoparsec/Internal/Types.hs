@@ -29,16 +29,16 @@ module Data.Attoparsec.Internal.Types
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
-import Data.Word (Word8)
 import Data.ByteString (ByteString)
+import Data.ByteString.Internal (w2c)
+import Data.Monoid (Monoid(..))
+import Data.Text (Text)
+import Data.Word (Word8)
+import Prelude hiding (getChar, take, takeWhile)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
-import Data.ByteString.Internal (w2c)
-import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Unsafe as T
-import Data.Monoid (Monoid(..))
-import Prelude hiding (getChar, take, takeWhile)
 
 -- | The result of a parse.  This is parameterised over the type @t@
 -- of string that was processed.

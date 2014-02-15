@@ -179,12 +179,11 @@ sepBy1' p s = scan
 -- action @end@ succeeds, and returns the list of values returned by
 -- @p@.  This can be used to scan comments:
 --
--- >  simpleComment   = string "<!--" *> manyTill anyChar (try (string "-->"))
+-- >  simpleComment   = string "<!--" *> manyTill anyChar (string "-->")
 --
--- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
--- therefore the use of the 'try' combinator. (This is not strictly required
--- because Attoparsec backtracks automatically, but recommended anyway for
--- compatibility with Parsec.)
+-- (Note the overlapping parsers @anyChar@ and @string \"-->\"@.
+-- While this will work, it is not very efficient, as it will cause a
+-- lot of backtracking.)
 manyTill :: Alternative f => f a -> f b -> f [a]
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
@@ -197,12 +196,11 @@ manyTill p end = scan
 -- action @end@ succeeds, and returns the list of values returned by
 -- @p@.  This can be used to scan comments:
 --
--- >  simpleComment   = string "<!--" *> manyTill' anyChar (try (string "-->"))
+-- >  simpleComment   = string "<!--" *> manyTill' anyChar (string "-->")
 --
--- Note the overlapping parsers @anyChar@ and @string \"<!--\"@, and
--- therefore the use of the 'try' combinator. (This is not strictly required
--- because Attoparsec backtracks automatically, but recommended anyway for
--- compatibility with Parsec.)
+-- (Note the overlapping parsers @anyChar@ and @string \"-->\"@.
+-- While this will work, it is not very efficient, as it will cause a
+-- lot of backtracking.)
 --
 -- The value returned by @p@ is forced to WHNF.
 manyTill' :: (MonadPlus m) => m a -> m b -> m [a]

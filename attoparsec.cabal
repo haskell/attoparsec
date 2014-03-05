@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.11.2.0
+version:         0.11.2.1
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -18,19 +18,16 @@ description:
     file formats.
 extra-source-files:
     README.markdown
-    benchmarks/Benchmarks.hs
+    benchmarks/*.hs
     benchmarks/Makefile
-    benchmarks/Tiny.hs
     benchmarks/attoparsec-benchmarks.cabal
     benchmarks/med.txt.bz2
     changelog
+    examples/*.c
+    examples/*.hs
     examples/Makefile
-    examples/Parsec_RFC2616.hs
-    examples/RFC2616.hs
-    examples/TestRFC2616.hs
-    examples/rfc2616.c
+    tests/*.hs
     tests/Makefile
-    tests/QC.hs
     tests/QC/*.hs
     tests/TestFastSet.hs
 

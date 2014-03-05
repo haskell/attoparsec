@@ -161,7 +161,6 @@ plus a b = Parser $ \i0 a0 m0 kf ks ->
                                   \ i2 a2 m2 -> runParser b i2 a2 m2 kf ks
                ks' i1 a1 m1 = ks i1 (a0 <> a1) m1
            in  noAdds i0 a0 m0 $ \i2 a2 m2 -> runParser a i2 a2 m2 kf' ks'
-{-# INLINE plus #-}
 
 instance (Monoid t) => MonadPlus (Parser t) where
     mzero = failDesc "mzero"

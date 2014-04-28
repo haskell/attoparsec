@@ -98,12 +98,14 @@ module Data.Attoparsec.Text
     , Number(..)
     , number
     , rational
+    , scientific
     ) where
 
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
-import Data.Scientific (Scientific, scientific, coefficient, base10Exponent)
+import Data.Scientific (Scientific, coefficient, base10Exponent)
+import qualified Data.Scientific as Sci (scientific)
 import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
@@ -380,6 +382,12 @@ number = scientifically $ \s ->
                then I (c * 10 ^ e)
                else D (fromInteger c / 10 ^ negate e)
 
+-- | Parse a scientific number.
+--
+-- The syntax accepted by this parser is the same as for 'rational'.
+scientific :: Parser Scientific
+scientific = scientifically id
+
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
@@ -388,19 +396,19 @@ scientifically h = do
 
   n <- decimal
 
-  let f fracDigits = scientific (T.foldl' step n fracDigits)
-                                (negate $ T.length fracDigits)
+  let f fracDigits = Sci.scientific (T.foldl' step n fracDigits)
+                                    (negate $ T.length fracDigits)
       step a c = a * 10 + fromIntegral (ord c - 48)
 
   s <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
-         pure (scientific n 0)
+         pure (Sci.scientific n 0)
 
   let !signedCoeff | positive  =          coefficient s
                    | otherwise = negate $ coefficient s
 
   (I.satisfy (\c -> c == 'e' || c == 'E') *>
-      fmap (h . scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ scientific signedCoeff   (base10Exponent s))
+      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
+    return (h $ Sci.scientific signedCoeff   (base10Exponent s))
 
 -- | Parse a single digit, as recognised by 'isDigit'.
 digit :: Parser Char

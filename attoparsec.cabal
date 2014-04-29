@@ -22,7 +22,7 @@ extra-source-files:
     benchmarks/Makefile
     benchmarks/attoparsec-benchmarks.cabal
     benchmarks/med.txt.bz2
-    changelog
+    changelog.md
     examples/*.c
     examples/*.hs
     examples/Makefile

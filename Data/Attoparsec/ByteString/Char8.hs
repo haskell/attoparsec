@@ -101,6 +101,7 @@ module Data.Attoparsec.ByteString.Char8
     , Number(..)
     , number
     , rational
+    , scientific
     ) where
 
 import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))
@@ -112,7 +113,8 @@ import Data.Bits (Bits, (.|.), shiftL)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.String (IsString(..))
-import Data.Scientific (Scientific, scientific, coefficient, base10Exponent)
+import Data.Scientific (Scientific, coefficient, base10Exponent)
+import qualified Data.Scientific as Sci (scientific)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.ByteString as A
@@ -514,6 +516,12 @@ number = scientifically $ \s ->
                then I (c * 10 ^ e)
                else D (fromInteger c / 10 ^ negate e)
 
+-- | Parse a scientific number.
+--
+-- The syntax accepted by this parser is the same as for 'rational'.
+scientific :: Parser Scientific
+scientific = scientifically id
+
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
@@ -524,13 +532,13 @@ scientifically h = do
 
   n <- decimal
 
-  let f fracDigits = scientific (B8.foldl' step n fracDigits)
-                                (negate $ B8.length fracDigits)
+  let f fracDigits = Sci.scientific (B8.foldl' step n fracDigits)
+                                    (negate $ B8.length fracDigits)
       step a w = a * 10 + fromIntegral (w - 48)
 
   s <- let dot = 46 in
        (I.satisfy (==dot) *> (f <$> I.takeWhile isDigit_w8)) <|>
-         pure (scientific n 0)
+         pure (Sci.scientific n 0)
 
   let !signedCoeff | positive  =          coefficient s
                    | otherwise = negate $ coefficient s
@@ -538,5 +546,5 @@ scientifically h = do
   let littleE = 101
       bigE    = 69
   (I.satisfy (\c -> c == littleE || c == bigE) *>
-      fmap (h . scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ scientific signedCoeff   (base10Exponent s))
+      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
+    return (h $ Sci.scientific signedCoeff   (base10Exponent s))

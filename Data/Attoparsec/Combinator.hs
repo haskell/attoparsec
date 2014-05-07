@@ -40,8 +40,7 @@ import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Internal (demandInput, ensure, advance, wantInput)
-import Data.Attoparsec.Internal.Types (Chunk(..), Parser(..))
-import Data.Attoparsec.Internal.Types (More(..))
+import Data.Attoparsec.Internal.Types (Chunk(..), More(..), Parser(..))
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import qualified Data.Attoparsec.Zepto as Z

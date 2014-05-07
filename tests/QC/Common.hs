@@ -5,9 +5,14 @@ module QC.Common
     , parseT
     , toLazyBS
     , toStrictBS
+    , Repack
+    , repackBS
+    , repackBS_
+    , repackT
+    , repackT_
     ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*>))
 import Test.QuickCheck
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -29,17 +34,39 @@ toLazyBS :: B.ByteString -> BL.ByteString
 toLazyBS = BL.fromChunks . (:[])
 
 instance Arbitrary B.ByteString where
-    arbitrary   = B.pack <$> arbitrary
+    arbitrary = B.pack <$> arbitrary
 
 instance Arbitrary BL.ByteString where
-    arbitrary   = sized $ \n -> resize (round (sqrt (toEnum n :: Double)))
-                  ((BL.fromChunks . map (B.pack . nonEmpty)) <$> arbitrary)
-      where nonEmpty (NonEmpty a) = a
+    arbitrary = repackBS <$> arbitrary <*> arbitrary
+
+type Repack = NonEmptyList (Positive (Small Int))
+
+repackBS :: Repack -> B.ByteString -> BL.ByteString
+repackBS (NonEmpty bs) =
+    BL.fromChunks . repackBS_ (map (getSmall . getPositive) bs)
+
+repackBS_ :: [Int] -> B.ByteString -> [B.ByteString]
+repackBS_ = go . cycle
+  where go (b:bs) s
+          | B.null s = []
+          | otherwise = let (h,t) = B.splitAt b s
+                        in h : go bs t
+        go _ _ = error "unpossible"
 
 instance Arbitrary T.Text where
-    arbitrary   = T.pack <$> arbitrary
+    arbitrary = T.pack <$> arbitrary
 
 instance Arbitrary TL.Text where
-    arbitrary   = sized $ \n -> resize (round (sqrt (toEnum n :: Double)))
-                  ((TL.fromChunks . map (T.pack . nonEmpty)) <$> arbitrary)
-      where nonEmpty (NonEmpty a) = a
+    arbitrary = repackT <$> arbitrary <*> arbitrary
+
+repackT :: Repack -> T.Text -> TL.Text
+repackT (NonEmpty bs) =
+    TL.fromChunks . repackT_ (map (getSmall . getPositive) bs)
+
+repackT_ :: [Int] -> T.Text -> [T.Text]
+repackT_ = go . cycle
+  where go (b:bs) s
+          | T.null s = []
+          | otherwise = let (h,t) = T.splitAt b s
+                        in h : go bs t
+        go _ _ = error "unpossible"

@@ -5,13 +5,15 @@ module QC.ByteString (tests) where
 import Control.Applicative ((<$>), (<*>))
 import Data.Int (Int64)
 import Data.Word (Word8)
-import Prelude hiding (takeWhile)
+import Prelude hiding (take, takeWhile)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString as P
+import qualified Data.Attoparsec.ByteString.Char8 as P8
 import qualified Data.Attoparsec.ByteString.Lazy as PL
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString.Lazy.Char8 as L8
 
 instance Arbitrary B.ByteString where
     arbitrary   = B.pack <$> arbitrary
@@ -86,6 +88,12 @@ takeWhile w s =
          PL.Done t' h' -> t == t' && toStrict h == h'
          _             -> False
 
+takeByteString :: L.ByteString -> Bool
+takeByteString s = maybe False (== toStrict s) . maybeP P.takeByteString $ s
+
+takeLazyByteString :: L.ByteString -> Bool
+takeLazyByteString s = maybe False (== s) . maybeP P.takeLazyByteString $ s
+
 takeWhile1 :: Word8 -> L.ByteString -> Bool
 takeWhile1 w s =
     let s'    = L.cons w s
@@ -109,24 +117,42 @@ endOfInput s = maybeP P.endOfInput s == if L.null s
                                         then Just ()
                                         else Nothing
 
+endOfLine :: L.ByteString -> Bool
+endOfLine s =
+  case (maybeP P8.endOfLine s, L8.uncons s) of
+    (Nothing, mcs) -> maybe True (not . eol) mcs
+    (Just _,  mcs) -> maybe False eol mcs
+  where eol (c,s') = c == '\n' || (c, fst <$> L8.uncons s') == ('\r', Just '\n')
+
 scan :: L.ByteString -> Positive Int64 -> Bool
 scan s (Positive k) = maybeP p s == (Just $ toStrict $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
 
 tests = [
-    testProperty "satisfy" satisfy,
-    testProperty "word8" word8,
-    testProperty "notWord8" notWord8,
-    testProperty "anyWord8" anyWord8,
-    testProperty "peekWord8" peekWord8,
-    testProperty "string" string,
-    testProperty "skipWhile" skipWhile,
-    testProperty "takeCount" takeCount,
-    testProperty "takeWhile" takeWhile,
-    testProperty "takeWhile1" takeWhile1,
-    testProperty "takeWhile1_empty" takeWhile1_empty,
-    testProperty "takeTill" takeTill,
-    testProperty "endOfInput" endOfInput,
-    testProperty "scan" scan
+      testProperty "anyWord8" anyWord8
+    , testProperty "endOfInput" endOfInput
+    , testProperty "endOfLine" endOfLine
+    -- , testProperty "inClass" inClass
+    -- , testProperty "notInClass" notInClass
+    , testProperty "notWord8" notWord8
+    , testProperty "peekWord8" peekWord8
+    -- , testProperty "peekWord8'" peekWord8'
+    , testProperty "satisfy" satisfy
+    -- , testProperty "satisfyWith" satisfyWith
+    , testProperty "scan" scan
+    -- , testProperty "skip" skip
+    , testProperty "skipWhile" skipWhile
+    -- , testProperty "storable" storable
+    , testProperty "string" string
+    -- , testProperty "stringTransform" stringTransform
+    -- , testProperty "take" take
+    , testProperty "takeByteString" takeByteString
+    , testProperty "takeCount" takeCount
+    , testProperty "takeLazyByteString" takeLazyByteString
+    , testProperty "takeTill" takeTill
+    , testProperty "takeWhile" takeWhile
+    , testProperty "takeWhile1" takeWhile1
+    , testProperty "takeWhile1_empty" takeWhile1_empty
+    , testProperty "word8" word8
   ]

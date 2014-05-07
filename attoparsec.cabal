@@ -73,6 +73,8 @@ test-suite tests
   hs-source-dirs: tests
   main-is:        QC.hs
   other-modules:  QC.ByteString
+                  QC.Combinator
+                  QC.Common
                   QC.Text
 
   ghc-options:

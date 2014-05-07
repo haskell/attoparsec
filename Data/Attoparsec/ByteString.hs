@@ -38,9 +38,6 @@ module Data.Attoparsec.ByteString
     , maybeResult
     , eitherResult
 
-    -- * Combinators
-    , module Data.Attoparsec.Combinator
-
     -- * Parsing individual bytes
     , I.word8
     , I.anyWord8
@@ -69,6 +66,30 @@ module Data.Attoparsec.ByteString
     -- ** Consume all remaining input
     , I.takeByteString
     , I.takeLazyByteString
+
+    -- * Combinators
+    , try
+    , (<?>)
+    , choice
+    , count
+    , option
+    , many'
+    , many1
+    , many1'
+    , manyTill
+    , manyTill'
+    , sepBy
+    , sepBy'
+    , sepBy1
+    , sepBy1'
+    , skipMany
+    , skipMany1
+    , eitherP
+    -- * Parsing individual chunk elements
+    , satisfyElem
+    -- * State observation and manipulation functions
+    , endOfInput
+    , atEnd
     ) where
 
 import Data.Attoparsec.Combinator

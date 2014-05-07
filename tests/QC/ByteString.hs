@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module QC.ByteString (tests) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -7,6 +6,7 @@ import Data.Char (chr, ord)
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
+import QC.Common ()
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -16,22 +16,6 @@ import qualified Data.Attoparsec.ByteString.Lazy as PL
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Char8 as L8
-
-instance Arbitrary B.ByteString where
-    arbitrary   = B.pack <$> arbitrary
-
-instance Arbitrary L.ByteString where
-    arbitrary   = sized $ \n -> resize (round (sqrt (toEnum n :: Double)))
-                  ((L.fromChunks . map (B.pack . nonEmpty)) <$> arbitrary)
-      where nonEmpty (NonEmpty a) = a
-
--- Naming.
-
-{-
-label (NonEmpty s) = case parse (anyWord8 <?> s) B.empty of
-                            (_, Left err) -> s `isInfixOf` err
-                            _             -> False
--}
 
 -- Basic byte-level combinators.
 

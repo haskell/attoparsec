@@ -1,11 +1,12 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-warnings-deprecations #-}
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 module QC.Text (tests) where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Attoparsec.Text (Parser)
 import Data.Int (Int64)
 import Prelude hiding (take, takeWhile)
+import QC.Common ()
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -14,22 +15,6 @@ import qualified Data.Attoparsec.Text.Lazy as PL
 import qualified Data.Char as Char
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
-
-instance Arbitrary T.Text where
-    arbitrary   = T.pack <$> arbitrary
-
-instance Arbitrary L.Text where
-    arbitrary   = sized $ \n -> resize (round (sqrt (toEnum n :: Double)))
-                  ((L.fromChunks . map (T.pack . nonEmpty)) <$> arbitrary)
-      where nonEmpty (NonEmpty a) = a
-
--- Naming.
-
-{-
-label (NonEmpty s) = case parse (anyChar <?> s) T.empty of
-                            (_, Left err) -> s `isInfixOf` err
-                            _             -> False
--}
 
 -- Basic byte-level combinators.
 

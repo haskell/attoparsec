@@ -3,6 +3,8 @@
 module QC.ByteString (tests) where
 
 import Control.Applicative ((<$>), (<*>))
+import Data.Int (Int64)
+import Data.Word (Word8)
 import Prelude hiding (takeWhile)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -29,71 +31,85 @@ label (NonEmpty s) = case parse (anyWord8 <?> s) B.empty of
 
 -- Basic byte-level combinators.
 
+maybeP :: PL.Parser r -> L.ByteString -> Maybe r
 maybeP p = PL.maybeResult . PL.parse p
 
-defP p = PL.parse p
-
+satisfy :: Word8 -> L.ByteString -> Bool
 satisfy w s = maybeP (P.satisfy (<=w)) (L.cons w s) == Just w
 
+word8 :: Word8 -> L.ByteString -> Bool
 word8 w s = maybeP (P.word8 w) (L.cons w s) == Just w
 
+anyWord8 :: L.ByteString -> Bool
 anyWord8 s
     | L.null s  = p == Nothing
     | otherwise = p == Just (L.head s)
   where p = maybeP P.anyWord8 s
 
+notWord8 :: Word8 -> NonEmptyList Word8 -> Bool
 notWord8 w (NonEmpty s) = maybeP (P.notWord8 w) bs == if v == w
                                                       then Nothing
                                                       else Just v
     where v = L.head bs
           bs = L.pack s
 
+peekWord8 :: L.ByteString -> Bool
 peekWord8 s
     | L.null s  = p == Just (Nothing, s)
     | otherwise = p == Just (Just (L.head s), s)
   where p = maybeP ((,) <$> P.peekWord8 <*> P.takeLazyByteString) s
 
+string :: L.ByteString -> L.ByteString -> Bool
 string s t = maybeP (P.string s') (s `L.append` t) == Just s'
   where s' = toStrict s
 
+toStrict :: L.ByteString -> B.ByteString
 toStrict = B.concat . L.toChunks
 
+skipWhile :: Word8 -> L.ByteString -> Bool
 skipWhile w s =
     let t = L.dropWhile (<=w) s
-    in case defP (P.skipWhile (<=w)) s of
+    in case PL.parse (P.skipWhile (<=w)) s of
          PL.Done t' () -> t == t'
          _             -> False
 
+takeCount :: Positive Int -> L.ByteString -> Bool
 takeCount (Positive k) s =
     case maybeP (P.take k) s of
       Nothing -> fromIntegral k > L.length s
-      Just s' -> fromIntegral k <= L.length s
+      Just _s -> fromIntegral k <= L.length s
 
+takeWhile :: Word8 -> L.ByteString -> Bool
 takeWhile w s =
     let (h,t) = L.span (==w) s
-    in case defP (P.takeWhile (==w)) s of
+    in case PL.parse (P.takeWhile (==w)) s of
          PL.Done t' h' -> t == t' && toStrict h == h'
          _             -> False
 
+takeWhile1 :: Word8 -> L.ByteString -> Bool
 takeWhile1 w s =
     let s'    = L.cons w s
         (h,t) = L.span (<=w) s'
-    in case defP (P.takeWhile1 (<=w)) s' of
+    in case PL.parse (P.takeWhile1 (<=w)) s' of
          PL.Done t' h' -> t == t' && toStrict h == h'
          _             -> False
 
+takeTill :: Word8 -> L.ByteString -> Bool
 takeTill w s =
     let (h,t) = L.break (==w) s
-    in case defP (P.takeTill (==w)) s of
+    in case PL.parse (P.takeTill (==w)) s of
          PL.Done t' h' -> t == t' && toStrict h == h'
          _             -> False
 
+takeWhile1_empty :: Bool
 takeWhile1_empty = maybeP (P.takeWhile1 undefined) L.empty == Nothing
 
+endOfInput :: L.ByteString -> Bool
 endOfInput s = maybeP P.endOfInput s == if L.null s
                                         then Just ()
                                         else Nothing
 
+scan :: L.ByteString -> Positive Int64 -> Bool
 scan s (Positive k) = maybeP p s == (Just $ toStrict $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing

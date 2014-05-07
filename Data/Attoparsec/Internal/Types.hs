@@ -1,8 +1,8 @@
-{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, OverloadedStrings,
+{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
--- Copyright   :  Bryan O'Sullivan 2007-2011
+-- Copyright   :  Bryan O'Sullivan 2007-2014
 -- License     :  BSD3
 --
 -- Maintainer  :  bos@serpentine.com
@@ -17,11 +17,9 @@ module Data.Attoparsec.Internal.Types
       Parser(..)
     , Failure
     , Success
+    , Pos
     , IResult(..)
-    , Input(..)
-    , Added(..)
     , More(..)
-    , addS
     , (<>)
     , Chunk(..)
     ) where
@@ -34,11 +32,13 @@ import Data.ByteString.Internal (w2c)
 import Data.Monoid (Monoid(..))
 import Data.Text (Text)
 import Data.Word (Word8)
-import Prelude hiding (getChar, take, takeWhile)
+import Prelude hiding (getChar, succ)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 import qualified Data.Text as T
 import qualified Data.Text.Unsafe as T
+
+type Pos = Int
 
 -- | The result of a parse.  This is parameterised over the type @t@
 -- of string that was processed.
@@ -63,9 +63,9 @@ data IResult t r = Fail t [String] String
 
 instance (Show t, Show r) => Show (IResult t r) where
     show (Fail t stk msg) =
-        "Fail " ++ show t ++ " " ++ show stk ++ " " ++ show msg
-    show (Partial _)      = "Partial _"
-    show (Done t r)       = "Done " ++ show t ++ " " ++ show r
+      unwords [ "Fail", show t, show stk, show msg]
+    show (Partial _)          = "Partial _"
+    show (Done t r)       = unwords ["Done", show t, show r]
 
 instance (NFData t, NFData r) => NFData (IResult t r) where
     rnf (Fail t stk msg) = rnf t `seq` rnf stk `seq` rnf msg
@@ -73,17 +73,10 @@ instance (NFData t, NFData r) => NFData (IResult t r) where
     rnf (Done t r)   = rnf t `seq` rnf r
     {-# INLINE rnf #-}
 
-fmapR :: (a -> b) -> IResult t a -> IResult t b
-fmapR _ (Fail t stk msg) = Fail t stk msg
-fmapR f (Partial k)       = Partial (fmapR f . k)
-fmapR f (Done t r)       = Done t (f r)
-
 instance Functor (IResult t) where
-    fmap = fmapR
-    {-# INLINE fmap #-}
-
-newtype Input t = I {unI :: t} deriving (Monoid)
-newtype Added t = A {unA :: t} deriving (Monoid)
+    fmap _ (Fail t stk msg) = Fail t stk msg
+    fmap f (Partial k)      = Partial (fmap f . k)
+    fmap f (Done t r)   = Done t (f r)
 
 -- | The core parser type.  This is parameterised over the type @t@ of
 -- string being processed.
@@ -104,15 +97,15 @@ newtype Added t = A {unA :: t} deriving (Monoid)
 --
 -- * 'Alternative', which follows 'MonadPlus'.
 newtype Parser t a = Parser {
-      runParser :: forall r. Input t -> Added t -> More
+      runParser :: forall r. t -> Pos -> More
                 -> Failure t   r
                 -> Success t a r
                 -> IResult t r
     }
 
-type Failure t   r = Input t -> Added t -> More -> [String] -> String
+type Failure t   r = t -> Pos -> More -> [String] -> String
                    -> IResult t r
-type Success t a r = Input t -> Added t -> More -> a -> IResult t r
+type Success t a r = t -> Pos -> More -> a -> IResult t r
 
 -- | Have we read all available input?
 data More = Complete | Incomplete
@@ -123,25 +116,14 @@ instance Monoid More where
     mappend _ m          = m
     mempty               = Incomplete
 
-addS :: (Monoid t) =>
-        Input t -> Added t -> More
-     -> Input t -> Added t -> More
-     -> (Input t -> Added t -> More -> r) -> r
-addS i0 a0 m0 _i1 a1 m1 f =
-    let !i = i0 <> I (unA a1)
-        a  = a0 <> a1
-        !m = m0 <> m1
-    in f i a m
-{-# INLINE addS #-}
-
 bindP :: Parser t a -> (a -> Parser t b) -> Parser t b
-bindP m g =
-    Parser $ \i0 a0 m0 kf ks -> runParser m i0 a0 m0 kf $
-                                \i1 a1 m1 a -> runParser (g a) i1 a1 m1 kf ks
+bindP m k = Parser $ \t pos more lose succ ->
+    let succ' t' pos' more' a = runParser (k a) t' pos' more' lose succ
+    in runParser m t pos more lose succ'
 {-# INLINE bindP #-}
 
 returnP :: a -> Parser t a
-returnP a = Parser (\i0 a0 m0 _kf ks -> ks i0 a0 m0 a)
+returnP v = Parser $ \t pos more _lose succ -> succ t pos more v
 {-# INLINE returnP #-}
 
 instance Monad (Parser t) where
@@ -149,31 +131,20 @@ instance Monad (Parser t) where
     (>>=)  = bindP
     fail   = failDesc
 
-noAdds :: (Monoid t) =>
-          Input t -> Added t -> More
-       -> (Input t -> Added t -> More -> r) -> r
-noAdds i0 _a0 m0 f = f i0 mempty m0
-{-# INLINE noAdds #-}
-
 plus :: (Monoid t) => Parser t a -> Parser t a -> Parser t a
-plus a b = Parser $ \i0 a0 m0 kf ks ->
-           let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
-                                  \ i2 a2 m2 -> runParser b i2 a2 m2 kf ks
-               ks' i1 a1 m1 = ks i1 (a0 <> a1) m1
-           in  noAdds i0 a0 m0 $ \i2 a2 m2 -> runParser a i2 a2 m2 kf' ks'
+plus f g = Parser $ \t pos more lose succ ->
+  let lose' t' _pos' more' _ctx _msg = runParser g t' pos more' lose succ
+  in runParser f t pos more lose' succ
 
 instance (Monoid t) => MonadPlus (Parser t) where
     mzero = failDesc "mzero"
     {-# INLINE mzero #-}
     mplus = plus
 
-fmapP :: (a -> b) -> Parser t a -> Parser t b
-fmapP p m = Parser $ \i0 a0 m0 f k ->
-            runParser m i0 a0 m0 f $ \i1 a1 s1 a -> k i1 a1 s1 (p a)
-{-# INLINE fmapP #-}
-
 instance Functor (Parser t) where
-    fmap = fmapP
+    fmap f p = Parser $ \t pos more lose succ ->
+      let succ' t' pos' more' a = succ t' pos' more' (f a)
+      in runParser p t pos more lose succ'
     {-# INLINE fmap #-}
 
 apP :: Parser t (a -> b) -> Parser t a -> Parser t b
@@ -189,7 +160,6 @@ instance Applicative (Parser t) where
     (<*>)  = apP
     {-# INLINE (<*>) #-}
 
-#if MIN_VERSION_base(4,2,0)
     -- These definitions are equal to the defaults, but this
     -- way the optimizer doesn't have to work so hard to figure
     -- that out.
@@ -197,7 +167,6 @@ instance Applicative (Parser t) where
     {-# INLINE (*>) #-}
     x <* y = x >>= \a -> y >> return a
     {-# INLINE (<*) #-}
-#endif
 
 instance (Monoid t) => Monoid (Parser t a) where
     mempty  = failDesc "mempty"
@@ -212,7 +181,6 @@ instance (Monoid t) => Alternative (Parser t) where
     (<|>) = plus
     {-# INLINE (<|>) #-}
 
-#if MIN_VERSION_base(4,2,0)
     many v = many_v
         where many_v = some_v <|> pure []
               some_v = (:) <$> v <*> many_v
@@ -223,10 +191,9 @@ instance (Monoid t) => Alternative (Parser t) where
         many_v = some_v <|> pure []
         some_v = (:) <$> v <*> many_v
     {-# INLINE some #-}
-#endif
 
 failDesc :: String -> Parser t a
-failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)
+failDesc err = Parser $ \t pos more lose _succ -> lose t pos more [] msg
     where msg = "Failed reading: " ++ err
 {-# INLINE failDesc #-}
 
@@ -244,10 +211,13 @@ class Monoid c => Chunk c where
   -- | Get the tail of a non-empty chunk.
   unsafeChunkTail :: c -> c
   -- | Check if the chunk has the length of at least @n@ elements.
-  chunkLengthAtLeast :: c -> Int -> Bool
+  chunkLengthAtLeast :: Int -> c -> Bool
+  chunkLength :: c -> Int
   -- | Map an element to the corresponding character.
   --   The first argument is ignored.
   chunkElemToChar :: c -> ChunkElem c -> Char
+  substring :: Int -> Int -> c -> c
+  unsafeChunkDrop :: Int -> c -> c
 
 instance Chunk ByteString where
   type ChunkElem ByteString = Word8
@@ -257,10 +227,16 @@ instance Chunk ByteString where
   {-# INLINE unsafeChunkHead #-}
   unsafeChunkTail = BS.unsafeTail
   {-# INLINE unsafeChunkTail #-}
-  chunkLengthAtLeast bs n = BS.length bs >= n
+  chunkLengthAtLeast n bs = BS.length bs >= n
   {-# INLINE chunkLengthAtLeast #-}
+  chunkLength = BS.length
+  {-# INLINE chunkLength #-}
   chunkElemToChar = const w2c
   {-# INLINE chunkElemToChar #-}
+  substring pos n bs = BS.unsafeTake n (BS.unsafeDrop pos bs)
+  {-# INLINE substring #-}
+  unsafeChunkDrop = BS.unsafeDrop
+  {-# INLINE unsafeChunkDrop #-}
 
 instance Chunk Text where
   type ChunkElem Text = Char
@@ -270,7 +246,13 @@ instance Chunk Text where
   {-# INLINE unsafeChunkHead #-}
   unsafeChunkTail = T.unsafeTail
   {-# INLINE unsafeChunkTail #-}
-  chunkLengthAtLeast t n = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
+  chunkLengthAtLeast n t = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
   {-# INLINE chunkLengthAtLeast #-}
+  chunkLength = T.length
+  {-# INLINE chunkLength #-}
   chunkElemToChar = const id
   {-# INLINE chunkElemToChar #-}
+  substring pos n t = T.take n (T.drop pos t)
+  {-# INLINE substring #-}
+  unsafeChunkDrop = T.drop
+  {-# INLINE unsafeChunkDrop #-}

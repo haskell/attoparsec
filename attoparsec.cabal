@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.11.3.0
+version:         0.12.0.0
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -38,7 +38,7 @@ Flag developer
 
 library
   build-depends: array,
-                 base >= 3 && < 5,
+                 base >= 4.2 && < 5,
                  bytestring,
                  containers,
                  deepseq,

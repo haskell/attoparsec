@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Lazy
 -- Copyright   :  Bryan O'Sullivan 2011

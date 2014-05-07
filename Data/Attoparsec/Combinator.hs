@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.Combinator
 -- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2009-2010
@@ -37,18 +37,15 @@ module Data.Attoparsec.Combinator
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
-                            (<|>), (*>), (<$>))
+                            many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
-#if !MIN_VERSION_base(4,2,0)
-import Control.Applicative (many)
-#endif
-
-import Data.Attoparsec.Internal (demandInput, ensure, put, wantInput)
-import Data.Attoparsec.Internal.Types (Chunk(..), Input(..), Parser(..), addS)
+import Data.Attoparsec.Internal (demandInput, ensure, advance, wantInput)
+import Data.Attoparsec.Internal.Types (Chunk(..), Parser(..))
 import Data.Attoparsec.Internal.Types (More(..))
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import qualified Data.Attoparsec.Zepto as Z
+import Prelude hiding (succ)
 
 -- | Attempt a parse, and if it fails, rewind the input so that no
 -- input appears to have been consumed.
@@ -247,23 +244,20 @@ satisfyElem p = do
   c <- ensure 1
   let !h = unsafeChunkHead c
   if p h
-    then put (unsafeChunkTail c) >> return h
+    then advance 1 >> return h
     else fail "satisfyElem"
 {-# INLINE satisfyElem #-}
 
 -- | Match only if all input has been consumed.
 endOfInput :: Chunk t => Parser t ()
-endOfInput = Parser $ \i0 a0 m0 kf ks ->
-             if nullChunk (unI i0)
-             then if m0 == Complete
-                  then ks i0 a0 m0 ()
-                  else let kf' i1 a1 m1 _ _ = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> ks i2 a2 m2 ()
-                           ks' i1 a1 m1 _   = addS i0 a0 m0 i1 a1 m1 $
-                                              \ i2 a2 m2 -> kf i2 a2 m2 []
-                                                            "endOfInput"
-                       in  runParser demandInput i0 a0 m0 kf' ks'
-             else kf i0 a0 m0 [] "endOfInput"
+endOfInput = Parser $ \t pos more lose succ ->
+  case () of
+    _| chunkLengthAtLeast (pos+1) t -> lose t pos more [] "endOfInput"
+     | more == Complete -> succ t pos more ()
+     | otherwise ->
+       let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
+           succ' t' pos' more' _a = lose t' pos' more' [] "endOfInput"
+       in  runParser demandInput t pos more lose' succ'
 {-# SPECIALIZE endOfInput :: Parser ByteString () #-}
 {-# SPECIALIZE endOfInput :: Parser Text () #-}
 

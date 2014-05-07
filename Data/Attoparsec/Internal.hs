@@ -15,7 +15,8 @@ module Data.Attoparsec.Internal
     (
       compareResults
     , get
-    , put
+    , advance
+    , endOfChunk
     , ensure
     , prompt
     , demandInput
@@ -25,6 +26,7 @@ module Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Types
 import Data.ByteString (ByteString)
 import Data.Text (Text)
+import Prelude hiding (succ)
 
 -- | Compare two 'IResult' values for equality.
 --
@@ -32,81 +34,81 @@ import Data.Text (Text)
 -- they are incomplete and hence their equality cannot be known.
 -- (This is why there is no 'Eq' instance for 'IResult'.)
 compareResults :: (Eq t, Eq r) => IResult t r -> IResult t r -> Maybe Bool
-compareResults (Fail i0 ctxs0 msg0) (Fail i1 ctxs1 msg1) =
-    Just (i0 == i1 && ctxs0 == ctxs1 && msg0 == msg1)
-compareResults (Done i0 r0) (Done i1 r1) =
-    Just (i0 == i1 && r0 == r1)
+compareResults (Fail t0 ctxs0 msg0) (Fail t1 ctxs1 msg1) =
+    Just (t0 == t1 && ctxs0 == ctxs1 && msg0 == msg1)
+compareResults (Done t0 r0) (Done t1 r1) =
+    Just (t0 == t1 && r0 == r1)
 compareResults (Partial _) (Partial _) = Nothing
 compareResults _ _ = Just False
 
-get :: Parser t t
-get = Parser $ \i0 a0 m0 _kf ks -> ks i0 a0 m0 (unI i0)
+get :: Chunk t => Parser t t
+get = Parser $ \t pos more _lose succ -> succ t pos more (unsafeChunkDrop pos t)
 {-# INLINE get #-}
 
-put :: t -> Parser t ()
-put c = Parser $ \_i0 a0 m0 _kf ks -> ks (I c) a0 m0 ()
-{-# INLINE put #-}
+endOfChunk :: Chunk t => Parser t Bool
+endOfChunk = Parser $ \t pos more _lose succ ->
+  succ t pos more (pos == chunkLength t)
+{-# INLINE endOfChunk #-}
 
-ensure' :: Chunk t
-        => Int -> Input t -> Added t -> More -> Failure t r -> Success t t r
-        -> IResult t r
-ensure' !n0 i0 a0 m0 kf0 ks0 =
-    runParser (demandInput >> go n0) i0 a0 m0 kf0 ks0
-  where
-    go !n = Parser $ \i a m kf ks ->
-        if chunkLengthAtLeast (unI i) n
-        then ks i a m (unI i)
-        else runParser (demandInput >> go n) i a m kf ks
-{-# SPECIALIZE ensure' :: Int -> Input ByteString -> Added ByteString -> More
-                       -> Failure ByteString r
-                       -> Success ByteString ByteString r
-                       -> IResult ByteString r #-}
-{-# SPECIALIZE ensure' :: Int -> Input Text -> Added Text -> More
-                       -> Failure Text r -> Success Text Text r
-                       -> IResult Text r #-}
+advance :: Int -> Parser t ()
+advance n = Parser $ \t pos more _lose succ -> succ t (pos+n) more ()
+{-# INLINE advance #-}
+
+ensureSuspended :: Chunk t => Int -> t -> Pos -> More
+                -> Failure t r -> Success t t r -> IResult t r
+ensureSuspended n t pos more lose succ =
+    runParser (demandInput >> go) t pos more lose succ
+  where go = Parser $ \t' pos' more' lose' succ' ->
+          if chunkLengthAtLeast (pos'+n) t'
+          then succ' t' pos' more' (substring pos n t')
+          else runParser (demandInput >> go) t' pos' more' lose' succ'
+{-# SPECIALIZE ensureSuspended :: Int -> ByteString -> Pos -> More
+                               -> Failure ByteString r
+                               -> Success ByteString ByteString r
+                               -> IResult ByteString r #-}
+{-# SPECIALIZE ensureSuspended :: Int -> Text -> Pos -> More
+                               -> Failure Text r -> Success Text Text r
+                               -> IResult Text r #-}
 
 -- | If at least @n@ elements of input are available, return the
 -- current input, otherwise fail.
 ensure :: Chunk t => Int -> Parser t t
-ensure !n = Parser $ \i0 a0 m0 kf ks ->
-    if chunkLengthAtLeast (unI i0) n
-    then ks i0 a0 m0 (unI i0)
+ensure n = Parser $ \t pos more lose succ ->
+    if chunkLengthAtLeast (pos+n) t
+    then succ t pos more (substring pos n t)
     -- The uncommon case is kept out-of-line to reduce code size:
-    else ensure' n i0 a0 m0 kf ks
+    else ensureSuspended n t pos more lose succ
 -- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
-prompt :: Chunk t
-       => Input t -> Added t -> More
-       -> (Input t -> Added t -> More -> IResult t r)
-       -> (Input t -> Added t -> More -> IResult t r)
+prompt :: Chunk t => t -> Pos -> More
+       -> (t -> Pos -> More -> IResult t r)
+       -> (t -> Pos -> More -> IResult t r)
        -> IResult t r
-prompt i0 a0 _m0 kf ks = Partial $ \s ->
-    if nullChunk s
-    then kf i0 a0 Complete
-    else ks (i0 <> I s) (a0 <> A s) Incomplete
-{-# SPECIALIZE prompt :: Input ByteString -> Added ByteString -> More
-                      -> (Input ByteString -> Added ByteString -> More
-                          -> IResult ByteString r)
-                      -> (Input ByteString -> Added ByteString -> More
-                          -> IResult ByteString r)
+prompt t pos _more lose succ = Partial $ \s ->
+  if nullChunk s
+  then lose t pos Complete
+  else succ (t <> s) pos Incomplete
+{-# SPECIALIZE prompt :: ByteString -> Pos -> More
+                      -> (ByteString -> Pos -> More -> IResult ByteString r)
+                      -> (ByteString -> Pos -> More -> IResult ByteString r)
                       -> IResult ByteString r #-}
-{-# SPECIALIZE prompt :: Input Text -> Added Text -> More
-                      -> (Input Text -> Added Text -> More -> IResult Text r)
-                      -> (Input Text -> Added Text-> More -> IResult Text r)
+{-# SPECIALIZE prompt :: Text -> Pos -> More
+                      -> (Text -> Pos -> More -> IResult Text r)
+                      -> (Text -> Pos -> More -> IResult Text r)
                       -> IResult Text r #-}
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
 demandInput :: Chunk t => Parser t ()
-demandInput = Parser $ \i0 a0 m0 kf ks ->
-    if m0 == Complete
-    then kf i0 a0 m0 ["demandInput"] "not enough input"
-    else let kf' i a m = kf i a m ["demandInput"] "not enough input"
-             ks' i a m = ks i a m ()
-         in prompt i0 a0 m0 kf' ks'
+demandInput = Parser $ \t pos more lose succ ->
+  case more of
+    Complete -> lose t pos more [] "not enough input"
+    _ -> let lose' t' pos' more' = lose t' pos' more' [] "not enough input"
+             succ' t' pos' more' = succ t' pos' more' ()
+         in prompt t pos more lose' succ'
 {-# SPECIALIZE demandInput :: Parser ByteString () #-}
 {-# SPECIALIZE demandInput :: Parser Text () #-}
 
@@ -114,12 +116,12 @@ demandInput = Parser $ \i0 a0 m0 kf ks ->
 -- available either immediately or on demand, and 'False' if the end
 -- of all input has been reached.
 wantInput :: Chunk t => Parser t Bool
-wantInput = Parser $ \i0 a0 m0 _kf ks ->
+wantInput = Parser $ \t pos more _lose succ ->
   case () of
-    _ | not (nullChunk (unI i0)) -> ks i0 a0 m0 True
-      | m0 == Complete  -> ks i0 a0 m0 False
-      | otherwise       -> let kf' i a m = ks i a m False
-                               ks' i a m = ks i a m True
-                           in prompt i0 a0 m0 kf' ks'
+    _ | chunkLengthAtLeast (pos+1) t -> succ t pos more True
+      | more == Complete -> succ t pos more False
+      | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
+                               succ' t' pos' more' = succ t' pos' more' True
+                           in prompt t pos more lose' succ'
 {-# SPECIALIZE wantInput :: Parser ByteString Bool #-}
 {-# SPECIALIZE wantInput :: Parser Text Bool #-}

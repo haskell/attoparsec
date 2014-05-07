@@ -67,15 +67,13 @@ import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Combinator
-import Data.Attoparsec.Internal.Types
-    hiding (Parser, Input, Added, Failure, Success)
+import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.Attoparsec.Internal
-import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
-import Prelude hiding (getChar, take, takeWhile)
+import Prelude hiding (getChar, succ, take, takeWhile)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
@@ -110,7 +108,7 @@ skip :: (Word8 -> Bool) -> Parser ()
 skip p = do
   s <- ensure 1
   if p (B.unsafeHead s)
-    then put (B.unsafeTail s)
+    then advance 1
     else fail "skip"
 
 -- | The parser @satisfyWith f p@ transforms a byte, and succeeds if
@@ -121,8 +119,7 @@ satisfyWith f p = do
   s <- ensure 1
   let c = f $! B.unsafeHead s
   if p c
-    then let !t = B.unsafeTail s
-         in put t >> return c
+    then advance 1 >> return c
     else fail "satisfyWith"
 {-# INLINE satisfyWith #-}
 
@@ -141,10 +138,8 @@ takeWith :: Int -> (B.ByteString -> Bool) -> Parser B.ByteString
 takeWith n0 p = do
   let n = max n0 0
   s <- ensure n
-  let h = B.unsafeTake n s
-      t = B.unsafeDrop n s
-  if p h
-    then put t >> return h
+  if p s
+    then advance n >> return s
     else fail "takeWith"
 
 -- | Consume exactly @n@ bytes of input.
@@ -181,9 +176,10 @@ skipWhile :: (Word8 -> Bool) -> Parser ()
 skipWhile p = go
  where
   go = do
-    t <- B8.dropWhile p <$> get
-    put t
-    when (B.null t) $ do
+    t <- B8.takeWhile p <$> get
+    advance (B.length t)
+    eoc <- endOfChunk
+    when eoc $ do
       input <- wantInput
       when input go
 {-# INLINE skipWhile #-}
@@ -214,15 +210,16 @@ takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile p = (B.concat . reverse) `fmap` go []
  where
   go acc = do
-    (h,t) <- B8.span p <$> get
-    put t
-    if B.null t
+    s <- B8.takeWhile p <$> get
+    advance (B.length s)
+    eoc <- endOfChunk
+    if eoc
       then do
         input <- wantInput
         if input
-          then go (h:acc)
-          else return (h:acc)
-      else return (h:acc)
+          then go (s:acc)
+          else return (s:acc)
+      else return (s:acc)
 {-# INLINE takeWhile #-}
 
 takeRest :: Parser [B.ByteString]
@@ -233,7 +230,7 @@ takeRest = go []
     if input
       then do
         s <- get
-        put B.empty
+        advance (B.length s)
         go (s:acc)
       else return (reverse acc)
 
@@ -268,9 +265,9 @@ scan_ f s0 p = go [] s0
     bs <- get
     let T i s' = inlinePerformIO $ scanner bs
         !h = B.unsafeTake i bs
-        !t = B.unsafeDrop i bs
-    put t
-    if B.null t
+    advance i
+    eoc <- endOfChunk
+    if eoc
       then do
         input <- wantInput
         if input
@@ -311,13 +308,17 @@ runScanner = scan_ $ \s xs -> return (B.concat (reverse xs), s)
 -- there is no input left.
 takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile1 p = do
-  (`when` demandInput) =<< B.null <$> get
-  (h,t) <- B8.span p <$> get
-  when (B.null h) $ fail "takeWhile1"
-  put t
-  if B.null t
-    then (h<>) `fmap` takeWhile p
-    else return h
+  (`when` demandInput) =<< endOfChunk
+  s <- B8.takeWhile p <$> get
+  let len = B.length s
+  if len == 0
+    then fail "takeWhile1"
+    else do
+      advance len
+      eoc <- endOfChunk
+      if eoc
+        then (s<>) `fmap` takeWhile p
+        else return s
 
 -- | Match any byte in a set.
 --
@@ -362,16 +363,18 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 peekWord8 :: Parser (Maybe Word8)
-peekWord8 = T.Parser $ \i0 a0 m0 _kf ks ->
-            if B.null (unI i0)
-            then if m0 == Complete
-                 then ks i0 a0 m0 Nothing
-                 else let ks' i a m = let !w = B.unsafeHead (unI i)
-                                      in ks i a m (Just w)
-                          kf' i a m = ks i a m Nothing
-                      in prompt i0 a0 m0 kf' ks'
-            else let !w = B.unsafeHead (unI i0)
-                 in ks i0 a0 m0 (Just w)
+peekWord8 = T.Parser $ \t pos more _lose succ ->
+  case () of
+    _| pos < B.length t ->
+       let !w = B.unsafeIndex t pos
+       in succ t pos more (Just w)
+     | more == Complete ->
+       succ t pos more Nothing
+     | otherwise ->
+       let succ' t' pos' more' = let !w = B.unsafeIndex t pos
+                                 in succ t' pos' more' (Just w)
+           lose' t' pos' more' = succ t' pos' more' Nothing
+       in prompt t pos more lose' succ'
 {-# INLINE peekWord8 #-}
 
 -- | Match any byte, to perform lookahead.  Does not consume any
@@ -389,22 +392,22 @@ endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK i0 _a0 _m0 stack msg = Fail (unI i0) stack msg
+failK t pos _more stack msg = Fail (B.unsafeDrop pos t) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK i0 _a0 _m0 a = Done (unI i0) a
+successK t pos _more a = Done (B.unsafeDrop pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = T.runParser m (I s) mempty Incomplete failK successK
+parse m s = T.runParser m s 0 Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
 parseOnly :: Parser a -> B.ByteString -> Either String a
-parseOnly m s = case T.runParser m (I s) mempty Complete failK successK of
+parseOnly m s = case T.runParser m s 0 Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"

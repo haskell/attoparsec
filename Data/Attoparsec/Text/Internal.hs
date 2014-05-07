@@ -65,12 +65,11 @@ module Data.Attoparsec.Text.Internal
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator
-import Data.Attoparsec.Internal.Types hiding (Parser, Input, Added, Failure, Success)
+import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.Attoparsec.Internal
-import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import Data.Text (Text)
-import Prelude hiding (getChar, take, takeWhile)
+import Prelude hiding (getChar, succ, take, takeWhile)
 import Data.Char (chr, ord)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
@@ -84,18 +83,6 @@ type Success a r = T.Success Text a r
 
 instance (a ~ Text) => IsString (Parser a) where
     fromString = string . T.pack
-
-unsafeHead :: Text -> Char
-unsafeHead = T.head
-
-unsafeTail :: Text -> Text
-unsafeTail = T.tail
-
-unsafeTake :: Int -> Text -> Text
-unsafeTake = T.take
-
-unsafeDrop :: Int -> Text -> Text
-unsafeDrop = T.drop
 
 -- | The parser @satisfy p@ succeeds for any character for which the
 -- predicate @p@ returns 'True'. Returns the character that is
@@ -115,8 +102,8 @@ satisfy = satisfyElem
 skip :: (Char -> Bool) -> Parser ()
 skip p = do
   s <- ensure 1
-  if p (unsafeHead s)
-    then put (unsafeTail s)
+  if p (T.head s)
+    then advance 1
     else fail "skip"
 
 -- | The parser @satisfyWith f p@ transforms a character, and succeeds
@@ -125,10 +112,9 @@ skip p = do
 satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
   s <- ensure 1
-  let c = f $! unsafeHead s
+  let c = f $! T.head s
   if p c
-    then let !t = unsafeTail s
-         in put t >> return c
+    then advance 1 >> return c
     else fail "satisfyWith"
 {-# INLINE satisfyWith #-}
 
@@ -137,9 +123,9 @@ satisfyWith f p = do
 takeWith :: Int -> (Text -> Bool) -> Parser Text
 takeWith n p = do
   s <- ensure n
-  let (h,t) = T.splitAt n s
+  let h = T.take n s
   if p h
-    then put t >> return h
+    then advance n >> return h
     else fail "takeWith"
 
 -- | Consume exactly @n@ characters of input.
@@ -179,9 +165,8 @@ stringCI s = go 0
       | n > T.length fs = fail "stringCI"
       | otherwise = do
       t <- ensure n
-      let h = unsafeTake n t
-      if T.toCaseFold h == fs
-        then put (unsafeDrop n t) >> return h
+      if T.toCaseFold t == fs
+        then advance n >> return t
         else go (n+1)
     fs = T.toCaseFold s
 {-# INLINE stringCI #-}
@@ -191,9 +176,9 @@ stringCI s = go 0
 asciiCI :: Text -> Parser Text
 asciiCI input = do
   t <- ensure n
-  let h = unsafeTake n t
+  let h = T.take n t
   if asciiToLower h == s
-    then put (unsafeDrop n t) >> return h
+    then advance n >> return h
     else fail "asciiCI"
   where
     n = T.length input
@@ -212,9 +197,10 @@ skipWhile :: (Char -> Bool) -> Parser ()
 skipWhile p = go
  where
   go = do
-    t <- T.dropWhile p <$> get
-    put t
-    when (T.null t) $ do
+    t <- T.takeWhile p <$> get
+    advance (T.length t)
+    eoc <- endOfChunk
+    when eoc $ do
       input <- wantInput
       when input go
 {-# INLINE skipWhile #-}
@@ -245,9 +231,10 @@ takeWhile :: (Char -> Bool) -> Parser Text
 takeWhile p = (T.concat . reverse) `fmap` go []
  where
   go acc = do
-    (h,t) <- T.span p <$> get
-    put t
-    if T.null t
+    h <- T.takeWhile p <$> get
+    advance (T.length h)
+    eoc <- endOfChunk
+    if eoc
       then do
         input <- wantInput
         if input
@@ -263,7 +250,7 @@ takeRest = go []
     if input
       then do
         s <- get
-        put T.empty
+        advance (T.length s)
         go (s:acc)
       else return (reverse acc)
 
@@ -290,12 +277,13 @@ scan_ f s0 p = go [] s0
   go acc s = do
     input <- get
     case scanner s 0 input of
-      Continue s'  -> do put T.empty
+      Continue s'  -> do advance (T.length input)
                          more <- wantInput
                          if more
                            then go (input : acc) s'
                            else f s' (input : acc)
-      Finished n t -> put t >> f s (T.take n input : acc)
+      Finished n t -> do advance (T.length input - T.length t)
+                         f s (T.take n input : acc)
 {-# INLINE scan_ #-}
 
 -- | A stateful scanner.  The predicate consumes and transforms a
@@ -330,11 +318,13 @@ runScanner = scan_ $ \s xs -> return (T.concat (reverse xs), s)
 -- 'True' or if there is no input left.
 takeWhile1 :: (Char -> Bool) -> Parser Text
 takeWhile1 p = do
-  (`when` demandInput) =<< T.null <$> get
-  (h,t) <- T.span p <$> get
-  when (T.null h) $ fail "takeWhile1"
-  put t
-  if T.null t
+  (`when` demandInput) =<< endOfChunk
+  h <- T.takeWhile p <$> get
+  let len = T.length h
+  when (len == 0) $ fail "takeWhile1"
+  advance len
+  eoc <- endOfChunk
+  if eoc
     then (h<>) `fmap` takeWhile p
     else return h
 
@@ -381,16 +371,18 @@ notChar c = satisfy (/= c) <?> "not " ++ show c
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 peekChar :: Parser (Maybe Char)
-peekChar = T.Parser $ \i0 a0 m0 _kf ks ->
-           if T.null (unI i0)
-           then if m0 == Complete
-                then ks i0 a0 m0 Nothing
-                else let ks' i a m = let !c = unsafeHead (unI i)
-                                     in ks i a m (Just c)
-                         kf' i a m = ks i a m Nothing
-                     in prompt i0 a0 m0 kf' ks'
-           else let !c = unsafeHead (unI i0)
-                in ks i0 a0 m0 (Just c)
+peekChar = T.Parser $ \t pos more _lose succ ->
+  case () of
+    _| chunkLengthAtLeast (pos+1) t ->
+       let !c = T.head (T.drop pos t)
+       in succ t pos more (Just c)
+     | more == Complete ->
+       succ t pos more Nothing
+     | otherwise ->
+       let succ' t' pos' more' = let !c = T.head (T.drop pos t')
+                                 in succ t' pos' more' (Just c)
+           lose' t' pos' more' = succ t' pos' more' Nothing
+       in prompt t pos more lose' succ'
 {-# INLINE peekChar #-}
 
 -- | Match any character, to perform lookahead.  Does not consume any
@@ -398,7 +390,7 @@ peekChar = T.Parser $ \i0 a0 m0 _kf ks ->
 peekChar' :: Parser Char
 peekChar' = do
   s <- ensure 1
-  return $! unsafeHead s
+  return $! T.head s
 {-# INLINE peekChar' #-}
 
 -- | Match either a single newline character @\'\\n\'@, or a carriage
@@ -408,22 +400,22 @@ endOfLine = (char '\n' >> return ()) <|> (string "\r\n" >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK i0 _a0 _m0 stack msg = Fail (unI i0) stack msg
+failK t pos _more stack msg = Fail (T.drop pos t) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK i0 _a0 _m0 a = Done (unI i0) a
+successK t pos _more a = Done (T.drop pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
 parse :: Parser a -> Text -> Result a
-parse m s = runParser m (I s) mempty Incomplete failK successK
+parse m s = runParser m s 0 Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
 parseOnly :: Parser a -> Text -> Either String a
-parseOnly m s = case runParser m (I s) mempty Complete failK successK of
+parseOnly m s = case runParser m s 0 Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"

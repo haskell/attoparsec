@@ -3,6 +3,7 @@
 module QC.ByteString (tests) where
 
 import Control.Applicative ((<$>), (<*>))
+import Data.Char (chr, ord)
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
@@ -38,6 +39,10 @@ maybeP p = PL.maybeResult . PL.parse p
 
 satisfy :: Word8 -> L.ByteString -> Bool
 satisfy w s = maybeP (P.satisfy (<=w)) (L.cons w s) == Just w
+
+satisfyWith :: Char -> L.ByteString -> Bool
+satisfyWith c s = maybeP (P.satisfyWith (chr . fromIntegral) (<=c))
+                         (L.cons (fromIntegral (ord c)) s) == Just c
 
 word8 :: Word8 -> L.ByteString -> Bool
 word8 w s = maybeP (P.word8 w) (L.cons w s) == Just w
@@ -98,6 +103,10 @@ takeWhile w s =
          PL.Done t' h' -> t == t' && toStrict h == h'
          _             -> False
 
+take :: Int -> L.ByteString -> Bool
+take n s = maybe (L.length s < fromIntegral n) (== B.take n (toStrict s)) $
+           maybeP (P.take n) s
+
 takeByteString :: L.ByteString -> Bool
 takeByteString s = maybe False (== toStrict s) . maybeP P.takeByteString $ s
 
@@ -143,20 +152,16 @@ tests = [
       testProperty "anyWord8" anyWord8
     , testProperty "endOfInput" endOfInput
     , testProperty "endOfLine" endOfLine
-    -- , testProperty "inClass" inClass
-    -- , testProperty "notInClass" notInClass
     , testProperty "notWord8" notWord8
     , testProperty "peekWord8" peekWord8
     , testProperty "peekWord8'" peekWord8'
     , testProperty "satisfy" satisfy
-    -- , testProperty "satisfyWith" satisfyWith
+    , testProperty "satisfyWith" satisfyWith
     , testProperty "scan" scan
     , testProperty "skip" skip
     , testProperty "skipWhile" skipWhile
-    -- , testProperty "storable" storable
     , testProperty "string" string
-    -- , testProperty "stringTransform" stringTransform
-    -- , testProperty "take" take
+    , testProperty "take" take
     , testProperty "takeByteString" takeByteString
     , testProperty "takeCount" takeCount
     , testProperty "takeLazyByteString" takeLazyByteString

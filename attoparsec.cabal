@@ -87,19 +87,6 @@ test-suite tests
     test-framework-quickcheck2 >= 0.2,
     text
 
-benchmark benchmarks
-  type: exitcode-stdio-1.0
-  hs-source-dirs: benchmarks
-  main-is: Benchmarks.hs
-  build-depends:
-    attoparsec,
-    base,
-    bytestring,
-    criterion >= 0.5,
-    deepseq >= 1.1,
-    parsec >= 3.1.2,
-    text
-
 source-repository head
   type:     git
   location: https://github.com/bos/attoparsec

@@ -42,6 +42,13 @@ satisfy w s = maybeP (P.satisfy (<=w)) (L.cons w s) == Just w
 word8 :: Word8 -> L.ByteString -> Bool
 word8 w s = maybeP (P.word8 w) (L.cons w s) == Just w
 
+skip :: Word8 -> L.ByteString -> Bool
+skip w s =
+  case (maybeP (P.skip (<w)) s, L.uncons s) of
+    (Nothing, mcs) -> maybe True (not . it) mcs
+    (Just _,  mcs) -> maybe False it mcs
+  where it cs = fst cs < w
+
 anyWord8 :: L.ByteString -> Bool
 anyWord8 s
     | L.null s  = p == Nothing
@@ -60,6 +67,9 @@ peekWord8 s
     | L.null s  = p == Just (Nothing, s)
     | otherwise = p == Just (Just (L.head s), s)
   where p = maybeP ((,) <$> P.peekWord8 <*> P.takeLazyByteString) s
+
+peekWord8' :: L.ByteString -> Bool
+peekWord8' s = maybeP P.peekWord8' s == (fst <$> L.uncons s)
 
 string :: L.ByteString -> L.ByteString -> Bool
 string s t = maybeP (P.string s') (s `L.append` t) == Just s'
@@ -137,11 +147,11 @@ tests = [
     -- , testProperty "notInClass" notInClass
     , testProperty "notWord8" notWord8
     , testProperty "peekWord8" peekWord8
-    -- , testProperty "peekWord8'" peekWord8'
+    , testProperty "peekWord8'" peekWord8'
     , testProperty "satisfy" satisfy
     -- , testProperty "satisfyWith" satisfyWith
     , testProperty "scan" scan
-    -- , testProperty "skip" skip
+    , testProperty "skip" skip
     , testProperty "skipWhile" skipWhile
     -- , testProperty "storable" storable
     , testProperty "string" string

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, GADTs, OverloadedStrings,
+{-# LANGUAGE BangPatterns, FlexibleInstances, GADTs, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |

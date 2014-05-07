@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.Combinator
 -- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2009-2010
@@ -37,12 +37,8 @@ module Data.Attoparsec.Combinator
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
-                            (<|>), (*>), (<$>))
+                            many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
-#if !MIN_VERSION_base(4,2,0)
-import Control.Applicative (many)
-#endif
-
 import Data.Attoparsec.Internal (demandInput, ensure, put, wantInput)
 import Data.Attoparsec.Internal.Types (Chunk(..), Input(..), Parser(..), addS)
 import Data.Attoparsec.Internal.Types (More(..))

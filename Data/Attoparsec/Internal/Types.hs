@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, OverloadedStrings,
+{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
@@ -189,7 +189,6 @@ instance Applicative (Parser t) where
     (<*>)  = apP
     {-# INLINE (<*>) #-}
 
-#if MIN_VERSION_base(4,2,0)
     -- These definitions are equal to the defaults, but this
     -- way the optimizer doesn't have to work so hard to figure
     -- that out.
@@ -197,7 +196,6 @@ instance Applicative (Parser t) where
     {-# INLINE (*>) #-}
     x <* y = x >>= \a -> y >> return a
     {-# INLINE (<*) #-}
-#endif
 
 instance (Monoid t) => Monoid (Parser t a) where
     mempty  = failDesc "mempty"
@@ -212,7 +210,6 @@ instance (Monoid t) => Alternative (Parser t) where
     (<|>) = plus
     {-# INLINE (<|>) #-}
 
-#if MIN_VERSION_base(4,2,0)
     many v = many_v
         where many_v = some_v <|> pure []
               some_v = (:) <$> v <*> many_v
@@ -223,7 +220,6 @@ instance (Monoid t) => Alternative (Parser t) where
         many_v = some_v <|> pure []
         some_v = (:) <$> v <*> many_v
     {-# INLINE some #-}
-#endif
 
 failDesc :: String -> Parser t a
 failDesc err = Parser (\i0 a0 m0 kf _ks -> kf i0 a0 m0 [] msg)

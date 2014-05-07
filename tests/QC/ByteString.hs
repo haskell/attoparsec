@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module QC.ByteString (tests) where
 
 import Control.Applicative ((<$>), (<*>))
@@ -7,6 +7,7 @@ import Data.Char (chr, ord)
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
+import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString as P
@@ -148,6 +149,7 @@ scan s (Positive k) = maybeP p s == (Just $ toStrict $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
 
+tests :: [Test]
 tests = [
       testProperty "anyWord8" anyWord8
     , testProperty "endOfInput" endOfInput

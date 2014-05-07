@@ -1,9 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-warnings-deprecations #-}
 module QC.Text (tests) where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Attoparsec.Text (Parser)
+import Data.Int (Int64)
 import Prelude hiding (take, takeWhile)
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -38,8 +39,18 @@ maybeP p = PL.maybeResult . PL.parse p
 satisfy :: Char -> L.Text -> Bool
 satisfy w s = maybeP (P.satisfy (<=w)) (L.cons w s) == Just w
 
+satisfyWith :: Char -> L.Text -> Bool
+satisfyWith c s = maybeP (P.satisfyWith id (<=c)) (L.cons c s) == Just c
+
 char :: Char -> L.Text -> Bool
 char w s = maybeP (P.char w) (L.cons w s) == Just w
+
+skip :: Char -> L.Text -> Bool
+skip w s =
+  case (maybeP (P.skip (<w)) s, L.uncons s) of
+    (Nothing, mcs) -> maybe True (not . it) mcs
+    (Just _,  mcs) -> maybe False it mcs
+  where it cs = fst cs < w
 
 anyChar :: L.Text -> Bool
 anyChar s
@@ -60,9 +71,10 @@ peekChar s
     | otherwise = p == Just (Just (L.head s), s)
   where p = maybeP ((,) <$> P.peekChar <*> P.takeLazyText) s
 
-string
-  :: L.Text
-     -> L.Text -> Bool
+peekChar' :: L.Text -> Bool
+peekChar' s = maybeP P.peekChar' s == (fst <$> L.uncons s)
+
+string :: L.Text -> L.Text -> Bool
 string s t = maybeP (P.string s') (s `L.append` t) == Just s'
   where s' = toStrict s
 
@@ -89,6 +101,16 @@ skipWhile w s =
     in case PL.parse (P.skipWhile (<=w)) s of
          PL.Done t' () -> t == t'
          _             -> False
+
+take :: Int -> L.Text -> Bool
+take n s = maybe (L.length s < fromIntegral n) (== T.take n (toStrict s)) $
+           maybeP (P.take n) s
+
+takeText :: L.Text -> Bool
+takeText s = maybe False (== toStrict s) . maybeP P.takeText $ s
+
+takeLazyText :: L.Text -> Bool
+takeLazyText s = maybe False (== s) . maybeP P.takeLazyText $ s
 
 takeCount :: Positive Int -> L.Text -> Bool
 takeCount (Positive k) s =
@@ -126,27 +148,39 @@ endOfInput s = maybeP P.endOfInput s == if L.null s
                                         then Just ()
                                         else Nothing
 
+endOfLine :: L.Text -> Bool
+endOfLine s =
+  case (maybeP P.endOfLine s, L.uncons s) of
+    (Nothing, mcs) -> maybe True (not . eol) mcs
+    (Just _,  mcs) -> maybe False eol mcs
+  where eol (c,s') = c == '\n' || (c, fst <$> L.uncons s') == ('\r', Just '\n')
+
+scan :: L.Text -> Positive Int64 -> Bool
+scan s (Positive k) = maybeP p s == (Just $ toStrict $ L.take k s)
+  where p = P.scan k $ \ n _ ->
+            if n > 0 then let !n' = n - 1 in Just n' else Nothing
+
 tests :: [Test]
 tests = [
       testProperty "anyChar" anyChar
     , testProperty "asciiCI" asciiCI
     , testProperty "char" char
     , testProperty "endOfInput" endOfInput
-    -- , testProperty "endOfLine" endOfLine
+    , testProperty "endOfLine" endOfLine
     , testProperty "notChar" notChar
     , testProperty "peekChar" peekChar
-    -- , testProperty "peekChar'" peekChar'
+    , testProperty "peekChar'" peekChar'
     , testProperty "satisfy" satisfy
-    -- , testProperty "satisfyWith" satisfyWith
-    -- , testProperty "scan" scan
-    -- , testProperty "skip" skip
+    , testProperty "satisfyWith" satisfyWith
+    , testProperty "scan" scan
+    , testProperty "skip" skip
     , testProperty "skipWhile" skipWhile
     , testProperty "string" string
     , testProperty "stringCI" stringCI
-    -- , testProperty "take" take
-    -- , testProperty "takeText" takeText
+    , testProperty "take" take
+    , testProperty "takeText" takeText
     , testProperty "takeCount" takeCount
-    -- , testProperty "takeLazyText" takeLazyText
+    , testProperty "takeLazyText" takeLazyText
     , testProperty "takeTill" takeTill
     , testProperty "takeWhile" takeWhile
     , testProperty "takeWhile1" takeWhile1

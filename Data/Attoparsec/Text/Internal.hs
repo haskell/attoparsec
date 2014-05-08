@@ -382,12 +382,12 @@ peekChar :: Parser (Maybe Char)
 peekChar = T.Parser $ \t pos more _lose succ ->
   case () of
     _| lengthAtLeast pos 1 t ->
-       let !c = T.head (T.drop pos t)
+       let !c = T.head (T.drop (fromPos pos) t)
        in succ t pos more (Just c)
      | more == Complete ->
        succ t pos more Nothing
      | otherwise ->
-       let succ' t' pos' more' = let !c = T.head (T.drop pos t')
+       let succ' t' pos' more' = let !c = T.head (T.drop (fromPos pos) t')
                                  in succ t' pos' more' (Just c)
            lose' t' pos' more' = succ t' pos' more' Nothing
        in prompt t pos more lose' succ'
@@ -408,12 +408,12 @@ endOfLine = (char '\n' >> return ()) <|> (string "\r\n" >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK t pos _more stack msg = Fail (T.drop pos t) stack msg
+failK t (Pos pos) _more stack msg = Fail (T.drop pos t) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK t pos _more a = Done (T.drop pos t) a
+successK t (Pos pos) _more a = Done (T.drop pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
@@ -430,16 +430,18 @@ parseOnly m s = case runParser m s 0 Complete failK successK of
 {-# INLINE parseOnly #-}
 
 get :: Parser Text
-get = T.Parser $ \t pos more _lose succ -> succ t pos more (T.drop pos t)
+get = T.Parser $ \t pos more _lose succ ->
+  succ t pos more (T.drop (fromPos pos) t)
 {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (pos == T.length t)
+  succ t pos more (fromPos pos == T.length t)
 {-# INLINE endOfChunk #-}
 
 advance :: Int -> Parser ()
-advance n = T.Parser $ \t pos more _lose succ -> succ t (pos+n) more ()
+advance n = T.Parser $ \t pos more _lose succ ->
+  succ t (Pos ((fromPos pos) + n)) more ()
 {-# INLINE advance #-}
 
 ensureSuspended :: Int -> Text -> Pos -> More
@@ -512,7 +514,7 @@ endOfInput = T.Parser $ \t pos more lose succ ->
 match :: Parser a -> Parser (Text, a)
 match p = T.Parser $ \t pos more lose succ ->
   let succ' t' pos' more' a = succ t' pos' more'
-                              (substring pos (pos'-pos) t', a)
+                              (substring pos (fromPos pos'-fromPos pos) t', a)
   in runParser p t pos more lose succ'
 
 -- | Return an indication of whether the end of input has been
@@ -523,9 +525,9 @@ atEnd = not <$> wantInput
 
 lengthAtLeast :: Pos -> Int -> Text -> Bool
 lengthAtLeast pos n t = T.lengthWord16 t `quot` 2 >= o || T.length t >= o
-    where o = pos + n
+    where o = fromPos pos + n
 {-# INLINE lengthAtLeast #-}
 
 substring :: Pos -> Int -> Text -> Text
-substring pos n t = T.take n (T.drop pos t)
+substring (Pos pos) n t = T.take n (T.drop pos t)
 {-# INLINE substring #-}

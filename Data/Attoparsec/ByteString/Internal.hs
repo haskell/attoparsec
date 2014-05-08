@@ -371,15 +371,15 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 -- combinators such as 'many', because such parsers loop until a
 -- failure occurs.  Careless use will thus result in an infinite loop.
 peekWord8 :: Parser (Maybe Word8)
-peekWord8 = T.Parser $ \t pos more _lose succ ->
+peekWord8 = T.Parser $ \t pos@(Pos pos_) more _lose succ ->
   case () of
-    _| pos < B.length t ->
-       let !w = B.unsafeIndex t pos
+    _| pos_ < B.length t ->
+       let !w = B.unsafeIndex t pos_
        in succ t pos more (Just w)
      | more == Complete ->
        succ t pos more Nothing
      | otherwise ->
-       let succ' t' pos' more' = let !w = B.unsafeIndex t pos
+       let succ' t' pos' more' = let !w = B.unsafeIndex t pos_
                                  in succ t' pos' more' (Just w)
            lose' t' pos' more' = succ t' pos' more' Nothing
        in prompt t pos more lose' succ'
@@ -400,22 +400,22 @@ endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK t pos _more stack msg = Fail (B.unsafeDrop pos t) stack msg
+failK t (Pos pos) _more stack msg = Fail (B.unsafeDrop pos t) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK t pos _more a = Done (B.unsafeDrop pos t) a
+successK t (Pos pos) _more a = Done (B.unsafeDrop pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = T.runParser m s 0 Incomplete failK successK
+parse m s = T.runParser m s (Pos 0) Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
 parseOnly :: Parser a -> B.ByteString -> Either String a
-parseOnly m s = case T.runParser m s 0 Complete failK successK of
+parseOnly m s = case T.runParser m s (Pos 0) Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"
@@ -430,16 +430,18 @@ inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
 {-# INLINE inlinePerformIO #-}
 
 get :: Parser ByteString
-get = T.Parser $ \t pos more _lose succ -> succ t pos more (B.unsafeDrop pos t)
+get = T.Parser $ \t pos more _lose succ ->
+  succ t pos more (B.unsafeDrop (fromPos pos) t)
 {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (pos == B.length t)
+  succ t pos more (fromPos pos == B.length t)
 {-# INLINE endOfChunk #-}
 
 advance :: Int -> Parser ()
-advance n = T.Parser $ \t pos more _lose succ -> succ t (pos+n) more ()
+advance n = T.Parser $ \t pos more _lose succ ->
+  succ t (pos + Pos n) more ()
 {-# INLINE advance #-}
 
 ensureSuspended :: Int -> ByteString -> Pos -> More
@@ -450,7 +452,7 @@ ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
   where go = T.Parser $ \t' pos' more' lose' succ' ->
           if lengthAtLeast pos' n t'
-          then succ' t' pos' more' (substring pos n t')
+          then succ' t' pos' more' (substring pos (Pos n) t')
           else runParser (demandInput >> go) t' pos' more' lose' succ'
 
 -- | If at least @n@ elements of input are available, return the
@@ -458,7 +460,7 @@ ensureSuspended n t pos more lose succ =
 ensure :: Int -> Parser ByteString
 ensure n = T.Parser $ \t pos more lose succ ->
     if lengthAtLeast pos n t
-    then succ t pos more (substring pos n t)
+    then succ t pos more (substring pos (Pos n) t)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensureSuspended n t pos more lose succ
 -- Non-recursive so the bounds check can be inlined:
@@ -511,8 +513,8 @@ endOfInput = T.Parser $ \t pos more lose succ ->
 -- portion of the input that was consumed while it was being parsed.
 match :: Parser a -> Parser (ByteString, a)
 match p = T.Parser $ \t pos more lose succ ->
-  let succ' t' pos' more' a = succ t' pos' more'
-                              (substring pos (pos'-pos) t', a)
+  let succ' t' pos' more' a =
+        succ t' pos' more' (substring pos (pos'-pos) t', a)
   in runParser p t pos more lose succ'
 
 -- | Return an indication of whether the end of input has been
@@ -522,9 +524,9 @@ atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
 
 lengthAtLeast :: Pos -> Int -> ByteString -> Bool
-lengthAtLeast pos n bs = B.length bs >= pos + n
+lengthAtLeast (Pos pos) n bs = B.length bs >= pos + n
 {-# INLINE lengthAtLeast #-}
 
-substring :: Pos -> Int -> ByteString -> ByteString
-substring pos n bs = B.unsafeTake n (B.unsafeDrop pos bs)
+substring :: Pos -> Pos -> ByteString -> ByteString
+substring (Pos pos) (Pos n) bs = B.unsafeTake n (B.unsafeDrop pos bs)
 {-# INLINE substring #-}

@@ -17,7 +17,7 @@ module Data.Attoparsec.Internal.Types
       Parser(..)
     , Failure
     , Success
-    , Pos
+    , Pos(..)
     , IResult(..)
     , More(..)
     , (<>)
@@ -29,7 +29,8 @@ import Control.Monad (MonadPlus(..))
 import Data.Monoid (Monoid(..))
 import Prelude hiding (getChar, succ)
 
-type Pos = Int
+newtype Pos = Pos { fromPos :: Int }
+            deriving (Eq, Ord, Show, Num)
 
 -- | The result of a parse.  This is parameterised over the type @t@
 -- of string that was processed.

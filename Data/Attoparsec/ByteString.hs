@@ -85,6 +85,7 @@ module Data.Attoparsec.ByteString
     , skipMany
     , skipMany1
     , eitherP
+    , match
     -- * Parsing individual chunk elements
     , satisfyElem
     -- * State observation and manipulation functions

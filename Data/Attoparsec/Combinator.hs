@@ -29,6 +29,7 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
+    , match
     -- * Parsing individual chunk elements
     , satisfyElem
     -- * State observation and manipulation functions
@@ -265,3 +266,14 @@ endOfInput = Parser $ \t pos more lose succ ->
 atEnd :: Chunk t => Parser t Bool
 atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
+
+-- | This combinator returns both the result of a parse and the
+-- portion of the input that was consumed while it was being parsed.
+match :: Chunk t => Parser t a -> Parser t (t,a)
+match p = Parser $ \t pos more lose succ ->
+  let succ' t' pos' more' a = succ t' pos' more'
+                              (substring pos (pos'-pos) t', a)
+  in runParser p t pos more lose succ'
+{-# SPECIALIZE match :: Parser ByteString a
+                     -> Parser ByteString (ByteString, a) #-}
+{-# SPECIALIZE match :: Parser Text a -> Parser Text (Text, a) #-}

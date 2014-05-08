@@ -9,6 +9,7 @@ import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import qualified Data.Attoparsec.Combinator as C
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
 
 choice :: NonEmptyList (NonEmptyList Word8) -> Gen Property
 choice (NonEmpty xs) = do
@@ -21,8 +22,18 @@ count (Positive (Small n)) rs s =
     (length <$> parseBS (C.count n (P.string s)) input) == Just n
   where input = repackBS rs (B.concat (replicate (n+1) s))
 
+match :: Int -> NonNegative Int -> NonNegative Int -> Repack -> Bool
+match n (NonNegative x) (NonNegative y) rs =
+    parseBS (P.match parser) (repackBS rs input) == Just (input, n)
+  where parser = P.skipWhile (=='x') *> P.signed P.decimal <*
+                 P.skipWhile (=='y')
+        input = B.concat [
+            B8.replicate x 'x', B8.pack (show n), B8.replicate y 'y'
+          ]
+
 tests :: [Test]
 tests = [
     testProperty "choice" choice
   , testProperty "count" count
+  , testProperty "match" match
   ]

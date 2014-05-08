@@ -4,7 +4,7 @@
 import Control.Applicative (many)
 import Control.DeepSeq (NFData(rnf))
 import Criterion.Main (bench, bgroup, defaultMain, nf)
-import Data.Bits (unsafeShiftL)
+import Data.Bits
 import Data.Char (isAlpha)
 import Data.Scientific (Scientific(..))
 import Data.Word (Word32)
@@ -161,3 +161,8 @@ quotedString = AB.scan False $ \s c -> if s then Just False
                                        else if c == doubleQuote
                                             then Nothing
                                             else Just (c == backslash)
+
+#if !MIN_VERSION_base(4,4)
+unsafeShiftL :: Bits a => a -> Int -> a
+unsafeShiftL = shiftL
+#endif

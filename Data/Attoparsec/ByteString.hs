@@ -29,7 +29,7 @@ module Data.Attoparsec.ByteString
 
     -- * Running parsers
     , parse
-    , I.feed
+    , feed
     , I.parseOnly
     , parseWith
     , parseTest
@@ -85,12 +85,10 @@ module Data.Attoparsec.ByteString
     , skipMany
     , skipMany1
     , eitherP
-    , match
-    -- * Parsing individual chunk elements
-    , satisfyElem
+    , I.match
     -- * State observation and manipulation functions
-    , endOfInput
-    , atEnd
+    , I.endOfInput
+    , I.atEnd
     ) where
 
 import Data.Attoparsec.Combinator

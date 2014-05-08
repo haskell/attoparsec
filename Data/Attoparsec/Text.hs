@@ -31,7 +31,7 @@ module Data.Attoparsec.Text
 
     -- * Running parsers
     , parse
-    , I.feed
+    , feed
     , I.parseOnly
     , parseWith
     , parseTest
@@ -115,12 +115,10 @@ module Data.Attoparsec.Text
     , skipMany
     , skipMany1
     , eitherP
-    , match
-    -- * Parsing individual chunk elements
-    , satisfyElem
+    , I.match
     -- * State observation and manipulation functions
-    , endOfInput
-    , atEnd
+    , I.endOfInput
+    , I.atEnd
     ) where
 
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))

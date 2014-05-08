@@ -29,20 +29,13 @@ module Data.Attoparsec.Combinator
     , skipMany
     , skipMany1
     , eitherP
-    , match
     , feed
-    -- * Parsing individual chunk elements
-    , satisfyElem
-    -- * State observation and manipulation functions
-    , endOfInput
-    , atEnd
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
-import Data.Attoparsec.Internal (demandInput, ensure, advance, wantInput)
-import Data.Attoparsec.Internal.Types (Chunk(..), More(..), Parser(..), IResult(..))
+import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
 import Data.ByteString (ByteString)
 import Data.Monoid (Monoid(mappend))
 import Data.Text (Text)
@@ -234,51 +227,6 @@ count n p = sequence (replicate n p)
 eitherP :: (Alternative f) => f a -> f b -> f (Either a b)
 eitherP a b = (Left <$> a) <|> (Right <$> b)
 {-# INLINE eitherP #-}
-
--- | The parser @satisfyElem p@ succeeds for any chunk element for which the
--- predicate @p@ returns 'True'. Returns the element that is
--- actually parsed.
---
--- >digit = satisfyElem isDigit
--- >    where isDigit c = c >= '0' && c <= '9'
-satisfyElem :: Chunk t => (ChunkElem t -> Bool) -> Parser t (ChunkElem t)
-satisfyElem p = do
-  c <- ensure 1
-  let !h = unsafeChunkHead c
-  if p h
-    then advance 1 >> return h
-    else fail "satisfyElem"
-{-# INLINE satisfyElem #-}
-
--- | Match only if all input has been consumed.
-endOfInput :: Chunk t => Parser t ()
-endOfInput = Parser $ \t pos more lose succ ->
-  case () of
-    _| chunkLengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
-     | more == Complete -> succ t pos more ()
-     | otherwise ->
-       let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
-           succ' t' pos' more' _a = lose t' pos' more' [] "endOfInput"
-       in  runParser demandInput t pos more lose' succ'
-{-# SPECIALIZE endOfInput :: Parser ByteString () #-}
-{-# SPECIALIZE endOfInput :: Parser Text () #-}
-
--- | Return an indication of whether the end of input has been
--- reached.
-atEnd :: Chunk t => Parser t Bool
-atEnd = not <$> wantInput
-{-# INLINE atEnd #-}
-
--- | This combinator returns both the result of a parse and the
--- portion of the input that was consumed while it was being parsed.
-match :: Chunk t => Parser t a -> Parser t (t,a)
-match p = Parser $ \t pos more lose succ ->
-  let succ' t' pos' more' a = succ t' pos' more'
-                              (substring pos (pos'-pos) t', a)
-  in runParser p t pos more lose succ'
-{-# SPECIALIZE match :: Parser ByteString a
-                     -> Parser ByteString (ByteString, a) #-}
-{-# SPECIALIZE match :: Parser Text a -> Parser Text (Text, a) #-}
 
 -- | If a parser has returned a 'T.Partial' result, supply it with more
 -- input.

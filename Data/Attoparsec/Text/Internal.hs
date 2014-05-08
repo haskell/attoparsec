@@ -60,11 +60,14 @@ module Data.Attoparsec.Text.Internal
 
     -- * Utilities
     , endOfLine
+    , endOfInput
+    , match
+    , atEnd
     ) where
 
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
-import Data.Attoparsec.Combinator
+import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.String (IsString(..))
 import Data.Text (Text)
@@ -90,7 +93,12 @@ instance (a ~ Text) => IsString (Parser a) where
 -- >digit = satisfy isDigit
 -- >    where isDigit c = c >= '0' && c <= '9'
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy = satisfyElem
+satisfy p = do
+  c <- ensure 1
+  let !h = unsafeChunkHead c
+  if p h
+    then advance 1 >> return h
+    else fail "satisfy"
 {-# INLINE satisfy #-}
 
 -- | The parser @skip p@ succeeds for any character for which the
@@ -487,3 +495,28 @@ wantInput = T.Parser $ \t pos more _lose succ ->
       | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
                                succ' t' pos' more' = succ t' pos' more' True
                            in prompt t pos more lose' succ'
+
+-- | Match only if all input has been consumed.
+endOfInput :: Parser ()
+endOfInput = T.Parser $ \t pos more lose succ ->
+  case () of
+    _| chunkLengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
+     | more == Complete -> succ t pos more ()
+     | otherwise ->
+       let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
+           succ' t' pos' more' _a = lose t' pos' more' [] "endOfInput"
+       in  runParser demandInput t pos more lose' succ'
+
+-- | This combinator returns both the result of a parse and the
+-- portion of the input that was consumed while it was being parsed.
+match :: Parser a -> Parser (Text, a)
+match p = T.Parser $ \t pos more lose succ ->
+  let succ' t' pos' more' a = succ t' pos' more'
+                              (substring pos (pos'-pos) t', a)
+  in runParser p t pos more lose succ'
+
+-- | Return an indication of whether the end of input has been
+-- reached.
+atEnd :: Parser Bool
+atEnd = not <$> wantInput
+{-# INLINE atEnd #-}

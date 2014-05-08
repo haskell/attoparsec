@@ -35,9 +35,6 @@ module Data.Attoparsec.ByteString.Char8
     , A.maybeResult
     , A.eitherResult
 
-    -- * Combinators
-    , module Data.Attoparsec.Combinator
-
     -- * Parsing individual characters
     , char
     , char8
@@ -101,6 +98,29 @@ module Data.Attoparsec.ByteString.Char8
     , number
     , rational
     , scientific
+
+    -- * Combinators
+    , try
+    , (<?>)
+    , choice
+    , count
+    , option
+    , many'
+    , many1
+    , many1'
+    , manyTill
+    , manyTill'
+    , sepBy
+    , sepBy'
+    , sepBy1
+    , sepBy1'
+    , skipMany
+    , skipMany1
+    , eitherP
+    , I.match
+    -- * State observation and manipulation functions
+    , I.endOfInput
+    , I.atEnd
     ) where
 
 import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))

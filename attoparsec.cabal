@@ -98,7 +98,7 @@ benchmark benchmarks
     base == 4.*,
     array,
     bytestring,
-    criterion >= 0.5,
+    criterion >= 0.8.1.0,
     deepseq >= 1.1,
     parsec >= 3.1.2,
     scientific,

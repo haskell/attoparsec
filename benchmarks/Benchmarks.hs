@@ -24,6 +24,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Text.Parsec as P
 
 #if !MIN_VERSION_bytestring(0,10,0)
+import Data.ByteString.Internal (ByteString(..))
 instance NFData ByteString where
     rnf (PS _ _ _) = ()
 #endif

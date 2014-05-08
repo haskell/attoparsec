@@ -101,7 +101,7 @@ type Success a r = T.Success B.ByteString a r
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p = do
   c <- ensure 1
-  let !h = unsafeChunkHead c
+  let !h = B.unsafeHead c
   if p h
     then advance 1 >> return h
     else fail "satisfy"
@@ -430,13 +430,12 @@ inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
 {-# INLINE inlinePerformIO #-}
 
 get :: Parser ByteString
-get = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (unsafeChunkDrop pos t)
+get = T.Parser $ \t pos more _lose succ -> succ t pos more (B.unsafeDrop pos t)
 {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (pos == chunkLength t)
+  succ t pos more (pos == B.length t)
 {-# INLINE endOfChunk #-}
 
 advance :: Int -> Parser ()
@@ -450,7 +449,7 @@ ensureSuspended :: Int -> ByteString -> Pos -> More
 ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
   where go = T.Parser $ \t' pos' more' lose' succ' ->
-          if chunkLengthAtLeast pos' n t'
+          if lengthAtLeast pos' n t'
           then succ' t' pos' more' (substring pos n t')
           else runParser (demandInput >> go) t' pos' more' lose' succ'
 
@@ -458,7 +457,7 @@ ensureSuspended n t pos more lose succ =
 -- current input, otherwise fail.
 ensure :: Int -> Parser ByteString
 ensure n = T.Parser $ \t pos more lose succ ->
-    if chunkLengthAtLeast pos n t
+    if lengthAtLeast pos n t
     then succ t pos more (substring pos n t)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensureSuspended n t pos more lose succ
@@ -472,7 +471,7 @@ prompt :: ByteString -> Pos -> More
        -> (ByteString -> Pos -> More -> IResult ByteString r)
        -> IResult ByteString r
 prompt t pos _more lose succ = Partial $ \s ->
-  if nullChunk s
+  if B.null s
   then lose t pos Complete
   else succ (t <> s) pos Incomplete
 
@@ -492,7 +491,7 @@ demandInput = T.Parser $ \t pos more lose succ ->
 wantInput :: Parser Bool
 wantInput = T.Parser $ \t pos more _lose succ ->
   case () of
-    _ | chunkLengthAtLeast pos 1 t -> succ t pos more True
+    _ | lengthAtLeast pos 1 t -> succ t pos more True
       | more == Complete -> succ t pos more False
       | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
                                succ' t' pos' more' = succ t' pos' more' True
@@ -501,7 +500,7 @@ wantInput = T.Parser $ \t pos more _lose succ ->
 endOfInput :: Parser ()
 endOfInput = T.Parser $ \t pos more lose succ ->
   case () of
-    _| chunkLengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
+    _| lengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
      | more == Complete -> succ t pos more ()
      | otherwise ->
        let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
@@ -521,3 +520,11 @@ match p = T.Parser $ \t pos more lose succ ->
 atEnd :: Parser Bool
 atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
+
+lengthAtLeast :: Pos -> Int -> ByteString -> Bool
+lengthAtLeast pos n bs = B.length bs >= pos + n
+{-# INLINE lengthAtLeast #-}
+
+substring :: Pos -> Int -> ByteString -> ByteString
+substring pos n bs = B.unsafeTake n (B.unsafeDrop pos bs)
+{-# INLINE substring #-}

@@ -21,22 +21,13 @@ module Data.Attoparsec.Internal.Types
     , IResult(..)
     , More(..)
     , (<>)
-    , Chunk(..)
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
-import Data.ByteString (ByteString)
-import Data.ByteString.Internal (w2c)
 import Data.Monoid (Monoid(..))
-import Data.Text (Text)
-import Data.Word (Word8)
 import Prelude hiding (getChar, succ)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Unsafe as BS
-import qualified Data.Text as T
-import qualified Data.Text.Unsafe as T
 
 type Pos = Int
 
@@ -193,54 +184,3 @@ instance (Monoid t) => Alternative (Parser t) where
 (<>) :: (Monoid m) => m -> m -> m
 (<>) = mappend
 {-# INLINE (<>) #-}
-
--- | A common interface for input chunks.
-class Monoid c => Chunk c where
-  type ChunkElem c
-  -- | Test if the chunk is empty.
-  nullChunk :: c -> Bool
-  -- | Get the head element of a non-empty chunk.
-  unsafeChunkHead :: c -> ChunkElem c
-  -- | Check if the chunk has the length of at least @n@ elements.
-  chunkLengthAtLeast :: Pos -> Int -> c -> Bool
-  chunkLength :: c -> Int
-  -- | Map an element to the corresponding character.
-  --   The first argument is ignored.
-  chunkElemToChar :: c -> ChunkElem c -> Char
-  substring :: Int -> Int -> c -> c
-  unsafeChunkDrop :: Int -> c -> c
-
-instance Chunk ByteString where
-  type ChunkElem ByteString = Word8
-  nullChunk = BS.null
-  {-# INLINE nullChunk #-}
-  unsafeChunkHead = BS.unsafeHead
-  {-# INLINE unsafeChunkHead #-}
-  chunkLengthAtLeast pos n bs = BS.length bs >= pos + n
-  {-# INLINE chunkLengthAtLeast #-}
-  chunkLength = BS.length
-  {-# INLINE chunkLength #-}
-  chunkElemToChar = const w2c
-  {-# INLINE chunkElemToChar #-}
-  substring pos n bs = BS.unsafeTake n (BS.unsafeDrop pos bs)
-  {-# INLINE substring #-}
-  unsafeChunkDrop = BS.unsafeDrop
-  {-# INLINE unsafeChunkDrop #-}
-
-instance Chunk Text where
-  type ChunkElem Text = Char
-  nullChunk = T.null
-  {-# INLINE nullChunk #-}
-  unsafeChunkHead = T.unsafeHead
-  {-# INLINE unsafeChunkHead #-}
-  chunkLengthAtLeast pos n t = T.lengthWord16 t `quot` 2 >= o || T.length t >= o
-    where o = pos + n
-  {-# INLINE chunkLengthAtLeast #-}
-  chunkLength = T.length
-  {-# INLINE chunkLength #-}
-  chunkElemToChar = const id
-  {-# INLINE chunkElemToChar #-}
-  substring pos n t = T.take n (T.drop pos t)
-  {-# INLINE substring #-}
-  unsafeChunkDrop = T.drop
-  {-# INLINE unsafeChunkDrop #-}

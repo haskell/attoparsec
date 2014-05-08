@@ -69,14 +69,15 @@ import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
+import Data.Char (chr, ord)
 import Data.String (IsString(..))
 import Data.Text (Text)
 import Prelude hiding (getChar, succ, take, takeWhile)
-import Data.Char (chr, ord)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
+import qualified Data.Text.Unsafe as T
 
 type Parser = T.Parser Text
 type Result = IResult Text
@@ -95,7 +96,7 @@ instance (a ~ Text) => IsString (Parser a) where
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p = do
   c <- ensure 1
-  let !h = unsafeChunkHead c
+  let !h = T.unsafeHead c
   if p h
     then advance 1 >> return h
     else fail "satisfy"
@@ -380,7 +381,7 @@ notChar c = satisfy (/= c) <?> "not " ++ show c
 peekChar :: Parser (Maybe Char)
 peekChar = T.Parser $ \t pos more _lose succ ->
   case () of
-    _| chunkLengthAtLeast pos 1 t ->
+    _| lengthAtLeast pos 1 t ->
        let !c = T.head (T.drop pos t)
        in succ t pos more (Just c)
      | more == Complete ->
@@ -429,13 +430,12 @@ parseOnly m s = case runParser m s 0 Complete failK successK of
 {-# INLINE parseOnly #-}
 
 get :: Parser Text
-get = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (unsafeChunkDrop pos t)
+get = T.Parser $ \t pos more _lose succ -> succ t pos more (T.drop pos t)
 {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (pos == chunkLength t)
+  succ t pos more (pos == T.length t)
 {-# INLINE endOfChunk #-}
 
 advance :: Int -> Parser ()
@@ -448,7 +448,7 @@ ensureSuspended :: Int -> Text -> Pos -> More
 ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
   where go = T.Parser $ \t' pos' more' lose' succ' ->
-          if chunkLengthAtLeast pos' n t'
+          if lengthAtLeast pos' n t'
           then succ' t' pos' more' (substring pos n t')
           else runParser (demandInput >> go) t' pos' more' lose' succ'
 
@@ -456,7 +456,7 @@ ensureSuspended n t pos more lose succ =
 -- current input, otherwise fail.
 ensure :: Int -> Parser Text
 ensure n = T.Parser $ \t pos more lose succ ->
-    if chunkLengthAtLeast pos n t
+    if lengthAtLeast pos n t
     then succ t pos more (substring pos n t)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensureSuspended n t pos more lose succ
@@ -470,7 +470,7 @@ prompt :: Text -> Pos -> More
        -> (Text -> Pos -> More -> IResult Text r)
        -> Result r
 prompt t pos _more lose succ = Partial $ \s ->
-  if nullChunk s
+  if T.null s
   then lose t pos Complete
   else succ (t <> s) pos Incomplete
 
@@ -490,7 +490,7 @@ demandInput = T.Parser $ \t pos more lose succ ->
 wantInput :: Parser Bool
 wantInput = T.Parser $ \t pos more _lose succ ->
   case () of
-    _ | chunkLengthAtLeast pos 1 t -> succ t pos more True
+    _ | lengthAtLeast pos 1 t -> succ t pos more True
       | more == Complete -> succ t pos more False
       | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
                                succ' t' pos' more' = succ t' pos' more' True
@@ -500,7 +500,7 @@ wantInput = T.Parser $ \t pos more _lose succ ->
 endOfInput :: Parser ()
 endOfInput = T.Parser $ \t pos more lose succ ->
   case () of
-    _| chunkLengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
+    _| lengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
      | more == Complete -> succ t pos more ()
      | otherwise ->
        let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
@@ -520,3 +520,12 @@ match p = T.Parser $ \t pos more lose succ ->
 atEnd :: Parser Bool
 atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
+
+lengthAtLeast :: Pos -> Int -> Text -> Bool
+lengthAtLeast pos n t = T.lengthWord16 t `quot` 2 >= o || T.length t >= o
+    where o = pos + n
+{-# INLINE lengthAtLeast #-}
+
+substring :: Pos -> Int -> Text -> Text
+substring pos n t = T.take n (T.drop pos t)
+{-# INLINE substring #-}

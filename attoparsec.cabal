@@ -20,7 +20,6 @@ extra-source-files:
     README.markdown
     benchmarks/*.hs
     benchmarks/Makefile
-    benchmarks/attoparsec-benchmarks.cabal
     benchmarks/med.txt.bz2
     changelog.md
     examples/*.c

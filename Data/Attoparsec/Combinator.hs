@@ -30,6 +30,7 @@ module Data.Attoparsec.Combinator
     , skipMany1
     , eitherP
     , match
+    , feed
     -- * Parsing individual chunk elements
     , satisfyElem
     -- * State observation and manipulation functions
@@ -41,8 +42,9 @@ import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Internal (demandInput, ensure, advance, wantInput)
-import Data.Attoparsec.Internal.Types (Chunk(..), More(..), Parser(..))
+import Data.Attoparsec.Internal.Types (Chunk(..), More(..), Parser(..), IResult(..))
 import Data.ByteString (ByteString)
+import Data.Monoid (Monoid(mappend))
 import Data.Text (Text)
 import qualified Data.Attoparsec.Zepto as Z
 import Prelude hiding (succ)
@@ -277,3 +279,11 @@ match p = Parser $ \t pos more lose succ ->
 {-# SPECIALIZE match :: Parser ByteString a
                      -> Parser ByteString (ByteString, a) #-}
 {-# SPECIALIZE match :: Parser Text a -> Parser Text (Text, a) #-}
+
+-- | If a parser has returned a 'T.Partial' result, supply it with more
+-- input.
+feed :: Monoid t => IResult t r -> t -> IResult t r
+feed f@(Fail _ _ _) _ = f
+feed (Partial k) d    = k d
+feed (Done t r) d     = Done (mappend t d) r
+{-# INLINE feed #-}

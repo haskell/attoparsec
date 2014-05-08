@@ -31,7 +31,7 @@ module Data.Attoparsec.Text
 
     -- * Running parsers
     , parse
-    , feed
+    , I.feed
     , I.parseOnly
     , parseWith
     , parseTest
@@ -220,14 +220,6 @@ import qualified Data.Text as T
 --
 -- Make active use of benchmarking and profiling tools to measure,
 -- find the problems with, and improve the performance of your parser.
-
--- | If a parser has returned a 'Partial' result, supply it with more
--- input.
-feed :: Result r -> Text -> Result r
-feed f@(T.Fail _ _ _) _ = f
-feed (T.Partial k) d    = k d
-feed (T.Done bs r) d    = T.Done (T.append bs d) r
-{-# INLINE feed #-}
 
 -- | Run a parser and print its result to standard output.
 parseTest :: (Show a) => I.Parser a -> Text -> IO ()

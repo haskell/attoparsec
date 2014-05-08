@@ -27,7 +27,6 @@ module Data.Attoparsec.ByteString.Char8
 
     -- * Running parsers
     , A.parse
-    , A.feed
     , A.parseOnly
     , A.parseTest
     , A.parseWith

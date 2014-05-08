@@ -66,7 +66,6 @@ import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
-import Data.Attoparsec.Internal
 import Data.String (IsString(..))
 import Data.Text (Text)
 import Prelude hiding (getChar, succ, take, takeWhile)
@@ -420,3 +419,71 @@ parseOnly m s = case runParser m s 0 Complete failK successK of
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
+
+get :: Parser Text
+get = T.Parser $ \t pos more _lose succ ->
+  succ t pos more (unsafeChunkDrop pos t)
+{-# INLINE get #-}
+
+endOfChunk :: Parser Bool
+endOfChunk = T.Parser $ \t pos more _lose succ ->
+  succ t pos more (pos == chunkLength t)
+{-# INLINE endOfChunk #-}
+
+advance :: Int -> Parser ()
+advance n = T.Parser $ \t pos more _lose succ -> succ t (pos+n) more ()
+{-# INLINE advance #-}
+
+ensureSuspended :: Int -> Text -> Pos -> More
+                -> Failure r -> Success Text r
+                -> Result r
+ensureSuspended n t pos more lose succ =
+    runParser (demandInput >> go) t pos more lose succ
+  where go = T.Parser $ \t' pos' more' lose' succ' ->
+          if chunkLengthAtLeast pos' n t'
+          then succ' t' pos' more' (substring pos n t')
+          else runParser (demandInput >> go) t' pos' more' lose' succ'
+
+-- | If at least @n@ elements of input are available, return the
+-- current input, otherwise fail.
+ensure :: Int -> Parser Text
+ensure n = T.Parser $ \t pos more lose succ ->
+    if chunkLengthAtLeast pos n t
+    then succ t pos more (substring pos n t)
+    -- The uncommon case is kept out-of-line to reduce code size:
+    else ensureSuspended n t pos more lose succ
+-- Non-recursive so the bounds check can be inlined:
+{-# INLINE ensure #-}
+
+-- | Ask for input.  If we receive any, pass it to a success
+-- continuation, otherwise to a failure continuation.
+prompt :: Text -> Pos -> More
+       -> (Text -> Pos -> More -> IResult Text r)
+       -> (Text -> Pos -> More -> IResult Text r)
+       -> Result r
+prompt t pos _more lose succ = Partial $ \s ->
+  if nullChunk s
+  then lose t pos Complete
+  else succ (t <> s) pos Incomplete
+
+-- | Immediately demand more input via a 'Partial' continuation
+-- result.
+demandInput :: Parser ()
+demandInput = T.Parser $ \t pos more lose succ ->
+  case more of
+    Complete -> lose t pos more [] "not enough input"
+    _ -> let lose' t' pos' more' = lose t' pos' more' [] "not enough input"
+             succ' t' pos' more' = succ t' pos' more' ()
+         in prompt t pos more lose' succ'
+
+-- | This parser always succeeds.  It returns 'True' if any input is
+-- available either immediately or on demand, and 'False' if the end
+-- of all input has been reached.
+wantInput :: Parser Bool
+wantInput = T.Parser $ \t pos more _lose succ ->
+  case () of
+    _ | chunkLengthAtLeast pos 1 t -> succ t pos more True
+      | more == Complete -> succ t pos more False
+      | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
+                               succ' t' pos' more' = succ t' pos' more' True
+                           in prompt t pos more lose' succ'

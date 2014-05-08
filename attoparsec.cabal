@@ -18,6 +18,7 @@ description:
     file formats.
 extra-source-files:
     README.markdown
+    benchmarks/*.cabal
     benchmarks/*.hs
     benchmarks/Makefile
     benchmarks/med.txt.bz2

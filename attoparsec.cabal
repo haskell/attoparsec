@@ -91,15 +91,17 @@ test-suite tests
 
 benchmark benchmarks
   type: exitcode-stdio-1.0
-  hs-source-dirs: benchmarks
+  hs-source-dirs: benchmarks, .
   main-is: Benchmarks.hs
+  ghc-options: -O2
   build-depends:
-    attoparsec,
-    base,
+    base == 4.*,
+    array,
     bytestring,
     criterion >= 0.5,
     deepseq >= 1.1,
     parsec >= 3.1.2,
+    scientific,
     text
 
 source-repository head

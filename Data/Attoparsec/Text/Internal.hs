@@ -95,10 +95,10 @@ instance (a ~ Text) => IsString (Parser a) where
 -- >    where isDigit c = c >= '0' && c <= '9'
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p = do
-  c <- ensure 1
+  (k,c) <- ensure 1
   let !h = T.unsafeHead c
   if p h
-    then advance 1 >> return h
+    then advance k >> return h
     else fail "satisfy"
 {-# INLINE satisfy #-}
 
@@ -109,9 +109,9 @@ satisfy p = do
 -- >    where isDigit c = c >= '0' && c <= '9'
 skip :: (Char -> Bool) -> Parser ()
 skip p = do
-  s <- ensure 1
+  (k,s) <- ensure 1
   if p (T.head s)
-    then advance 1
+    then advance k
     else fail "skip"
 
 -- | The parser @satisfyWith f p@ transforms a character, and succeeds
@@ -119,10 +119,10 @@ skip p = do
 -- parser returns the transformed character that was parsed.
 satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
-  s <- ensure 1
+  (k,s) <- ensure 1
   let c = f $! T.head s
   if p c
-    then advance 1 >> return c
+    then advance k >> return c
     else fail "satisfyWith"
 {-# INLINE satisfyWith #-}
 
@@ -130,10 +130,10 @@ satisfyWith f p = do
 -- predicate returns 'True'.
 takeWith :: Int -> (Text -> Bool) -> Parser Text
 takeWith n p = do
-  s <- ensure n
+  (k,s) <- ensure n
   let h = T.take n s
   if p h
-    then advance n >> return h
+    then advance k >> return h
     else fail "takeWith"
 
 -- | Consume exactly @n@ characters of input.
@@ -172,9 +172,9 @@ stringCI s = go 0
     go !n
       | n > T.length fs = fail "stringCI"
       | otherwise = do
-      t <- ensure n
+      (k,t) <- ensure n
       if T.toCaseFold t == fs
-        then advance n >> return t
+        then advance k >> return t
         else go (n+1)
     fs = T.toCaseFold s
 {-# INLINE stringCI #-}
@@ -183,10 +183,10 @@ stringCI s = go 0
 -- | Satisfy a literal string, ignoring case for characters in the ASCII range.
 asciiCI :: Text -> Parser Text
 asciiCI input = do
-  t <- ensure n
+  (k,t) <- ensure n
   let h = T.take n t
   if asciiToLower h == s
-    then advance n >> return h
+    then advance k >> return h
     else fail "asciiCI"
   where
     n = T.length input
@@ -397,7 +397,7 @@ peekChar = T.Parser $ \t pos more _lose succ ->
 -- input, but will fail if end of input has been reached.
 peekChar' :: Parser Char
 peekChar' = do
-  s <- ensure 1
+  (_,s) <- ensure 1
   return $! T.head s
 {-# INLINE peekChar' #-}
 
@@ -445,21 +445,21 @@ advance n = T.Parser $ \t pos more _lose succ ->
 {-# INLINE advance #-}
 
 ensureSuspended :: Int -> Text -> Pos -> More
-                -> Failure r -> Success Text r
+                -> Failure r -> Success (Int,Text) r
                 -> Result r
 ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
   where go = T.Parser $ \t' pos' more' lose' succ' ->
           if lengthAtLeast pos' n t'
-          then succ' t' pos' more' (substring pos n t')
+          then succ' t' pos' more' (n, substring pos n t')
           else runParser (demandInput >> go) t' pos' more' lose' succ'
 
 -- | If at least @n@ elements of input are available, return the
 -- current input, otherwise fail.
-ensure :: Int -> Parser Text
+ensure :: Int -> Parser (Int, Text)
 ensure n = T.Parser $ \t pos more lose succ ->
     if lengthAtLeast pos n t
-    then succ t pos more (substring pos n t)
+    then succ t pos more (n, substring pos n t)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensureSuspended n t pos more lose succ
 -- Non-recursive so the bounds check can be inlined:

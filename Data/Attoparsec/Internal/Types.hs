@@ -116,20 +116,18 @@ instance Monoid More where
     mappend _ m          = m
     mempty               = Incomplete
 
-bindP :: Parser t a -> (a -> Parser t b) -> Parser t b
-bindP m k = Parser $ \t pos more lose succ ->
-    let succ' t' pos' more' a = runParser (k a) t' pos' more' lose succ
-    in runParser m t pos more lose succ'
-{-# INLINE bindP #-}
-
-returnP :: a -> Parser t a
-returnP v = Parser $ \t pos more _lose succ -> succ t pos more v
-{-# INLINE returnP #-}
-
 instance Monad (Parser t) where
-    return = returnP
-    (>>=)  = bindP
-    fail   = failDesc
+    fail err = Parser $ \t pos more lose _succ -> lose t pos more [] msg
+      where msg = "Failed reading: " ++ err
+    {-# INLINE fail #-}
+
+    return v = Parser $ \t pos more _lose succ -> succ t pos more v
+    {-# INLINE return #-}
+
+    m >>= k = Parser $ \t !pos more lose succ ->
+        let succ' t' !pos' more' a = runParser (k a) t' pos' more' lose succ
+        in runParser m t pos more lose succ'
+    {-# INLINE (>>=) #-}
 
 plus :: (Monoid t) => Parser t a -> Parser t a -> Parser t a
 plus f g = Parser $ \t pos more lose succ ->
@@ -137,7 +135,7 @@ plus f g = Parser $ \t pos more lose succ ->
   in runParser f t pos more lose' succ
 
 instance (Monoid t) => MonadPlus (Parser t) where
-    mzero = failDesc "mzero"
+    mzero = fail "mzero"
     {-# INLINE mzero #-}
     mplus = plus
 
@@ -155,7 +153,7 @@ apP d e = do
 {-# INLINE apP #-}
 
 instance Applicative (Parser t) where
-    pure   = returnP
+    pure   = return
     {-# INLINE pure #-}
     (<*>)  = apP
     {-# INLINE (<*>) #-}
@@ -169,13 +167,13 @@ instance Applicative (Parser t) where
     {-# INLINE (<*) #-}
 
 instance (Monoid t) => Monoid (Parser t a) where
-    mempty  = failDesc "mempty"
+    mempty  = fail "mempty"
     {-# INLINE mempty #-}
     mappend = plus
     {-# INLINE mappend #-}
 
 instance (Monoid t) => Alternative (Parser t) where
-    empty = failDesc "empty"
+    empty = fail "empty"
     {-# INLINE empty #-}
 
     (<|>) = plus
@@ -191,11 +189,6 @@ instance (Monoid t) => Alternative (Parser t) where
         many_v = some_v <|> pure []
         some_v = (:) <$> v <*> many_v
     {-# INLINE some #-}
-
-failDesc :: String -> Parser t a
-failDesc err = Parser $ \t pos more lose _succ -> lose t pos more [] msg
-    where msg = "Failed reading: " ++ err
-{-# INLINE failDesc #-}
 
 (<>) :: (Monoid m) => m -> m -> m
 (<>) = mappend

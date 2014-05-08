@@ -67,6 +67,7 @@ library
 
   if flag(developer)
     ghc-prof-options: -auto-all
+    ghc-options: -Werror
 
 test-suite tests
   type:           exitcode-stdio-1.0
@@ -79,6 +80,9 @@ test-suite tests
 
   ghc-options:
     -Wall -threaded -rtsopts
+
+  if flag(developer)
+    ghc-options: -Werror
 
   build-depends:
     attoparsec,
@@ -93,7 +97,12 @@ benchmark benchmarks
   type: exitcode-stdio-1.0
   hs-source-dirs: benchmarks, .
   main-is: Benchmarks.hs
-  ghc-options: -O2
+
+  ghc-options: -O2 -Wall
+
+  if flag(developer)
+    ghc-options: -Werror
+
   build-depends:
     base == 4.*,
     array,

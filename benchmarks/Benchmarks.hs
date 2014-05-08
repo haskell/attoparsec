@@ -1,13 +1,14 @@
 {-# LANGUAGE BangPatterns, CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Control.Applicative
+import Control.Applicative (many)
 import Control.DeepSeq (NFData(rnf))
-import Criterion.Main (bench, bgroup, defaultMain, nf, whnf)
+import Criterion.Main (bench, bgroup, defaultMain, nf)
 import Data.Bits (unsafeShiftL)
-import Data.ByteString.Internal (ByteString(..))
-import Data.Char
+import Data.Char (isAlpha)
 import Data.Scientific (Scientific(..))
 import Data.Word (Word32)
+import Data.Word (Word8)
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
 import qualified Data.Attoparsec.ByteString as AB
@@ -20,7 +21,6 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import Data.Word (Word8)
 import qualified Text.Parsec as P
 
 #if !MIN_VERSION_bytestring(0,10,0)
@@ -37,9 +37,7 @@ chunksOf k = go
                   ([],_)  -> []
                   (y, ys) -> y : go ys
 
-fromLazy :: BL.ByteString -> B.ByteString
-fromLazy = B.concat . BL.toChunks
-
+main :: IO ()
 main = do
   let s  = take 1024 . cycle $ ['a'..'z'] ++ ['A'..'Z']
       !b = BC.pack s

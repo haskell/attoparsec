@@ -18,4 +18,4 @@ executable attoparsec-benchmarks
     deepseq >= 1.1,
     parsec >= 3.1.2,
     scientific,
-    text
+    text >= 0.11.3.1

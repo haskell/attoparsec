@@ -201,8 +201,6 @@ class Monoid c => Chunk c where
   nullChunk :: c -> Bool
   -- | Get the head element of a non-empty chunk.
   unsafeChunkHead :: c -> ChunkElem c
-  -- | Get the tail of a non-empty chunk.
-  unsafeChunkTail :: c -> c
   -- | Check if the chunk has the length of at least @n@ elements.
   chunkLengthAtLeast :: Int -> c -> Bool
   chunkLength :: c -> Int
@@ -218,8 +216,6 @@ instance Chunk ByteString where
   {-# INLINE nullChunk #-}
   unsafeChunkHead = BS.unsafeHead
   {-# INLINE unsafeChunkHead #-}
-  unsafeChunkTail = BS.unsafeTail
-  {-# INLINE unsafeChunkTail #-}
   chunkLengthAtLeast n bs = BS.length bs >= n
   {-# INLINE chunkLengthAtLeast #-}
   chunkLength = BS.length
@@ -237,8 +233,6 @@ instance Chunk Text where
   {-# INLINE nullChunk #-}
   unsafeChunkHead = T.unsafeHead
   {-# INLINE unsafeChunkHead #-}
-  unsafeChunkTail = T.unsafeTail
-  {-# INLINE unsafeChunkTail #-}
   chunkLengthAtLeast n t = T.lengthWord16 t `quot` 2 >= n || T.length t >= n
   {-# INLINE chunkLengthAtLeast #-}
   chunkLength = T.length

@@ -254,7 +254,7 @@ satisfyElem p = do
 endOfInput :: Chunk t => Parser t ()
 endOfInput = Parser $ \t pos more lose succ ->
   case () of
-    _| chunkLengthAtLeast (pos+1) t -> lose t pos more [] "endOfInput"
+    _| chunkLengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
      | more == Complete -> succ t pos more ()
      | otherwise ->
        let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()

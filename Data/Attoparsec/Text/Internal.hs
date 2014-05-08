@@ -373,7 +373,7 @@ notChar c = satisfy (/= c) <?> "not " ++ show c
 peekChar :: Parser (Maybe Char)
 peekChar = T.Parser $ \t pos more _lose succ ->
   case () of
-    _| chunkLengthAtLeast (pos+1) t ->
+    _| chunkLengthAtLeast pos 1 t ->
        let !c = T.head (T.drop pos t)
        in succ t pos more (Just c)
      | more == Complete ->

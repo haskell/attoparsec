@@ -59,7 +59,7 @@ ensureSuspended :: Chunk t => Int -> t -> Pos -> More
 ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
   where go = Parser $ \t' pos' more' lose' succ' ->
-          if chunkLengthAtLeast (pos'+n) t'
+          if chunkLengthAtLeast pos' n t'
           then succ' t' pos' more' (substring pos n t')
           else runParser (demandInput >> go) t' pos' more' lose' succ'
 {-# SPECIALIZE ensureSuspended :: Int -> ByteString -> Pos -> More
@@ -74,7 +74,7 @@ ensureSuspended n t pos more lose succ =
 -- current input, otherwise fail.
 ensure :: Chunk t => Int -> Parser t t
 ensure n = Parser $ \t pos more lose succ ->
-    if chunkLengthAtLeast (pos+n) t
+    if chunkLengthAtLeast pos n t
     then succ t pos more (substring pos n t)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensureSuspended n t pos more lose succ
@@ -118,7 +118,7 @@ demandInput = Parser $ \t pos more lose succ ->
 wantInput :: Chunk t => Parser t Bool
 wantInput = Parser $ \t pos more _lose succ ->
   case () of
-    _ | chunkLengthAtLeast (pos+1) t -> succ t pos more True
+    _ | chunkLengthAtLeast pos 1 t -> succ t pos more True
       | more == Complete -> succ t pos more False
       | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
                                succ' t' pos' more' = succ t' pos' more' True

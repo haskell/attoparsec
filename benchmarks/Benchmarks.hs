@@ -162,7 +162,7 @@ quotedString = AB.scan False $ \s c -> if s then Just False
                                             then Nothing
                                             else Just (c == backslash)
 
-#if !MIN_VERSION_base(4,4)
+#if !MIN_VERSION_base(4,5,0)
 unsafeShiftL :: Bits a => a -> Int -> a
 unsafeShiftL = shiftL
 #endif

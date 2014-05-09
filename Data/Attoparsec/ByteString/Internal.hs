@@ -199,8 +199,9 @@ skipWhile p = go
 -- predicate returns 'True' on the first byte of input.
 --
 -- /Note/: Because this parser does not fail, do not use it with
--- combinators such as 'many', because such parsers loop until a
--- failure occurs.  Careless use will thus result in an infinite loop.
+-- combinators such as 'Control.Applicative.many', because such
+-- parsers loop until a failure occurs.  Careless use will thus result
+-- in an infinite loop.
 takeTill :: (Word8 -> Bool) -> Parser B.ByteString
 takeTill p = takeWhile (not . p)
 {-# INLINE takeTill #-}
@@ -212,8 +213,9 @@ takeTill p = takeWhile (not . p)
 -- predicate returns 'False' on the first byte of input.
 --
 -- /Note/: Because this parser does not fail, do not use it with
--- combinators such as 'many', because such parsers loop until a
--- failure occurs.  Careless use will thus result in an infinite loop.
+-- combinators such as 'Control.Applicative.many', because such
+-- parsers loop until a failure occurs.  Careless use will thus result
+-- in an infinite loop.
 takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhile p = (B.concat . reverse) `fmap` go []
  where
@@ -293,8 +295,9 @@ scan_ f s0 p = go [] s0
 -- predicate returns 'Nothing' on the first byte of input.
 --
 -- /Note/: Because this parser does not fail, do not use it with
--- combinators such as 'many', because such parsers loop until a
--- failure occurs.  Careless use will thus result in an infinite loop.
+-- combinators such as 'Control.Applicative.many', because such
+-- parsers loop until a failure occurs.  Careless use will thus result
+-- in an infinite loop.
 scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
 scan = scan_ $ \_ chunks ->
   case chunks of
@@ -368,8 +371,9 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 -- input has been reached. Does not consume any input.
 --
 -- /Note/: Because this parser does not fail, do not use it with
--- combinators such as 'many', because such parsers loop until a
--- failure occurs.  Careless use will thus result in an infinite loop.
+-- combinators such as 'Control.Applicative.many', because such
+-- parsers loop until a failure occurs.  Careless use will thus result
+-- in an infinite loop.
 peekWord8 :: Parser (Maybe Word8)
 peekWord8 = T.Parser $ \t pos@(Pos pos_) more _lose succ ->
   case () of
@@ -509,8 +513,8 @@ endOfInput = T.Parser $ \t pos more lose succ ->
            succ' t' pos' more' _a = lose t' pos' more' [] "endOfInput"
        in  runParser demandInput t pos more lose' succ'
 
--- | This combinator returns both the result of a parse and the
--- portion of the input that was consumed while it was being parsed.
+-- | Return both the result of a parse and the portion of the input
+-- that was consumed while it was being parsed.
 match :: Parser a -> Parser (ByteString, a)
 match p = T.Parser $ \t pos more lose succ ->
   let succ' t' pos' more' a =

@@ -124,8 +124,9 @@ import qualified Data.Attoparsec.Internal.Types as T
 --   allow consumption of very large input without a large footprint.
 --   For this need, Attoparsec's incremental input provides an
 --   excellent substitute, with much more control over when input
---   takes place.  If you must use lazy bytestrings, see the 'Lazy'
---   module, which feeds lazy chunks to a regular parser.
+--   takes place.  If you must use lazy bytestrings, see the
+--   "Data.Attoparsec.ByteString.Lazy" module, which feeds lazy chunks
+--   to a regular parser.
 --
 -- * Parsec parsers can produce more helpful error messages than
 --   Attoparsec parsers.  This is a matter of focus: Attoparsec avoids

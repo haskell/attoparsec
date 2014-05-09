@@ -65,7 +65,6 @@ module Data.Attoparsec.Text.Internal
     , atEnd
     ) where
 
-import Debug.Trace
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator ((<?>))
@@ -525,7 +524,7 @@ atEnd = not <$> wantInput
 lengthAtLeast :: Pos -> Int -> Text -> Maybe Pos
 lengthAtLeast pos n t = go 0 (fromPos pos)
   where go i !p
-          | i == n    = Just (Pos p)
+          | i == n    = Just (Pos p - pos)
           | p == len  = Nothing
           | otherwise = go (i+1) (p + T.iter_ t p)
         Pos len = lengthOf t

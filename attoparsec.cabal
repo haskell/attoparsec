@@ -19,6 +19,7 @@ description:
 extra-source-files:
     README.markdown
     benchmarks/*.hs
+    benchmarks/*.txt
     benchmarks/Makefile
     benchmarks/attoparsec-benchmarks.cabal
     benchmarks/med.txt.bz2
@@ -93,6 +94,7 @@ benchmark benchmarks
   ghc-options: -O2 -Wall
   main-is: Benchmarks.hs
   other-modules:
+    Headers
     Numbers
   build-depends:
     attoparsec,

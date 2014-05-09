@@ -94,7 +94,8 @@ benchmark benchmarks
   ghc-options: -O2 -Wall
   main-is: Benchmarks.hs
   other-modules:
-    Headers
+    HeadersByteString
+    HeadersText
     Numbers
   build-depends:
     attoparsec,

@@ -9,7 +9,8 @@ import Data.Char (isAlpha)
 import Data.Word (Word32)
 import Data.Word (Word8)
 import Numbers (numbers)
-import qualified Headers
+import qualified HeadersByteString
+import qualified HeadersText
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
 import qualified Data.Attoparsec.ByteString as AB
@@ -46,7 +47,8 @@ main = do
       !bl = BL.fromChunks . map BC.pack . chunksOf 4 $ s
       !t = T.pack s
       !tl = TL.fromChunks . map T.pack . chunksOf 4 $ s
-  headers <- Headers.headers
+  headersBS <- HeadersByteString.headers
+  headersT <- HeadersText.headers
   defaultMain [
      bgroup "many" [
        bgroup "attoparsec" [
@@ -84,7 +86,8 @@ main = do
        bench "short" $ nf (AB.parse quotedString) (BC.pack "abcdefghijk\"")
      , bench "long" $ nf (AB.parse quotedString) b
      ]
-   , headers
+   , headersBS
+   , headersT
    , numbers
    ]
 

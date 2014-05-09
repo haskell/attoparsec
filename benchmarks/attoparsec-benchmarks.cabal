@@ -9,7 +9,8 @@ build-type: Simple
 executable attoparsec-benchmarks
   main-is: Benchmarks.hs
   other-modules:
-    Headers
+    HeadersByteString
+    HeadersText
     Numbers
   hs-source-dirs: .. .
   ghc-options: -O2 -Wall

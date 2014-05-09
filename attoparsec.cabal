@@ -20,6 +20,7 @@ extra-source-files:
     README.markdown
     benchmarks/*.cabal
     benchmarks/*.hs
+    benchmarks/*.txt
     benchmarks/Makefile
     benchmarks/med.txt.bz2
     changelog.md
@@ -96,10 +97,11 @@ test-suite tests
 benchmark benchmarks
   type: exitcode-stdio-1.0
   hs-source-dirs: benchmarks, .
+  ghc-options: -O2 -Wall
   main-is: Benchmarks.hs
   other-modules:
+    Headers
     Numbers
-
   ghc-options: -O2 -Wall
 
   if flag(developer)

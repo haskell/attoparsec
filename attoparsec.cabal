@@ -90,7 +90,10 @@ test-suite tests
 benchmark benchmarks
   type: exitcode-stdio-1.0
   hs-source-dirs: benchmarks
+  ghc-options: -O2 -Wall
   main-is: Benchmarks.hs
+  other-modules:
+    Numbers
   build-depends:
     attoparsec,
     base,

@@ -1,13 +1,14 @@
 {-# LANGUAGE BangPatterns, CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Control.Applicative
+import Control.Applicative (many)
 import Control.DeepSeq (NFData(rnf))
-import Criterion.Main (bench, bgroup, defaultMain, nf, whnf)
-import Data.Bits (unsafeShiftL)
-import Data.ByteString.Internal (ByteString(..))
-import Data.Char
-import Data.Scientific (Scientific(..))
+import Criterion.Main (bench, bgroup, defaultMain, nf)
+import Data.Bits
+import Data.Char (isAlpha)
 import Data.Word (Word32)
+import Data.Word (Word8)
+import Numbers (numbers)
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
 import qualified Data.Attoparsec.ByteString as AB
@@ -20,10 +21,10 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
-import Data.Word (Word8)
 import qualified Text.Parsec as P
 
 #if !MIN_VERSION_bytestring(0,10,0)
+import Data.ByteString.Internal (ByteString(..))
 instance NFData ByteString where
     rnf (PS _ _ _) = ()
 #endif
@@ -37,9 +38,7 @@ chunksOf k = go
                   ([],_)  -> []
                   (y, ys) -> y : go ys
 
-fromLazy :: BL.ByteString -> B.ByteString
-fromLazy = B.concat . BL.toChunks
-
+main :: IO ()
 main = do
   let s  = take 1024 . cycle $ ['a'..'z'] ++ ['A'..'Z']
       !b = BC.pack s
@@ -75,67 +74,15 @@ main = do
    , bgroup "takeWhile" [
        bench "isAlpha" $ nf (ABL.parse (AC.takeWhile isAlpha)) bl
      , bench "isAlpha_ascii" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_ascii)) bl
-     , bench "isAlpha_iso8859_15" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
+     , bench "isAlpha_iso8859_15" $
+       nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
      ]
    , bench "word32LE" $ nf (AB.parse word32LE) b
    , bgroup "scan" [
        bench "short" $ nf (AB.parse quotedString) (BC.pack "abcdefghijk\"")
      , bench "long" $ nf (AB.parse quotedString) b
      ]
-
-   , let strN     = "1234.56789"
-         strNePos = "1234.56789e3"
-         strNeNeg = "1234.56789e-3"
-     in
-     bgroup "numbers"
-     [ let !tN     = T.pack strN
-           !tNePos = T.pack strNePos
-           !tNeNeg = T.pack strNeNeg
-       in bgroup "Text"
-       [
-         bgroup "no power"
-         [ bench "double"     $ nf (AT.parseOnly AT.double)                            tN
-         , bench "number"     $ nf (AT.parseOnly AT.number)                            tN
-         , bench "rational"   $ nf (AT.parseOnly (AT.rational :: AT.Parser Rational))  tN
-         , bench "scientific" $ nf (AT.parseOnly (AT.rational :: AT.Parser Scientific)) tN
-         ]
-       , bgroup "positive power"
-         [ bench "double"     $ nf (AT.parseOnly AT.double)                            tNePos
-         , bench "number"     $ nf (AT.parseOnly AT.number)                            tNePos
-         , bench "rational"   $ nf (AT.parseOnly (AT.rational :: AT.Parser Rational))  tNePos
-         , bench "scientific" $ nf (AT.parseOnly (AT.rational :: AT.Parser Scientific)) tNePos
-         ]
-       , bgroup "negative power"
-         [ bench "double"     $ nf (AT.parseOnly AT.double)                            tNeNeg
-         , bench "number"     $ nf (AT.parseOnly AT.number)                            tNeNeg
-         , bench "rational"   $ nf (AT.parseOnly (AT.rational :: AT.Parser Rational))  tNeNeg
-         , bench "scientific" $ nf (AT.parseOnly (AT.rational :: AT.Parser Scientific)) tNeNeg
-         ]
-       ]
-     , let !bN     = BC.pack strN
-           !bNePos = BC.pack strNePos
-           !bNeNeg = BC.pack strNeNeg
-       in bgroup "ByteString"
-       [ bgroup "no power"
-         [ bench "double"     $ nf (AC.parseOnly AC.double)                             bN
-         , bench "number"     $ nf (AC.parseOnly AC.number)                             bN
-         , bench "rational"   $ nf (AC.parseOnly (AC.rational :: AC.Parser Rational))   bN
-         , bench "scientific" $ nf (AC.parseOnly (AC.rational :: AC.Parser Scientific)) bN
-         ]
-       , bgroup "positive power"
-         [ bench "double"     $ nf (AC.parseOnly AC.double)                             bNePos
-         , bench "number"     $ nf (AC.parseOnly AC.number)                             bNePos
-         , bench "rational"   $ nf (AC.parseOnly (AC.rational :: AC.Parser Rational))   bNePos
-         , bench "scientific" $ nf (AC.parseOnly (AC.rational :: AC.Parser Scientific)) bNePos
-         ]
-       , bgroup "negative power"
-         [ bench "double"     $ nf (AC.parseOnly AC.double)                             bNeNeg
-         , bench "number"     $ nf (AC.parseOnly AC.number)                             bNeNeg
-         , bench "rational"   $ nf (AC.parseOnly (AC.rational :: AC.Parser Rational))   bNeNeg
-         , bench "scientific" $ nf (AC.parseOnly (AC.rational :: AC.Parser Scientific)) bNeNeg
-         ]
-       ]
-     ]
+   , numbers
    ]
 
 -- Benchmarks bind and (potential) bounds-check merging.
@@ -162,3 +109,8 @@ quotedString = AB.scan False $ \s c -> if s then Just False
                                        else if c == doubleQuote
                                             then Nothing
                                             else Just (c == backslash)
+
+#if !MIN_VERSION_base(4,5,0)
+unsafeShiftL :: Bits a => a -> Int -> a
+unsafeShiftL = shiftL
+#endif

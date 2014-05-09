@@ -55,9 +55,9 @@ try p = p
 (<?>) :: Parser t a
       -> String                 -- ^ the name to use if parsing fails
       -> Parser t a
-p <?> msg0 = Parser $ \i0 a0 m0 kf ks ->
-             let kf' i a m strs msg = kf i a m (msg0:strs) msg
-             in runParser p i0 a0 m0 kf' ks
+p <?> msg0 = Parser $ \t pos more lose succ ->
+             let lose' t' pos' more' strs msg = lose t' pos' more' (msg0:strs) msg
+             in runParser p t pos more lose' succ
 {-# INLINE (<?>) #-}
 infix 0 <?>
 

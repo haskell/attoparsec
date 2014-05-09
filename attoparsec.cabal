@@ -97,6 +97,8 @@ benchmark benchmarks
   type: exitcode-stdio-1.0
   hs-source-dirs: benchmarks, .
   main-is: Benchmarks.hs
+  other-modules:
+    Numbers
 
   ghc-options: -O2 -Wall
 

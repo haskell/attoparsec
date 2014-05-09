@@ -8,8 +8,10 @@ build-type: Simple
 
 executable attoparsec-benchmarks
   main-is: Benchmarks.hs
+  other-modules:
+    Numbers
   hs-source-dirs: .. .
-  ghc-options: -O2
+  ghc-options: -O2 -Wall
   build-depends:
     array,
     base == 4.*,

@@ -1,12 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Headers (headers) where
+module HeadersByteString (headers) where
 
 import Control.Applicative
 import Criterion.Main (bench, bgroup, nf)
 import Criterion.Types (Benchmark)
-import Text.Parsec.Text ()
-import Text.Parsec.Text.Lazy ()
 import qualified Data.Attoparsec.ByteString.Char8 as B
 import qualified Data.ByteString.Char8 as B
 
@@ -42,7 +40,7 @@ headers :: IO Benchmark
 headers = do
   req <- B.readFile "http-request.txt"
   resp <- B.readFile "http-response.txt"
-  return $ bgroup "headers" [
+  return $ bgroup "headersBS" [
       bench "request" $ nf (B.parseOnly request) req
     , bench "response" $ nf (B.parseOnly response) resp
     ]

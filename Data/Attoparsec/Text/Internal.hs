@@ -65,13 +65,14 @@ module Data.Attoparsec.Text.Internal
     , atEnd
     ) where
 
+import Debug.Trace
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.Char (chr, ord)
 import Data.String (IsString(..))
-import Data.Text (Text)
+import Data.Text.Internal (Text(..))
 import Prelude hiding (getChar, succ, take, takeWhile)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
@@ -110,7 +111,7 @@ satisfy p = do
 skip :: (Char -> Bool) -> Parser ()
 skip p = do
   (k,s) <- ensure 1
-  if p (T.head s)
+  if p (T.unsafeHead s)
     then advance k
     else fail "skip"
 
@@ -120,7 +121,7 @@ skip p = do
 satisfyWith :: (Char -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
   (k,s) <- ensure 1
-  let c = f $! T.head s
+  let c = f $! T.unsafeHead s
   if p c
     then advance k >> return c
     else fail "satisfyWith"
@@ -131,14 +132,13 @@ satisfyWith f p = do
 takeWith :: Int -> (Text -> Bool) -> Parser Text
 takeWith n p = do
   (k,s) <- ensure n
-  let h = T.take n s
-  if p h
-    then advance k >> return h
+  if p s
+    then advance k >> return s
     else fail "takeWith"
 
 -- | Consume exactly @n@ characters of input.
 take :: Int -> Parser Text
-take n = takeWith n (const True)
+take n = takeWith (max n 0) (const True)
 {-# INLINE take #-}
 
 -- | @string s@ parses a sequence of characters that identically match
@@ -184,9 +184,8 @@ stringCI s = go 0
 asciiCI :: Text -> Parser Text
 asciiCI input = do
   (k,t) <- ensure n
-  let h = T.take n t
-  if asciiToLower h == s
-    then advance k >> return h
+  if asciiToLower t == s
+    then advance k >> return t
     else fail "asciiCI"
   where
     n = T.length input
@@ -206,7 +205,7 @@ skipWhile p = go
  where
   go = do
     t <- T.takeWhile p <$> get
-    advance (T.length t)
+    advance (lengthOf t)
     eoc <- endOfChunk
     when eoc $ do
       input <- wantInput
@@ -240,7 +239,7 @@ takeWhile p = (T.concat . reverse) `fmap` go []
  where
   go acc = do
     h <- T.takeWhile p <$> get
-    advance (T.length h)
+    advance (lengthOf h)
     eoc <- endOfChunk
     if eoc
       then do
@@ -258,7 +257,7 @@ takeRest = go []
     if input
       then do
         s <- get
-        advance (T.length s)
+        advance (lengthOf s)
         go (s:acc)
       else return (reverse acc)
 
@@ -285,12 +284,12 @@ scan_ f s0 p = go [] s0
   go acc s = do
     input <- get
     case scanner s 0 input of
-      Continue s'  -> do advance (T.length input)
+      Continue s'  -> do advance (lengthOf input)
                          more <- wantInput
                          if more
                            then go (input : acc) s'
                            else f s' (input : acc)
-      Finished n t -> do advance (T.length input - T.length t)
+      Finished n t -> do advance (lengthOf input - lengthOf t)
                          f s (T.take n input : acc)
 {-# INLINE scan_ #-}
 
@@ -328,7 +327,7 @@ takeWhile1 :: (Char -> Bool) -> Parser Text
 takeWhile1 p = do
   (`when` demandInput) =<< endOfChunk
   h <- T.takeWhile p <$> get
-  let len = T.length h
+  let len = lengthOf h
   when (len == 0) $ fail "takeWhile1"
   advance len
   eoc <- endOfChunk
@@ -381,14 +380,15 @@ notChar c = satisfy (/= c) <?> "not " ++ show c
 peekChar :: Parser (Maybe Char)
 peekChar = T.Parser $ \t pos more _lose succ ->
   case () of
-    _| lengthAtLeast pos 1 t ->
-       let !c = T.head (T.drop (fromPos pos) t)
+    _| pos < lengthOf t ->
+       let T.Iter !c _ = T.iter t (fromPos pos)
        in succ t pos more (Just c)
      | more == Complete ->
        succ t pos more Nothing
      | otherwise ->
-       let succ' t' pos' more' = let !c = T.head (T.drop (fromPos pos) t')
-                                 in succ t' pos' more' (Just c)
+       let succ' t' pos' more' =
+             let T.Iter !c _ = T.iter t' (fromPos pos')
+             in succ t' pos' more' (Just c)
            lose' t' pos' more' = succ t' pos' more' Nothing
        in prompt t pos more lose' succ'
 {-# INLINE peekChar #-}
@@ -398,7 +398,7 @@ peekChar = T.Parser $ \t pos more _lose succ ->
 peekChar' :: Parser Char
 peekChar' = do
   (_,s) <- ensure 1
-  return $! T.head s
+  return $! T.unsafeHead s
 {-# INLINE peekChar' #-}
 
 -- | Match either a single newline character @\'\\n\'@, or a carriage
@@ -408,12 +408,12 @@ endOfLine = (char '\n' >> return ()) <|> (string "\r\n" >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK t (Pos pos) _more stack msg = Fail (T.drop pos t) stack msg
+failK t (Pos pos) _more stack msg = Fail (T.dropWord16 pos t) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK t (Pos pos) _more a = Done (T.drop pos t) a
+successK t (Pos pos) _more a = Done (T.dropWord16 pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
@@ -431,37 +431,36 @@ parseOnly m s = case runParser m s 0 Complete failK successK of
 
 get :: Parser Text
 get = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (T.drop (fromPos pos) t)
+  succ t pos more (T.dropWord16 (fromPos pos) t)
 {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (fromPos pos == T.length t)
+  succ t pos more (pos == lengthOf t)
 {-# INLINE endOfChunk #-}
 
-advance :: Int -> Parser ()
-advance n = T.Parser $ \t pos more _lose succ ->
-  succ t (Pos ((fromPos pos) + n)) more ()
+advance :: Pos -> Parser ()
+advance n = T.Parser $ \t pos more _lose succ -> succ t (pos+n) more ()
 {-# INLINE advance #-}
 
 ensureSuspended :: Int -> Text -> Pos -> More
-                -> Failure r -> Success (Int,Text) r
+                -> Failure r -> Success (Pos, Text) r
                 -> Result r
 ensureSuspended n t pos more lose succ =
     runParser (demandInput >> go) t pos more lose succ
   where go = T.Parser $ \t' pos' more' lose' succ' ->
-          if lengthAtLeast pos' n t'
-          then succ' t' pos' more' (n, substring pos n t')
-          else runParser (demandInput >> go) t' pos' more' lose' succ'
+          case lengthAtLeast pos' n t' of
+            Just n' -> succ' t' pos' more' (n', substring pos n' t')
+            Nothing -> runParser (demandInput >> go) t' pos' more' lose' succ'
 
 -- | If at least @n@ elements of input are available, return the
 -- current input, otherwise fail.
-ensure :: Int -> Parser (Int, Text)
+ensure :: Int -> Parser (Pos, Text)
 ensure n = T.Parser $ \t pos more lose succ ->
-    if lengthAtLeast pos n t
-    then succ t pos more (n, substring pos n t)
-    -- The uncommon case is kept out-of-line to reduce code size:
-    else ensureSuspended n t pos more lose succ
+    case lengthAtLeast pos n t of
+      Just n' -> succ t pos more (n', substring pos n' t)
+      -- The uncommon case is kept out-of-line to reduce code size:
+      Nothing -> ensureSuspended n t pos more lose succ
 -- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
 
@@ -492,7 +491,7 @@ demandInput = T.Parser $ \t pos more lose succ ->
 wantInput :: Parser Bool
 wantInput = T.Parser $ \t pos more _lose succ ->
   case () of
-    _ | lengthAtLeast pos 1 t -> succ t pos more True
+    _ | pos < lengthOf t -> succ t pos more True
       | more == Complete -> succ t pos more False
       | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
                                succ' t' pos' more' = succ t' pos' more' True
@@ -502,7 +501,7 @@ wantInput = T.Parser $ \t pos more _lose succ ->
 endOfInput :: Parser ()
 endOfInput = T.Parser $ \t pos more lose succ ->
   case () of
-    _| lengthAtLeast pos 1 t -> lose t pos more [] "endOfInput"
+    _| pos < lengthOf t -> lose t pos more [] "endOfInput"
      | more == Complete -> succ t pos more ()
      | otherwise ->
        let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
@@ -514,7 +513,7 @@ endOfInput = T.Parser $ \t pos more lose succ ->
 match :: Parser a -> Parser (Text, a)
 match p = T.Parser $ \t pos more lose succ ->
   let succ' t' pos' more' a = succ t' pos' more'
-                              (substring pos (fromPos pos'-fromPos pos) t', a)
+                              (substring pos (pos'-pos) t', a)
   in runParser p t pos more lose succ'
 
 -- | Return an indication of whether the end of input has been
@@ -523,11 +522,18 @@ atEnd :: Parser Bool
 atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
 
-lengthAtLeast :: Pos -> Int -> Text -> Bool
-lengthAtLeast pos n t = T.lengthWord16 t `quot` 2 >= o || T.length t >= o
-    where o = fromPos pos + n
+lengthAtLeast :: Pos -> Int -> Text -> Maybe Pos
+lengthAtLeast pos n t = go 0 (fromPos pos)
+  where go i !p
+          | i == n    = Just (Pos p)
+          | p == len  = Nothing
+          | otherwise = go (i+1) (p + T.iter_ t p)
+        Pos len = lengthOf t
 {-# INLINE lengthAtLeast #-}
 
-substring :: Pos -> Int -> Text -> Text
-substring (Pos pos) n t = T.take n (T.drop pos t)
+substring :: Pos -> Pos -> Text -> Text
+substring (Pos pos) (Pos n) t = T.takeWord16 n (T.dropWord16 pos t)
 {-# INLINE substring #-}
+
+lengthOf :: Text -> Pos
+lengthOf (Text _arr _off len) = Pos len

@@ -7,10 +7,15 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient combinator parsing for 'ByteString' strings,
--- loosely based on the Parsec library.
+-- Simple, efficient combinator parsing for
+-- 'Data.ByteString.ByteString' strings, loosely based on the Parsec
+-- library.
+--
+-- This module is deprecated. Use "Data.Attoparsec.ByteString"
+-- instead.
 
 module Data.Attoparsec
+    {-# DEPRECATED "This module will be removed in the next major release." #-}
     (
       module Data.Attoparsec.ByteString
     ) where

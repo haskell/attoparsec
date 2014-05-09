@@ -444,27 +444,36 @@ skipSpace = I.skipWhile isSpace
 
 -- $specalt
 --
--- The '.*>' and '<*.' combinators are intended for use with the
--- @OverloadedStrings@ language extension.  They simplify the common
--- task of matching a statically known string, then immediately
--- parsing something else.
+-- If you enable the @OverloadedStrings@ language extension, you can
+-- use the '*>' and '<*' combinators to simplify the common task of
+-- matching a statically known string, then immediately parsing
+-- something else.
 --
--- An example makes this easier to understand:
+-- Instead of writing something like this:
 --
--- @{-\# LANGUAGE OverloadedStrings #-}
---
--- shoeSize = \"Shoe size: \" '.*>' 'decimal'
+-- @
+--'I.string' \"foo\" '*>' wibble
 -- @
 --
--- If we were to try to use '*>' above instead, the type checker would
--- not be able to tell which 'IsString' instance to use for the text
--- in quotes.  We would have to be explicit, using either a type
--- signature or the 'I.string' parser.
+-- Using @OverloadedStrings@, you can omit the explicit use of
+-- 'I.string', and write a more compact version:
+--
+-- @
+-- \"foo\" '*>' wibble
+-- @
+--
+-- (Note: the '.*>' and '<*.' combinators that were originally
+-- provided for this purpose are obsolete and unnecessary, and will be
+-- removed in the next major version.)
 
--- | Type-specialized version of '*>' for 'Text'.
+-- | /Obsolete/. A type-specialized version of '*>' for 'Text'. Use
+-- '*>' instead.
 (.*>) :: Text -> Parser a -> Parser a
 s .*> f = I.string s *> f
+{-# DEPRECATED (.*>) "This is no longer necessary, and will be removed. Use '*>' instead." #-}
 
--- | Type-specialized version of '<*' for 'Text'.
+-- | /Obsolete/. A type-specialized version of '<*' for 'Text'. Use
+-- '*>' instead.
 (<*.) :: Parser a -> Text -> Parser a
 f <*. s = f <* I.string s
+{-# DEPRECATED (<*.) "This is no longer necessary, and will be removed. Use '<*' instead." #-}

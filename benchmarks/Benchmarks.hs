@@ -1,14 +1,13 @@
 {-# LANGUAGE BangPatterns, CPP #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import Control.Applicative (many)
-import Control.DeepSeq (NFData(rnf))
 import Criterion.Main (bench, bgroup, defaultMain, nf)
 import Data.Bits
 import Data.Char (isAlpha)
 import Data.Word (Word32)
 import Data.Word (Word8)
 import Numbers (numbers)
+import Common (chunksOf)
 import qualified HeadersByteString
 import qualified HeadersText
 import Text.Parsec.Text ()
@@ -24,21 +23,6 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Text.Parsec as P
-
-#if !MIN_VERSION_bytestring(0,10,0)
-import Data.ByteString.Internal (ByteString(..))
-instance NFData ByteString where
-    rnf (PS _ _ _) = ()
-#endif
-
-instance NFData P.ParseError where
-    rnf = rnf . show
-
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf k = go
-  where go xs = case splitAt k xs of
-                  ([],_)  -> []
-                  (y, ys) -> y : go ys
 
 main :: IO ()
 main = do

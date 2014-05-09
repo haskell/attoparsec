@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module HeadersByteString (headers) where
 
+import Common ()
 import Control.Applicative
 import Criterion.Main (bench, bgroup, nf)
 import Criterion.Types (Benchmark)

@@ -96,6 +96,7 @@ benchmark benchmarks
   other-modules:
     HeadersByteString
     HeadersText
+    Links
     Numbers
   build-depends:
     attoparsec,

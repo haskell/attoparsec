@@ -9,8 +9,6 @@ import Data.Char (isAlpha)
 import Data.Word (Word32)
 import Data.Word (Word8)
 import Numbers (numbers)
-import qualified HeadersByteString
-import qualified HeadersText
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
 import qualified Data.Attoparsec.ByteString as AB
@@ -23,6 +21,9 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
+import qualified HeadersByteString
+import qualified HeadersText
+import qualified Links
 import qualified Text.Parsec as P
 
 #if !MIN_VERSION_bytestring(0,10,0)
@@ -88,6 +89,7 @@ main = do
      ]
    , headersBS
    , headersT
+   , Links.links
    , numbers
    ]
 

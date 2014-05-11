@@ -11,6 +11,7 @@ executable attoparsec-benchmarks
   other-modules:
     HeadersByteString
     HeadersText
+    Links
     Numbers
   hs-source-dirs: .. .
   ghc-options: -O2 -Wall

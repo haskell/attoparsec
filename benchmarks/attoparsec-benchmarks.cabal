@@ -12,6 +12,7 @@ executable attoparsec-benchmarks
     Common
     HeadersByteString
     HeadersText
+    Links
     Numbers
   hs-source-dirs: .. .
   ghc-options: -O2 -Wall

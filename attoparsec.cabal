@@ -103,6 +103,7 @@ benchmark benchmarks
     Common
     HeadersByteString
     HeadersText
+    Links
     Numbers
   ghc-options: -O2 -Wall
 

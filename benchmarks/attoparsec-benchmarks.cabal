@@ -17,11 +17,16 @@ executable attoparsec-benchmarks
   hs-source-dirs: .. .
   ghc-options: -O2 -Wall
   build-depends:
+    aeson,
     array,
     base == 4.*,
-    bytestring,
+    bytestring >= 0.10.4.0,
     criterion >= 0.8.1.0,
     deepseq >= 1.1,
+    directory,
+    filepath,
     parsec >= 3.1.2,
     scientific,
-    text >= 0.11.3.1
+    text >= 1.1.1.0,
+    unordered-containers,
+    vector

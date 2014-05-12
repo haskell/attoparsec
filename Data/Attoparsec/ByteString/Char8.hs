@@ -539,9 +539,11 @@ scientifically h = do
                                     (negate $ B8.length fracDigits)
       step a w = a * 10 + fromIntegral (w - 48)
 
-  s <- let dot = 46 in
-       (I.satisfy (==dot) *> (f <$> I.takeWhile isDigit_w8)) <|>
-         pure (Sci.scientific n 0)
+  dotty <- I.peekWord8
+  -- '.' -> ascii 46
+  s <- case dotty of
+         Just 46 -> I.anyWord8 *> (f <$> I.takeWhile isDigit_w8)
+         _       -> pure (Sci.scientific n 0)
 
   let !signedCoeff | positive  =          coefficient s
                    | otherwise = negate $ coefficient s

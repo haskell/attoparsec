@@ -105,6 +105,7 @@ module Data.Attoparsec.ByteString.Char8
     ) where
 
 import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))
+import Control.Monad (void, when)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser)
 import Data.Attoparsec.Combinator
@@ -527,8 +528,10 @@ scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
   let minus = 45
       plus  = 43
-  !positive <- ((== plus) <$> I.satisfy (\c -> c == minus || c == plus)) <|>
-               pure True
+  sign <- I.peekWord8'
+  let !positive = sign == plus || sign /= minus
+  when (sign == plus || sign == minus) $
+    void $ I.anyWord8
 
   n <- decimal
 

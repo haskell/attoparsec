@@ -2,7 +2,7 @@
 
 -- |
 -- Module      :  Data.Attoparsec.Zepto
--- Copyright   :  Bryan O'Sullivan 2011
+-- Copyright   :  Bryan O'Sullivan 2007-2014
 -- License     :  BSD3
 --
 -- Maintainer  :  bos@serpentine.com

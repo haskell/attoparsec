@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
--- Copyright   :  Bryan O'Sullivan 2012
+-- Copyright   :  Bryan O'Sullivan 2007-2014
 -- License     :  BSD3
 --
 -- Maintainer  :  bos@serpentine.com

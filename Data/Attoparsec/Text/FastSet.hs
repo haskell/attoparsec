@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.FastSet
--- Copyright   :  Felipe Lessa 2010, Bryan O'Sullivan 2008
+-- Copyright   :  Felipe Lessa 2010, Bryan O'Sullivan 2007-2014
 -- License     :  BSD3
 --
 -- Maintainer  :  felipe.lessa@gmail.com

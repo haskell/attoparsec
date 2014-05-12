@@ -4,7 +4,7 @@
 
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Char8
--- Copyright   :  Bryan O'Sullivan 2007-2011
+-- Copyright   :  Bryan O'Sullivan 2007-2014
 -- License     :  BSD3
 --
 -- Maintainer  :  bos@serpentine.com

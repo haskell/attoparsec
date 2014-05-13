@@ -523,6 +523,9 @@ number = scientifically $ \s ->
 scientific :: Parser Scientific
 scientific = scientifically id
 
+-- A strict pair
+data SP = SP !Integer {-# UNPACK #-}!Int
+
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
@@ -535,21 +538,21 @@ scientifically h = do
 
   n <- decimal
 
-  let f fracDigits = Sci.scientific (B8.foldl' step n fracDigits)
-                                    (negate $ B8.length fracDigits)
+  let f fracDigits = SP (B8.foldl' step n fracDigits)
+                        (negate $ B8.length fracDigits)
       step a w = a * 10 + fromIntegral (w - 48)
 
   dotty <- I.peekWord8
   -- '.' -> ascii 46
-  s <- case dotty of
-         Just 46 -> I.anyWord8 *> (f <$> I.takeWhile isDigit_w8)
-         _       -> pure (Sci.scientific n 0)
+  SP c e <- case dotty of
+              Just 46 -> I.anyWord8 *> (f <$> I.takeWhile isDigit_w8)
+              _       -> pure (SP n 0)
 
-  let !signedCoeff | positive  =          coefficient s
-                   | otherwise = negate $ coefficient s
+  let !signedCoeff | positive  =  c
+                   | otherwise = -c
 
   let littleE = 101
       bigE    = 69
-  (I.satisfy (\c -> c == littleE || c == bigE) *>
-      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff   (base10Exponent s))
+  (I.satisfy (\ex -> ex == littleE || ex == bigE) *>
+      fmap (h . Sci.scientific signedCoeff . (e +)) (signed decimal)) <|>
+    return (h $ Sci.scientific signedCoeff    e)

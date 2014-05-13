@@ -579,8 +579,11 @@ scientifically h = do
   let !signedCoeff | positive  =  c
                    | otherwise = -c
 
+  ex <- I.peekWord8
   let littleE = 101
       bigE    = 69
-  (I.satisfy (\ex -> ex == littleE || ex == bigE) *>
-      fmap (h . Sci.scientific signedCoeff . (e +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff    e)
+  case ex of
+    Just w | w == littleE || w == bigE
+      -> I.anyWord8 *>
+             ((h . Sci.scientific signedCoeff . (e +)) <$> signed decimal)
+    _ -> pure (h $ Sci.scientific signedCoeff    e)

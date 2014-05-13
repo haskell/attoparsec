@@ -400,6 +400,9 @@ number = scientifically $ \s ->
 scientific :: Parser Scientific
 scientific = scientifically id
 
+-- A strict pair
+data SP = SP !Integer {-# UNPACK #-}!Int
+
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
@@ -408,19 +411,19 @@ scientifically h = do
 
   n <- decimal
 
-  let f fracDigits = Sci.scientific (T.foldl' step n fracDigits)
-                                    (negate $ T.length fracDigits)
+  let f fracDigits = SP (T.foldl' step n fracDigits)
+                        (negate $ T.length fracDigits)
       step a c = a * 10 + fromIntegral (ord c - 48)
 
-  s <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
-         pure (Sci.scientific n 0)
+  SP c e <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
+            pure (SP n 0)
 
-  let !signedCoeff | positive  =          coefficient s
-                   | otherwise = negate $ coefficient s
+  let !signedCoeff | positive  =  c
+                   | otherwise = -c
 
-  (I.satisfy (\c -> c == 'e' || c == 'E') *>
-      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff   (base10Exponent s))
+  (I.satisfy (\w -> w == 'e' || w == 'E') *>
+      fmap (h . Sci.scientific signedCoeff . (e +)) (signed decimal)) <|>
+    return (h $ Sci.scientific signedCoeff    e)
 
 -- | Parse a single digit, as recognised by 'isDigit'.
 digit :: Parser Char

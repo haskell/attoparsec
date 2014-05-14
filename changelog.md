@@ -1,3 +1,25 @@
+0.12.0.0
+
+* A new internal representation makes almost all real-world parsers
+  faster, sometimes by big margins.  For example, parsing JSON data
+  with aeson is now up to 70% faster.  These performance improvements
+  also come with reduced memory consumption and some new capabilities.
+
+* The new match combinator gives both the result of a parse and the
+  input that it matched.
+
+* The test suite has doubled in size.  This made it possible to switch
+  to the new internal representation with a decent degree of
+  confidence that everything was more or less working.
+
+* The benchmark suite now contains a small family of benchmarks taken
+  from real-world uses of attoparsec.
+
+* A few types that ought to have been private now are.
+
+* A few obsolete modules and functions have been marked as deprecated.
+  They will be removed from the next major release.
+
 0.11.3.0
 
 * New function scientific is compatible with rational, but parses

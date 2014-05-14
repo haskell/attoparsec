@@ -122,6 +122,7 @@ module Data.Attoparsec.Text
     ) where
 
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
+import Control.Monad (when, void)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Scientific (Scientific, coefficient, base10Exponent)
@@ -406,24 +407,32 @@ data SP = SP !Integer {-# UNPACK #-}!Int
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
-  !positive <- ((== '+') <$> I.satisfy (\c -> c == '-' || c == '+')) <|>
-               pure True
+  sign <- I.peekChar'
+  let !positive = sign == '+' || sign /= '-'
+  when (sign == '+' || sign == '-') $
+    void $ I.anyChar
 
   n <- decimal
 
   let f fracDigits = SP (T.foldl' step n fracDigits)
                         (negate $ T.length fracDigits)
-      step a c = a * 10 + fromIntegral (ord c - 48)
+      step a w = a * 10 + fromIntegral (ord w - 48)
 
-  SP c e <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
-            pure (SP n 0)
+  dotty <- I.peekChar
+  SP c e <- case dotty of
+              Just '.' -> I.anyChar *> (f <$> I.takeWhile isDigit)
+              _        -> pure (SP n 0)
 
   let !signedCoeff | positive  =  c
                    | otherwise = -c
 
-  (I.satisfy (\w -> w == 'e' || w == 'E') *>
-      fmap (h . Sci.scientific signedCoeff . (e +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff    e)
+  ex <- I.peekChar
+  case ex of
+    Just w | w == 'e' || w == 'E'
+      -> I.anyChar *>
+             ((h . Sci.scientific signedCoeff . (e +)) <$> signed decimal)
+    _ -> pure (h $ Sci.scientific signedCoeff    e)
+
 
 -- | Parse a single digit, as recognised by 'isDigit'.
 digit :: Parser Char

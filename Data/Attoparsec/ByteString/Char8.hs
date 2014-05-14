@@ -134,7 +134,7 @@ import Data.ByteString.Internal (c2w, w2c)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.String (IsString(..))
 import Data.Scientific (Scientific, coefficient, base10Exponent)
-import qualified Data.Scientific as Sci (scientific)
+import qualified Data.Scientific as Sci (scientific, toRealFloat)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.ByteString as A
@@ -524,7 +524,7 @@ rational = scientifically realToFrac
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = rational
+double = scientifically Sci.toRealFloat
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -543,7 +543,7 @@ number = scientifically $ \s ->
                 c = coefficient s
             in if e >= 0
                then I (c * 10 ^ e)
-               else D (fromInteger c / 10 ^ negate e)
+               else D (Sci.toRealFloat s)
 
 -- | Parse a scientific number.
 --
@@ -551,33 +551,39 @@ number = scientifically $ \s ->
 scientific :: Parser Scientific
 scientific = scientifically id
 
+-- A strict pair
+data SP = SP !Integer {-# UNPACK #-}!Int
+
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
-  let minus = 45
-      plus  = 43
   sign <- I.peekWord8'
-  let !positive = sign == plus || sign /= minus
-  when (sign == plus || sign == minus) $
+  let !isPlus   = sign == 43
+      !isMin    = sign == 45
+      !positive = isPlus || not isMin
+  when (isPlus || isMin) $
     void $ I.anyWord8
 
   n <- decimal
 
-  let f fracDigits = Sci.scientific (B8.foldl' step n fracDigits)
-                                    (negate $ B8.length fracDigits)
+  let f fracDigits = SP (B8.foldl' step n fracDigits)
+                        (negate $ B8.length fracDigits)
       step a w = a * 10 + fromIntegral (w - 48)
 
   dotty <- I.peekWord8
   -- '.' -> ascii 46
-  s <- case dotty of
-         Just 46 -> I.anyWord8 *> (f <$> I.takeWhile isDigit_w8)
-         _       -> pure (Sci.scientific n 0)
+  SP c e <- case dotty of
+              Just 46 -> I.anyWord8 *> (f <$> I.takeWhile isDigit_w8)
+              _       -> pure (SP n 0)
 
-  let !signedCoeff | positive  =          coefficient s
-                   | otherwise = negate $ coefficient s
+  let !signedCoeff | positive  =  c
+                   | otherwise = -c
 
+  ex <- I.peekWord8
   let littleE = 101
       bigE    = 69
-  (I.satisfy (\c -> c == littleE || c == bigE) *>
-      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff   (base10Exponent s))
+  case ex of
+    Just w | w == littleE || w == bigE
+      -> I.anyWord8 *>
+             ((h . Sci.scientific signedCoeff . (e +)) <$> signed decimal)
+    _ -> pure (h $ Sci.scientific signedCoeff    e)

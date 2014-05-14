@@ -122,10 +122,11 @@ module Data.Attoparsec.Text
     ) where
 
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
+import Control.Monad (when, void)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Scientific (Scientific, coefficient, base10Exponent)
-import qualified Data.Scientific as Sci (scientific)
+import qualified Data.Scientific as Sci (scientific, toRealFloat)
 import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
@@ -373,7 +374,7 @@ rational = scientifically realToFrac
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = rational
+double = scientifically Sci.toRealFloat
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -392,7 +393,7 @@ number = scientifically $ \s ->
                 c = coefficient s
             in if e >= 0
                then I (c * 10 ^ e)
-               else D (fromInteger c / 10 ^ negate e)
+               else D (Sci.toRealFloat s)
 
 -- | Parse a scientific number.
 --
@@ -400,27 +401,40 @@ number = scientifically $ \s ->
 scientific :: Parser Scientific
 scientific = scientifically id
 
+-- A strict pair
+data SP = SP !Integer {-# UNPACK #-}!Int
+
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
-  !positive <- ((== '+') <$> I.satisfy (\c -> c == '-' || c == '+')) <|>
-               pure True
+  sign <- I.peekChar'
+  let !isPlus   = sign == '+'
+      !isMin    = sign == '-'
+      !positive = isPlus || not isMin
+  when (isPlus || isMin) $
+    void $ I.anyChar
 
   n <- decimal
 
-  let f fracDigits = Sci.scientific (T.foldl' step n fracDigits)
-                                    (negate $ T.length fracDigits)
-      step a c = a * 10 + fromIntegral (ord c - 48)
+  let f fracDigits = SP (T.foldl' step n fracDigits)
+                        (negate $ T.length fracDigits)
+      step a w = a * 10 + fromIntegral (ord w - 48)
 
-  s <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
-         pure (Sci.scientific n 0)
+  dotty <- I.peekChar
+  SP c e <- case dotty of
+              Just '.' -> I.anyChar *> (f <$> I.takeWhile isDigit)
+              _        -> pure (SP n 0)
 
-  let !signedCoeff | positive  =          coefficient s
-                   | otherwise = negate $ coefficient s
+  let !signedCoeff | positive  =  c
+                   | otherwise = -c
 
-  (I.satisfy (\c -> c == 'e' || c == 'E') *>
-      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff   (base10Exponent s))
+  ex <- I.peekChar
+  case ex of
+    Just w | w == 'e' || w == 'E'
+      -> I.anyChar *>
+             ((h . Sci.scientific signedCoeff . (e +)) <$> signed decimal)
+    _ -> pure (h $ Sci.scientific signedCoeff    e)
+
 
 -- | Parse a single digit, as recognised by 'isDigit'.
 digit :: Parser Char

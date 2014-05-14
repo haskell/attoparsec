@@ -67,7 +67,7 @@ skipWhile w s =
 takeCount (Positive k) s =
     case maybeP (P.take k) s of
       Nothing -> fromIntegral k > L.length s
-      Just s' -> fromIntegral k <= L.length s
+      Just _  -> fromIntegral k <= L.length s
 
 takeWhile w s =
     let (h,t) = L.span (==w) s

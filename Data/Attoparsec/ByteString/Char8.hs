@@ -557,11 +557,11 @@ data SP = SP !Integer {-# UNPACK #-}!Int
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
-  let minus = 45
-      plus  = 43
   sign <- I.peekWord8'
-  let !positive = sign == plus || sign /= minus
-  when (sign == plus || sign == minus) $
+  let !isPlus   = sign == 43
+      !isMin    = sign == 45
+      !positive = isPlus || not isMin
+  when (isPlus || isMin) $
     void $ I.anyWord8
 
   n <- decimal

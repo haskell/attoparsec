@@ -408,8 +408,10 @@ data SP = SP !Integer {-# UNPACK #-}!Int
 scientifically :: (Scientific -> a) -> Parser a
 scientifically h = do
   sign <- I.peekChar'
-  let !positive = sign == '+' || sign /= '-'
-  when (sign == '+' || sign == '-') $
+  let !isPlus   = sign == '+'
+      !isMin    = sign == '-'
+      !positive = isPlus || not isMin
+  when (isPlus || isMin) $
     void $ I.anyChar
 
   n <- decimal

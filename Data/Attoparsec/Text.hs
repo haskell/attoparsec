@@ -124,8 +124,8 @@ module Data.Attoparsec.Text
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
-import Data.Scientific (Scientific, coefficient, base10Exponent)
-import qualified Data.Scientific as Sci (scientific)
+import Data.Scientific (Scientific)
+import qualified Data.Scientific as Sci
 import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
@@ -373,7 +373,7 @@ rational = scientifically realToFrac
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = rational
+double = scientifically Sci.toRealFloat
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -388,11 +388,11 @@ double = rational
 -- \"Infinity\".
 number :: Parser Number
 number = scientifically $ \s ->
-            let e = base10Exponent s
-                c = coefficient s
+            let e = Sci.base10Exponent s
+                c = Sci.coefficient s
             in if e >= 0
                then I (c * 10 ^ e)
-               else D (fromInteger c / 10 ^ negate e)
+               else D (Sci.toRealFloat s)
 
 -- | Parse a scientific number.
 --

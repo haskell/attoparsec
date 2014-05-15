@@ -111,14 +111,19 @@ benchmark benchmarks
     ghc-options: -Werror
 
   build-depends:
-    base == 4.*,
+    aeson,
     array,
-    bytestring,
+    base == 4.*,
+    bytestring >= 0.10.4.0,
     criterion >= 0.8.1.0,
     deepseq >= 1.1,
+    directory,
+    filepath,
     parsec >= 3.1.2,
     scientific,
-    text
+    text >= 1.1.1.0,
+    unordered-containers,
+    vector
 
 source-repository head
   type:     git

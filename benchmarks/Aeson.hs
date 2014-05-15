@@ -18,6 +18,7 @@ import Data.Attoparsec.ByteString.Char8 (Parser, char, endOfInput, scientific,
 import Data.Bits ((.|.), shiftL)
 import Data.ByteString (ByteString)
 import Data.Char (chr)
+import Data.List (sort)
 import Data.Monoid (mappend, mempty)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8')
@@ -311,7 +312,7 @@ toByteString = L.toStrict . toLazyByteString
 aeson :: IO Benchmark
 aeson = do
   let path = "json-data"
-  names <- filter (`notElem` [".", ".."]) <$> getDirectoryContents path
+  names <- sort . filter (`notElem` [".", ".."]) <$> getDirectoryContents path
   benches <- forM names $ \name -> do
     bs <- B.readFile (path </> name)
     return . bench (dropExtension name) $ nf (A.parseOnly jsonEOF') bs

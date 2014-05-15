@@ -114,8 +114,8 @@ import Data.Bits (Bits, (.|.), shiftL)
 import Data.ByteString.Internal (c2w, w2c)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.String (IsString(..))
-import Data.Scientific (Scientific, coefficient, base10Exponent)
-import qualified Data.Scientific as Sci (scientific)
+import Data.Scientific (Scientific)
+import qualified Data.Scientific as Sci
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.ByteString as A
@@ -496,7 +496,7 @@ rational = scientifically realToFrac
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = rational
+double = scientifically Sci.toRealFloat
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -511,11 +511,11 @@ double = rational
 -- \"
 number :: Parser Number
 number = scientifically $ \s ->
-            let e = base10Exponent s
-                c = coefficient s
+            let e = Sci.base10Exponent s
+                c = Sci.coefficient s
             in if e >= 0
                then I (c * 10 ^ e)
-               else D (fromInteger c / 10 ^ negate e)
+               else D (Sci.toRealFloat s)
 
 -- | Parse a scientific number.
 --

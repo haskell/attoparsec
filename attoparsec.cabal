@@ -99,13 +99,20 @@ benchmark benchmarks
     Links
     Numbers
   build-depends:
+    aeson,
+    array,
     attoparsec,
-    base,
-    bytestring,
+    base == 4.*,
+    bytestring >= 0.10.4.0,
     criterion >= 0.5,
     deepseq >= 1.1,
+    directory,
+    filepath,
     parsec >= 3.1.2,
-    text
+    scientific,
+    text >= 1.1.1.0,
+    unordered-containers,
+    vector
 
 source-repository head
   type:     git

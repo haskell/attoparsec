@@ -11,8 +11,8 @@ import Data.ByteString.Builder
   (Builder, byteString, toLazyByteString, charUtf8, word8)
 
 import Control.Applicative ((*>), (<$>), (<*), liftA2, pure)
+import Control.DeepSeq (NFData(..))
 import Control.Monad (forM)
-import Data.Aeson.Types (Result(..), Value(..))
 import Data.Attoparsec.ByteString.Char8 (Parser, char, endOfInput, scientific,
                                          skipSpace, string)
 import Data.Bits ((.|.), shiftL)
@@ -20,9 +20,10 @@ import Data.ByteString (ByteString)
 import Data.Char (chr)
 import Data.List (sort)
 import Data.Monoid (mappend, mempty)
+import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8')
-import Data.Vector as Vector (Vector, fromList)
+import Data.Vector as Vector (Vector, foldl', fromList)
 import Data.Word (Word8)
 import System.Directory (getDirectoryContents)
 import System.FilePath ((</>), dropExtension)
@@ -50,6 +51,34 @@ import Criterion.Main
 #define C_f 102
 #define C_n 110
 #define C_t 116
+
+data Result a = Error String
+              | Success a
+                deriving (Eq, Show)
+
+
+-- | A JSON \"object\" (key\/value map).
+type Object = H.HashMap Text Value
+
+-- | A JSON \"array\" (sequence).
+type Array = Vector Value
+
+-- | A JSON value represented as a Haskell value.
+data Value = Object !Object
+           | Array !Array
+           | String !Text
+           | Number !Scientific
+           | Bool !Bool
+           | Null
+             deriving (Eq, Show)
+
+instance NFData Value where
+    rnf (Object o) = rnf o
+    rnf (Array a)  = Vector.foldl' (\x y -> rnf y `seq` x) () a
+    rnf (String s) = rnf s
+    rnf (Number n) = rnf n
+    rnf (Bool b)   = rnf b
+    rnf Null       = ()
 
 -- | Parse a top-level JSON value.  This must be either an object or
 -- an array, per RFC 4627.

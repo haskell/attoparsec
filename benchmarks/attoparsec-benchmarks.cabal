@@ -16,7 +16,6 @@ executable attoparsec-benchmarks
   hs-source-dirs: .. .
   ghc-options: -O2 -Wall
   build-depends:
-    aeson,
     array,
     base == 4.*,
     bytestring >= 0.10.4.0,

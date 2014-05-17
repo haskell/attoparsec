@@ -502,6 +502,8 @@ wantInput = T.Parser $ \t pos more _lose succ ->
       | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
                                succ' t' pos' more' = succ t' pos' more' True
                            in prompt t pos more lose' succ'
+{-# INLINE wantInput #-}
+
 -- | Match only if all input has been consumed.
 endOfInput :: Parser ()
 endOfInput = T.Parser $ \t pos more lose succ ->

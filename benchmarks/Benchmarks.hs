@@ -68,6 +68,10 @@ main = do
      , bench "isAlpha_iso8859_15" $
        nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
      ]
+   , bgroup "takeWhile1" [
+       bench "isAlpha" $ nf (ABL.parse (AC.takeWhile1 isAlpha)) bl
+     , bench "isAlpha_ascii" $ nf (ABL.parse (AC.takeWhile1 AC.isAlpha_ascii)) bl
+     ]
    , bench "word32LE" $ nf (AB.parse word32LE) b
    , bgroup "scan" [
        bench "short" $ nf (AB.parse quotedString) (BC.pack "abcdefghijk\"")

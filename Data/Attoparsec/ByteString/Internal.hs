@@ -100,8 +100,7 @@ type Success a r = T.Success B.ByteString a r
 -- >    where isDigit w = w >= 48 && w <= 57
 satisfy :: (Word8 -> Bool) -> Parser Word8
 satisfy p = do
-  c <- ensure 1
-  let !h = B.unsafeHead c
+  h <- peekWord8'
   if p h
     then advance 1 >> return h
     else fail "satisfy"
@@ -114,8 +113,8 @@ satisfy p = do
 -- >    where isDigit w = w >= 48 && w <= 57
 skip :: (Word8 -> Bool) -> Parser ()
 skip p = do
-  s <- ensure 1
-  if p (B.unsafeHead s)
+  h <- peekWord8'
+  if p h
     then advance 1
     else fail "skip"
 
@@ -124,8 +123,8 @@ skip p = do
 -- parser returns the transformed byte that was parsed.
 satisfyWith :: (Word8 -> a) -> (a -> Bool) -> Parser a
 satisfyWith f p = do
-  s <- ensure 1
-  let c = f $! B.unsafeHead s
+  h <- peekWord8'
+  let c = f h
   if p c
     then advance 1 >> return c
     else fail "satisfyWith"
@@ -392,9 +391,11 @@ peekWord8 = T.Parser $ \t pos@(Pos pos_) more _lose succ ->
 -- | Match any byte, to perform lookahead.  Does not consume any
 -- input, but will fail if end of input has been reached.
 peekWord8' :: Parser Word8
-peekWord8' = do
-  s <- ensure 1
-  return $! B.unsafeHead s
+peekWord8' = T.Parser $ \t pos more lose succ ->
+    if lengthAtLeast pos 1 t
+    then succ t pos more (B.unsafeIndex t (fromPos pos))
+    else let succ' t' pos' more' bs' = succ t' pos' more' $! B.unsafeHead bs'
+         in ensureSuspended 1 t pos more lose succ'
 {-# INLINE peekWord8' #-}
 
 -- | Match either a single newline character @\'\\n\'@, or a carriage

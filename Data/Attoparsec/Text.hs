@@ -124,8 +124,8 @@ module Data.Attoparsec.Text
 import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
-import Data.Scientific (Scientific, coefficient, base10Exponent)
-import qualified Data.Scientific as Sci (scientific)
+import Data.Scientific (Scientific)
+import qualified Data.Scientific as Sci
 import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
@@ -373,7 +373,7 @@ rational = scientifically realToFrac
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
-double = rational
+double = scientifically Sci.toRealFloat
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
@@ -388,17 +388,20 @@ double = rational
 -- \"Infinity\".
 number :: Parser Number
 number = scientifically $ \s ->
-            let e = base10Exponent s
-                c = coefficient s
+            let e = Sci.base10Exponent s
+                c = Sci.coefficient s
             in if e >= 0
                then I (c * 10 ^ e)
-               else D (fromInteger c / 10 ^ negate e)
+               else D (Sci.toRealFloat s)
 
 -- | Parse a scientific number.
 --
 -- The syntax accepted by this parser is the same as for 'rational'.
 scientific :: Parser Scientific
 scientific = scientifically id
+
+-- A strict pair
+data SP = SP !Integer {-# UNPACK #-}!Int
 
 {-# INLINE scientifically #-}
 scientifically :: (Scientific -> a) -> Parser a
@@ -408,19 +411,19 @@ scientifically h = do
 
   n <- decimal
 
-  let f fracDigits = Sci.scientific (T.foldl' step n fracDigits)
-                                    (negate $ T.length fracDigits)
+  let f fracDigits = SP (T.foldl' step n fracDigits)
+                        (negate $ T.length fracDigits)
       step a c = a * 10 + fromIntegral (ord c - 48)
 
-  s <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
-         pure (Sci.scientific n 0)
+  SP c e <- (I.satisfy (=='.') *> (f <$> I.takeWhile isDigit)) <|>
+            pure (SP n 0)
 
-  let !signedCoeff | positive  =          coefficient s
-                   | otherwise = negate $ coefficient s
+  let !signedCoeff | positive  =  c
+                   | otherwise = -c
 
-  (I.satisfy (\c -> c == 'e' || c == 'E') *>
-      fmap (h . Sci.scientific signedCoeff . (base10Exponent s +)) (signed decimal)) <|>
-    return (h $ Sci.scientific signedCoeff   (base10Exponent s))
+  (I.satisfy (\w -> w == 'e' || w == 'E') *>
+      fmap (h . Sci.scientific signedCoeff . (e +)) (signed decimal)) <|>
+    return (h $ Sci.scientific signedCoeff    e)
 
 -- | Parse a single digit, as recognised by 'isDigit'.
 digit :: Parser Char

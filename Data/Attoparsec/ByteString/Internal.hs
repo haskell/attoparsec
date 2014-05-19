@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings,
-    RecordWildCards, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings, RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -69,6 +68,7 @@ module Data.Attoparsec.ByteString.Internal
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
+import Data.Attoparsec.ByteString.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.Word (Word8)
@@ -83,9 +83,6 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
-
-import GHC.Base (realWorld#)
-import GHC.IO (IO(IO))
 
 type Parser = T.Parser B.ByteString B.ByteString
 type Result = IResult B.ByteString B.ByteString
@@ -425,14 +422,6 @@ parseOnly m s = case T.runParser m s (Pos 0) Complete failK successK of
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
-
--- | Just like unsafePerformIO, but we inline it. Big performance gains as
--- it exposes lots of things to further inlining. /Very unsafe/. In
--- particular, you should do no memory allocation inside an
--- 'inlinePerformIO' block. On Hugs this is just @unsafePerformIO@.
-inlinePerformIO :: IO a -> a
-inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
-{-# INLINE inlinePerformIO #-}
 
 get :: Parser ByteString
 get = T.Parser $ \t pos more _lose succ ->

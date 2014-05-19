@@ -79,10 +79,10 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Unsafe as T
 
-type Parser = T.Parser Text
-type Result = IResult Text
-type Failure r = T.Failure Text r
-type Success a r = T.Success Text a r
+type Parser = T.Parser Text Text
+type Result = IResult Text Text
+type Failure r = T.Failure Text Text r
+type Success a r = T.Success Text Text a r
 
 instance (a ~ Text) => IsString (Parser a) where
     fromString = string . T.pack
@@ -470,8 +470,8 @@ ensure n = T.Parser $ \t pos more lose succ ->
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
 prompt :: Text -> Pos -> More
-       -> (Text -> Pos -> More -> IResult Text r)
-       -> (Text -> Pos -> More -> IResult Text r)
+       -> (Text -> Pos -> More -> IResult Text Text r)
+       -> (Text -> Pos -> More -> IResult Text Text r)
        -> Result r
 prompt t pos _more lose succ = Partial $ \s ->
   if T.null s

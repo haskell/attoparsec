@@ -87,10 +87,10 @@ import qualified Data.ByteString.Unsafe as B
 import GHC.Base (realWorld#)
 import GHC.IO (IO(IO))
 
-type Parser = T.Parser B.ByteString
-type Result = IResult B.ByteString
-type Failure r = T.Failure B.ByteString r
-type Success a r = T.Success B.ByteString a r
+type Parser = T.Parser B.ByteString B.ByteString
+type Result = IResult B.ByteString B.ByteString
+type Failure r = T.Failure B.ByteString B.ByteString r
+type Success a r = T.Success B.ByteString B.ByteString a r
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -474,9 +474,9 @@ ensure n = T.Parser $ \t pos more lose succ ->
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
 prompt :: ByteString -> Pos -> More
-       -> (ByteString -> Pos -> More -> IResult ByteString r)
-       -> (ByteString -> Pos -> More -> IResult ByteString r)
-       -> IResult ByteString r
+       -> (ByteString -> Pos -> More -> IResult ByteString ByteString r)
+       -> (ByteString -> Pos -> More -> IResult ByteString ByteString r)
+       -> IResult ByteString ByteString r
 prompt t pos _more lose succ = Partial $ \s ->
   if B.null s
   then lose t pos Complete

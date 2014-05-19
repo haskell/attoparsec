@@ -24,7 +24,7 @@ import Prelude hiding (succ)
 -- If both 'IResult's are 'Partial', the result will be 'Nothing', as
 -- they are incomplete and hence their equality cannot be known.
 -- (This is why there is no 'Eq' instance for 'IResult'.)
-compareResults :: (Eq t, Eq r) => IResult t r -> IResult t r -> Maybe Bool
+compareResults :: (Eq t, Eq r) => IResult i t r -> IResult i t r -> Maybe Bool
 compareResults (Fail t0 ctxs0 msg0) (Fail t1 ctxs1 msg1) =
     Just (t0 == t1 && ctxs0 == ctxs1 && msg0 == msg1)
 compareResults (Done t0 r0) (Done t1 r1) =

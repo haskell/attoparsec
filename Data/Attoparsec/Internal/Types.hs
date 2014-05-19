@@ -37,21 +37,20 @@ newtype Pos = Pos { fromPos :: Int }
 --
 -- This type is an instance of 'Functor', where 'fmap' transforms the
 -- value in a 'Done' result.
-data IResult t r = Fail t [String] String
-                 -- ^ The parse failed.  The 't' parameter is the
-                 -- input that had not yet been consumed when the
-                 -- failure occurred.  The @[@'String'@]@ is a list of
-                 -- contexts in which the error occurred.  The
-                 -- 'String' is the message describing the error, if
-                 -- any.
-                 | Partial (t -> IResult t r)
-                 -- ^ Supply this continuation with more input so that
-                 -- the parser can resume.  To indicate that no more
-                 -- input is available, use an empty string.
-                 | Done t r
-                 -- ^ The parse succeeded.  The 't' parameter is the
-                 -- input that had not yet been consumed (if any) when
-                 -- the parse succeeded.
+data IResult t r =
+    Fail t [String] String
+    -- ^ The parse failed.  The 't' parameter is the input that had
+    -- not yet been consumed when the failure occurred.  The
+    -- @[@'String'@]@ is a list of contexts in which the error
+    -- occurred.  The 'String' is the message describing the error, if
+    -- any.
+  | Partial (t -> IResult t r)
+    -- ^ Supply this continuation with more input so that the parser
+    -- can resume.  To indicate that no more input is available, use
+    -- an empty string.
+  | Done t r
+    -- ^ The parse succeeded.  The 't' parameter is the input that had
+    -- not yet been consumed (if any) when the parse succeeded.
 
 instance (Show t, Show r) => Show (IResult t r) where
     show (Fail t stk msg) =

@@ -10,9 +10,11 @@ module QC.Common
     , repackBS_
     , repackT
     , repackT_
+    , liftOp
     ) where
 
 import Control.Applicative ((<$>), (<*>))
+import Data.Char (isAlpha)
 import Test.QuickCheck
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -70,3 +72,12 @@ repackT_ = go . cycle
           | otherwise = let (h,t) = T.splitAt b s
                         in h : go bs t
         go _ _ = error "unpossible"
+
+liftOp :: (Show a, Testable prop) =>
+          String -> (a -> a -> prop) -> a -> a -> Property
+liftOp name f x y = counterexample desc (f x y)
+  where op = case name of
+               (c:_) | isAlpha c -> " `" ++ name ++ "` "
+                     | otherwise -> " " ++ name ++ " "
+               _ -> " ??? "
+        desc = "not (" ++ show x ++ op ++ show y ++ ")"

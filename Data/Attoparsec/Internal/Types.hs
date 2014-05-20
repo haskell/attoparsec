@@ -38,8 +38,8 @@ newtype Pos = Pos { fromPos :: Int }
 -- This type is an instance of 'Functor', where 'fmap' transforms the
 -- value in a 'Done' result.
 data IResult i t r =
-    Fail t [String] String
-    -- ^ The parse failed.  The 't' parameter is the input that had
+    Fail i [String] String
+    -- ^ The parse failed.  The 'i' parameter is the input that had
     -- not yet been consumed when the failure occurred.  The
     -- @[@'String'@]@ is a list of contexts in which the error
     -- occurred.  The 'String' is the message describing the error, if
@@ -48,17 +48,17 @@ data IResult i t r =
     -- ^ Supply this continuation with more input so that the parser
     -- can resume.  To indicate that no more input is available, use
     -- an empty string.
-  | Done t r
-    -- ^ The parse succeeded.  The 't' parameter is the input that had
+  | Done i r
+    -- ^ The parse succeeded.  The 'i' parameter is the input that had
     -- not yet been consumed (if any) when the parse succeeded.
 
-instance (Show t, Show r) => Show (IResult i t r) where
+instance (Show i, Show r) => Show (IResult i t r) where
     show (Fail t stk msg) =
       unwords [ "Fail", show t, show stk, show msg]
     show (Partial _)          = "Partial _"
     show (Done t r)       = unwords ["Done", show t, show r]
 
-instance (NFData t, NFData r) => NFData (IResult i t r) where
+instance (NFData i, NFData r) => NFData (IResult i t r) where
     rnf (Fail t stk msg) = rnf t `seq` rnf stk `seq` rnf msg
     rnf (Partial _)  = ()
     rnf (Done t r)   = rnf t `seq` rnf r

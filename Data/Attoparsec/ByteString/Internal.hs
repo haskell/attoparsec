@@ -67,16 +67,18 @@ module Data.Attoparsec.ByteString.Internal
 
 import Control.Applicative ((<|>), (<$>))
 import Control.Monad (when)
+import Data.Attoparsec.ByteString.Buffer (Buffer, buffer)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
 import Data.Attoparsec.ByteString.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
+import Data.ByteString (ByteString)
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
 import Prelude hiding (getChar, succ, take, takeWhile)
-import Data.ByteString (ByteString)
+import qualified Data.Attoparsec.ByteString.Buffer as Buf
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B
@@ -84,10 +86,10 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
-type Parser = T.Parser B.ByteString B.ByteString
-type Result = IResult B.ByteString B.ByteString
-type Failure r = T.Failure B.ByteString B.ByteString r
-type Success a r = T.Success B.ByteString B.ByteString a r
+type Parser = T.Parser B.ByteString Buffer
+type Result = IResult B.ByteString Buffer
+type Failure r = T.Failure B.ByteString Buffer r
+type Success a r = T.Success B.ByteString Buffer a r
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -373,13 +375,13 @@ notWord8 c = satisfy (/= c) <?> "not " ++ show c
 peekWord8 :: Parser (Maybe Word8)
 peekWord8 = T.Parser $ \t pos@(Pos pos_) more _lose succ ->
   case () of
-    _| pos_ < B.length t ->
-       let !w = B.unsafeIndex t pos_
+    _| pos_ < Buf.length t ->
+       let !w = Buf.unsafeIndex t pos_
        in succ t pos more (Just w)
      | more == Complete ->
        succ t pos more Nothing
      | otherwise ->
-       let succ' t' pos' more' = let !w = B.unsafeIndex t pos_
+       let succ' t' pos' more' = let !w = Buf.unsafeIndex t pos_
                                  in succ t' pos' more' (Just w)
            lose' t' pos' more' = succ t' pos' more' Nothing
        in prompt t pos more lose' succ'
@@ -390,7 +392,7 @@ peekWord8 = T.Parser $ \t pos@(Pos pos_) more _lose succ ->
 peekWord8' :: Parser Word8
 peekWord8' = T.Parser $ \t pos more lose succ ->
     if lengthAtLeast pos 1 t
-    then succ t pos more (B.unsafeIndex t (fromPos pos))
+    then succ t pos more (Buf.unsafeIndex t (fromPos pos))
     else let succ' t' pos' more' bs' = succ t' pos' more' $! B.unsafeHead bs'
          in ensureSuspended 1 t pos more lose succ'
 {-# INLINE peekWord8' #-}
@@ -402,22 +404,22 @@ endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a
-failK t (Pos pos) _more stack msg = Fail (B.unsafeDrop pos t) stack msg
+failK t (Pos pos) _more stack msg = Fail (Buf.unsafeDrop pos t) stack msg
 {-# INLINE failK #-}
 
 -- | Terminal success continuation.
 successK :: Success a a
-successK t (Pos pos) _more a = Done (B.unsafeDrop pos t) a
+successK t (Pos pos) _more a = Done (Buf.unsafeDrop pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
 parse :: Parser a -> B.ByteString -> Result a
-parse m s = T.runParser m s (Pos 0) Incomplete failK successK
+parse m s = T.runParser m (buffer s) (Pos 0) Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
 parseOnly :: Parser a -> B.ByteString -> Either String a
-parseOnly m s = case T.runParser m s (Pos 0) Complete failK successK of
+parseOnly m s = case T.runParser m (buffer s) (Pos 0) Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"
@@ -425,12 +427,12 @@ parseOnly m s = case T.runParser m s (Pos 0) Complete failK successK of
 
 get :: Parser ByteString
 get = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (B.unsafeDrop (fromPos pos) t)
+  succ t pos more (Buf.unsafeDrop (fromPos pos) t)
 {-# INLINE get #-}
 
 endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
-  succ t pos more (fromPos pos == B.length t)
+  succ t pos more (fromPos pos == Buf.length t)
 {-# INLINE endOfChunk #-}
 
 advance :: Int -> Parser ()
@@ -438,7 +440,7 @@ advance n = T.Parser $ \t pos more _lose succ ->
   succ t (pos + Pos n) more ()
 {-# INLINE advance #-}
 
-ensureSuspended :: Int -> ByteString -> Pos -> More
+ensureSuspended :: Int -> Buffer -> Pos -> More
                 -> Failure r
                 -> Success ByteString r
                 -> Result r
@@ -462,14 +464,14 @@ ensure n = T.Parser $ \t pos more lose succ ->
 
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
-prompt :: ByteString -> Pos -> More
-       -> (ByteString -> Pos -> More -> IResult ByteString ByteString r)
-       -> (ByteString -> Pos -> More -> IResult ByteString ByteString r)
-       -> IResult ByteString ByteString r
+prompt :: Buffer -> Pos -> More
+       -> (Buffer -> Pos -> More -> IResult ByteString Buffer r)
+       -> (Buffer -> Pos -> More -> IResult ByteString Buffer r)
+       -> IResult ByteString Buffer r
 prompt t pos _more lose succ = Partial $ \s ->
   if B.null s
   then lose t pos Complete
-  else succ (t <> s) pos Incomplete
+  else succ (t <> buffer s) pos Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
@@ -519,10 +521,10 @@ atEnd :: Parser Bool
 atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
 
-lengthAtLeast :: Pos -> Int -> ByteString -> Bool
-lengthAtLeast (Pos pos) n bs = B.length bs >= pos + n
+lengthAtLeast :: Pos -> Int -> Buffer -> Bool
+lengthAtLeast (Pos pos) n bs = Buf.length bs >= pos + n
 {-# INLINE lengthAtLeast #-}
 
-substring :: Pos -> Pos -> ByteString -> ByteString
-substring (Pos pos) (Pos n) bs = B.unsafeTake n (B.unsafeDrop pos bs)
+substring :: Pos -> Pos -> Buffer -> ByteString
+substring (Pos pos) (Pos n) = Buf.substring pos n
 {-# INLINE substring #-}

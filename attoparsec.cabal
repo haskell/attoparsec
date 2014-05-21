@@ -102,7 +102,7 @@ test-suite tests
 benchmark benchmarks
   type: exitcode-stdio-1.0
   hs-source-dirs: benchmarks, .
-  ghc-options: -O2 -Wall
+  ghc-options: -O2 -Wall -rtsopts
   main-is: Benchmarks.hs
   other-modules:
     Common

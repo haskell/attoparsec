@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+import Common ()
 import Control.Applicative (many)
-import Control.DeepSeq (NFData(rnf))
 import Criterion.Main (bench, bgroup, defaultMain, nf)
 import Data.Bits
 import Data.Char (isAlpha)
@@ -26,15 +26,6 @@ import qualified HeadersByteString
 import qualified HeadersText
 import qualified Links
 import qualified Text.Parsec as P
-
-#if !MIN_VERSION_bytestring(0,10,0)
-import Data.ByteString.Internal (ByteString(..))
-instance NFData ByteString where
-    rnf (PS _ _ _) = ()
-#endif
-
-instance NFData P.ParseError where
-    rnf = rnf . show
 
 chunksOf :: Int -> [a] -> [[a]]
 chunksOf k = go

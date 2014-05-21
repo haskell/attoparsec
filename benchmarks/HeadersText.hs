@@ -2,11 +2,13 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module HeadersText (headers) where
 
+import Common (rechunkT)
 import Control.Applicative
 import Criterion.Main (bench, bgroup, nf)
 import Criterion.Types (Benchmark)
 import Data.Char (isSpace)
 import qualified Data.Attoparsec.Text as T
+import qualified Data.Attoparsec.Text.Lazy as TL
 import qualified Data.Text.IO as T
 
 header = do
@@ -41,7 +43,15 @@ headers :: IO Benchmark
 headers = do
   req <- T.readFile "http-request.txt"
   resp <- T.readFile "http-response.txt"
-  return $ bgroup "headersT" [
-      bench "request" $ nf (T.parseOnly request) req
-    , bench "response" $ nf (T.parseOnly response) resp
+  let reql    = rechunkT 4 req
+      respl   = rechunkT 4 resp
+  return $ bgroup "headers" [
+      bgroup "T" [
+        bench "request" $ nf (T.parseOnly request) req
+      , bench "response" $ nf (T.parseOnly response) resp
+      ]
+    , bgroup "TL" [
+        bench "request" $ nf (TL.parse request) reql
+      , bench "response" $ nf (TL.parse response) respl
+      ]
     ]

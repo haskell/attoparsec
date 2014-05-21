@@ -36,6 +36,7 @@ module Data.Attoparsec.Text.Buffer
 
 import Control.Exception (assert)
 import Data.Monoid (Monoid(..))
+import Data.Text ()
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)

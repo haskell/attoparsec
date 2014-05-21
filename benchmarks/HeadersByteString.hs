@@ -2,11 +2,12 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module HeadersByteString (headers) where
 
-import Common ()
+import Common (rechunkBS)
 import Control.Applicative
 import Criterion.Main (bench, bgroup, nf)
 import Criterion.Types (Benchmark)
 import qualified Data.Attoparsec.ByteString.Char8 as B
+import qualified Data.Attoparsec.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as B
 
 header = do
@@ -41,7 +42,15 @@ headers :: IO Benchmark
 headers = do
   req <- B.readFile "http-request.txt"
   resp <- B.readFile "http-response.txt"
-  return $ bgroup "headersBS" [
-      bench "request" $ nf (B.parseOnly request) req
-    , bench "response" $ nf (B.parseOnly response) resp
+  let reql    = rechunkBS 4 req
+      respl   = rechunkBS 4 resp
+  return $ bgroup "headers" [
+      bgroup "B" [
+        bench "request" $ nf (B.parseOnly request) req
+      , bench "response" $ nf (B.parseOnly response) resp
+      ]
+    , bgroup "BL" [
+        bench "request" $ nf (BL.parse request) reql
+      , bench "response" $ nf (BL.parse response) respl
+      ]
     ]

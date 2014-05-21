@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP #-}
 
+import Common ()
 import Control.Applicative (many)
 import Criterion.Main (bench, bgroup, defaultMain, nf)
 import Data.Bits

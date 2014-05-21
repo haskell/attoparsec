@@ -1,10 +1,18 @@
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Common (chunksOf) where
+module Common (
+      chunksOf
+    , rechunkBS
+    , rechunkT
+    ) where
 
 import Control.DeepSeq (NFData(rnf))
 import Text.Parsec (ParseError)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 
 #if !MIN_VERSION_bytestring(0,10,0)
 import Data.ByteString.Internal (ByteString(..))
@@ -21,3 +29,9 @@ chunksOf k = go
   where go xs = case splitAt k xs of
                   ([],_)  -> []
                   (y, ys) -> y : go ys
+
+rechunkBS :: Int -> B.ByteString -> BL.ByteString
+rechunkBS n = BL.fromChunks . map B.pack . chunksOf n . B.unpack
+
+rechunkT :: Int -> T.Text -> TL.Text
+rechunkT n = TL.fromChunks . map T.pack . chunksOf n . T.unpack

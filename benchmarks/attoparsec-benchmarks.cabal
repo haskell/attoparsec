@@ -14,7 +14,7 @@ executable attoparsec-benchmarks
     Links
     Numbers
   hs-source-dirs: .. .
-  ghc-options: -O2 -Wall
+  ghc-options: -O2 -Wall -rtsopts
   build-depends:
     array,
     base == 4.*,

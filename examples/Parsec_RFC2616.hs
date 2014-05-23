@@ -23,15 +23,16 @@ token :: Stream s m Char => ParsecT s u m Char
 token = satisfy $ \c -> S.notMember (fromEnum c) set
   where set = S.fromList . map fromEnum $ ['\0'..'\31'] ++ "()<>@,;:\\\"/[]?={} \t" ++ ['\128'..'\255']
 
+isHorizontalSpace :: Char -> Bool
 isHorizontalSpace c = c == ' ' || c == '\t'
 
 skipHSpaces :: Stream s m Char => ParsecT s u m ()
 skipHSpaces = skipMany1 (satisfy isHorizontalSpace)
 
 data Request = Request {
-      requestMethod   :: String
-    , requestUri      :: String
-    , requestProtocol :: String
+      _requestMethod   :: String
+    , _requestUri      :: String
+    , _requestProtocol :: String
     } deriving (Eq, Ord, Show)
 
 requestLine :: Stream s m Char => ParsecT s u m Request
@@ -47,8 +48,8 @@ endOfLine :: Stream s m Char => ParsecT s u m ()
 endOfLine = (string "\r\n" *> pure ()) <|> (char '\n' *> pure ())
 
 data Header = Header {
-      headerName  :: String
-    , headerValue :: [String]
+      _headerName  :: String
+    , _headerValue :: [String]
     } deriving (Eq, Ord, Show)
 
 messageHeader :: Stream s m Char => ParsecT s u m Header
@@ -61,14 +62,16 @@ messageHeader = do
 request :: Stream s m Char => ParsecT s u m (Request, [Header])
 request = (,) <$> requestLine <*> many messageHeader <* endOfLine
 
+listy :: FilePath -> IO ()
 listy arg = do
   r <- parseFromFile (many request) arg
   case r of
     Left err -> putStrLn $ arg ++ ": " ++ show err
     Right rs -> print (length rs)
 
+chunky :: FilePath -> IO ()
 chunky arg = bracket (openFile arg ReadMode) hClose $ \h ->
-               loop 0 =<< B.hGetContents h
+               loop (0::Int) =<< B.hGetContents h
  where
   loop !n bs
       | B.null bs = print n

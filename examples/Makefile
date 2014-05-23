@@ -1,4 +1,4 @@
-CC := gcc
+CC := cc
 CFLAGS := -O3 -Wall
 # To make the code about 6% faster:
 # CFLAGS += -fwhole-program --combine
@@ -12,4 +12,8 @@ c-http: rfc2616.c http_parser.c
 clean:
 	rm -f *.hi *.o c-http
 
-vpath %.c $(HOME)/hg/http-parser
+http_parser.c: http_parser.h
+	curl -O https://raw.githubusercontent.com/joyent/http-parser/master/http_parser.c
+
+http_parser.h:
+	curl -O https://raw.githubusercontent.com/joyent/http-parser/master/http_parser.h

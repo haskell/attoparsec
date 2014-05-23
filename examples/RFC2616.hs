@@ -5,14 +5,8 @@ module RFC2616
       Header(..)
     , Request(..)
     , Response(..)
-    , isToken
-    , messageHeader
     , request
-    , requestLine
     , response
-    , responseLine
-    , lowerHeader
-    , lookupHeader
     ) where
 
 import Control.Applicative
@@ -20,8 +14,7 @@ import Data.Attoparsec.ByteString as P
 import qualified Data.Attoparsec.ByteString.Char8 as P8
 import Data.Attoparsec.ByteString.Char8 (char8, endOfLine, isDigit_w8)
 import Data.Word (Word8)
-import qualified Data.ByteString.Char8 as B hiding (map)
-import qualified Data.ByteString as B (map)
+import qualified Data.ByteString.Char8 as B
 
 isToken :: Word8 -> Bool
 isToken w = w <= 127 && notInClass "\0-\31()<>@,;:\\\"/[]?={} \t" w
@@ -30,61 +23,43 @@ skipSpaces :: Parser ()
 skipSpaces = satisfy P8.isHorizontalSpace *> skipWhile P8.isHorizontalSpace
 
 data Request = Request {
-      requestMethod  :: !B.ByteString
-    , requestUri     :: !B.ByteString
-    , requestVersion :: !B.ByteString
+      requestMethod  :: B.ByteString
+    , requestUri     :: B.ByteString
+    , requestVersion :: B.ByteString
     } deriving (Eq, Ord, Show)
 
 httpVersion :: Parser B.ByteString
 httpVersion = "HTTP/" *> P.takeWhile (\c -> isDigit_w8 c || c == 46)
 
 requestLine :: Parser Request
-requestLine = do
-  method <- P.takeWhile1 isToken <* char8 ' '
-  uri <- P.takeWhile1 (/=32) <* char8 ' '
-  version <- httpVersion <* endOfLine
-  return $! Request method uri version
+requestLine = Request <$> (P.takeWhile1 isToken <* char8 ' ')
+                      <*> (P.takeWhile1 (/=32) <* char8 ' ')
+                      <*> (httpVersion <* endOfLine)
 
 data Header = Header {
-      headerName  :: !B.ByteString
+      headerName  :: B.ByteString
     , headerValue :: [B.ByteString]
     } deriving (Eq, Ord, Show)
 
 messageHeader :: Parser Header
-messageHeader = do
-  header <- P.takeWhile isToken <* char8 ':' <* skipWhile P8.isHorizontalSpace
-  body <- takeTill P8.isEndOfLine <* endOfLine
-  bodies <- many $ skipSpaces *> takeTill P8.isEndOfLine <* endOfLine
-  return $! Header header (body:bodies)
+messageHeader = Header
+  <$> (P.takeWhile isToken <* char8 ':' <* skipWhile P8.isHorizontalSpace)
+  <*> ((:) <$> (takeTill P8.isEndOfLine <* endOfLine)
+           <*> (many $ skipSpaces *> takeTill P8.isEndOfLine <* endOfLine))
 
 request :: Parser (Request, [Header])
 request = (,) <$> requestLine <*> many messageHeader <* endOfLine
 
 data Response = Response {
-      responseVersion :: !B.ByteString
-    , responseCode    :: !B.ByteString
-    , responseMsg     :: !B.ByteString
+      responseVersion :: B.ByteString
+    , responseCode    :: B.ByteString
+    , responseMsg     :: B.ByteString
     } deriving (Eq, Ord, Show)
 
 responseLine :: Parser Response
-responseLine = do
-  version <- httpVersion <* char8 ' '
-  code <- P.takeWhile isDigit_w8 <* char8 ' '
-  msg <- P.takeTill P8.isEndOfLine <* endOfLine
-  return $! Response version code msg
+responseLine = Response <$> (httpVersion <* char8 ' ')
+                        <*> (P.takeWhile isDigit_w8 <* char8 ' ')
+                        <*> (P.takeTill P8.isEndOfLine <* endOfLine)
 
 response :: Parser (Response, [Header])
 response = (,) <$> responseLine <*> many messageHeader <* endOfLine
-
-lowerHeader :: Header -> Header
-lowerHeader (Header n v) = Header (B.map toLower n) (map (B.map toLower) v)
-  where toLower w | w >= 65 && w <= 90 = w + 32
-                  | otherwise          = w
-
-lookupHeader :: B.ByteString -> [Header] -> [B.ByteString]
-lookupHeader k = go
-  where
-    go (Header n v:hs)
-      | k == n    = v
-      | otherwise = go hs
-    go _          = []

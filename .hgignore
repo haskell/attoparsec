@@ -1,11 +1,14 @@
-^(?:\.cabal-sandbox|benchmarks/\.cabal-sandbox|cabal-dev|dist)$
 \.(?:aux|eventlog|h[ip]|hs.html|log|[mt]ix|[oa]|orig|prof|ps|rej|swp)$
 ~$
+^(?:.+/|)\.cabal-sandbox/
+^(?:.+/|)dist/
 benchmarks/Arse
 benchmarks/dist
 benchmarks/med.txt
 benchmarks/tiny
 cabal.sandbox.config
+examples/c-http
+examples/http_parser.[ch]
 hpc.*\.html$
 
 syntax: glob

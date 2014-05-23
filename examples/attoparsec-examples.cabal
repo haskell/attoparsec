@@ -1,0 +1,31 @@
+-- These examples are not intended to be installed.
+-- So don't install 'em.
+
+name: attoparsec-examples
+version: 0
+cabal-version: >=1.6
+build-type: Simple
+
+executable atto-rfc2616
+  main-is: Atto_RFC2616.hs
+  hs-source-dirs: .. .
+  ghc-options: -O2 -Wall -rtsopts
+  build-depends:
+    array,
+    base == 4.*,
+    bytestring >= 0.10.4.0,
+    deepseq >= 1.1,
+    scientific >= 0.3.1,
+    text >= 1.1.1.0
+
+executable parsec-rfc2616
+  main-is: Parsec_RFC2616.hs
+  hs-source-dirs: .
+  ghc-options: -O2 -Wall -rtsopts
+  build-depends:
+    array,
+    base == 4.*,
+    containers,
+    bytestring >= 0.10.4.0,
+    parsec,
+    text >= 1.1.1.0

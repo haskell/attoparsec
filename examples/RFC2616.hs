@@ -16,9 +16,9 @@ module RFC2616
     ) where
 
 import Control.Applicative
-import Data.Attoparsec as P
-import qualified Data.Attoparsec.Char8 as P8
-import Data.Attoparsec.Char8 (char8, endOfLine, isDigit_w8)
+import Data.Attoparsec.ByteString as P
+import qualified Data.Attoparsec.ByteString.Char8 as P8
+import Data.Attoparsec.ByteString.Char8 (char8, endOfLine, isDigit_w8)
 import Data.Word (Word8)
 import qualified Data.ByteString.Char8 as B hiding (map)
 import qualified Data.ByteString as B (map)

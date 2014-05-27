@@ -32,24 +32,27 @@ import Prelude hiding (getChar, succ)
 newtype Pos = Pos { fromPos :: Int }
             deriving (Eq, Ord, Show, Num)
 
--- | The result of a parse.  This is parameterised over the type @t@
+-- | The result of a parse.  This is parameterised over the type @i@
 -- of string that was processed.
 --
 -- This type is an instance of 'Functor', where 'fmap' transforms the
 -- value in a 'Done' result.
 data IResult i t r =
     Fail i [String] String
-    -- ^ The parse failed.  The 'i' parameter is the input that had
+    -- ^ The parse failed.  The @i@ parameter is the input that had
     -- not yet been consumed when the failure occurred.  The
     -- @[@'String'@]@ is a list of contexts in which the error
     -- occurred.  The 'String' is the message describing the error, if
     -- any.
   | Partial (i -> IResult i t r)
     -- ^ Supply this continuation with more input so that the parser
-    -- can resume.  To indicate that no more input is available, use
-    -- an empty string.
+    -- can resume.  To indicate that no more input is available, pass
+    -- an empty string to the continuation.
+    --
+    -- __Note__: if you get a 'Partial' result, do not call its
+    -- continuation more than once.
   | Done i r
-    -- ^ The parse succeeded.  The 'i' parameter is the input that had
+    -- ^ The parse succeeded.  The @i@ parameter is the input that had
     -- not yet been consumed (if any) when the parse succeeded.
 
 instance (Show i, Show r) => Show (IResult i t r) where

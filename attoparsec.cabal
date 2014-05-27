@@ -78,9 +78,10 @@ library
 
 test-suite tests
   type:           exitcode-stdio-1.0
-  hs-source-dirs: tests
+  hs-source-dirs: tests .
   main-is:        QC.hs
-  other-modules:  QC.ByteString
+  other-modules:  QC.Buffer
+                  QC.ByteString
                   QC.Combinator
                   QC.Common
                   QC.Text
@@ -92,10 +93,12 @@ test-suite tests
     ghc-options: -Werror
 
   build-depends:
-    attoparsec,
+    array,
     base >= 4 && < 5,
     bytestring,
+    deepseq >= 1.1,
     QuickCheck >= 2.7,
+    scientific,
     test-framework >= 0.8.0.2,
     test-framework-quickcheck2 >= 0.3.0.3,
     text

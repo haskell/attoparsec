@@ -35,6 +35,7 @@ module Data.Attoparsec.Text.Buffer
     ) where
 
 import Control.Exception (assert)
+import Data.List (foldl1')
 import Data.Monoid (Monoid(..))
 import Data.Text ()
 import Data.Text.Internal (Text(..))
@@ -85,6 +86,9 @@ instance Monoid Buffer where
           A.copyI marr len0 arr1 off1 newlen
           arr2 <- A.unsafeFreeze marr
           return (Buf arr2 0 newlen newcap)
+
+    mconcat [] = mempty
+    mconcat xs = foldl1' mappend xs
 
 length :: Buffer -> Int
 length (Buf _ _ len _) = len

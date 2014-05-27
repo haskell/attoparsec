@@ -34,6 +34,7 @@ module Data.Attoparsec.ByteString.Buffer
 import Control.Exception (assert)
 import Data.Attoparsec.ByteString.Fhthagn (inlinePerformIO)
 import Data.ByteString.Internal (ByteString(..), memcpy, nullForeignPtr)
+import Data.List (foldl1')
 import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
@@ -83,6 +84,9 @@ instance Monoid Buffer where
                 memcpy ptr (ptr0 `plusPtr` off0) len0
                 memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1) len1
               return (Buf fp 0 newlen newcap)
+
+    mconcat [] = mempty
+    mconcat xs = foldl1' mappend xs
 
 length :: Buffer -> Int
 length (Buf _ _ len _) = len

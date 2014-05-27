@@ -75,14 +75,15 @@ instance Monoid Buffer where
             then do
               memcpy (ptr0 `plusPtr` (off0+len0))
                      (ptr1 `plusPtr` off1)
-                     len1
+                     (fromIntegral len1)
               return (Buf fp0 off0 newlen cap0)
             else do
               let newcap = newlen * 2
               fp <- mallocPlainForeignPtrBytes newcap
               withForeignPtr fp $ \ptr -> do
-                memcpy ptr (ptr0 `plusPtr` off0) len0
-                memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1) len1
+                memcpy ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
+                memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
+                       (fromIntegral len1)
               return (Buf fp 0 newlen newcap)
 
     mconcat [] = mempty

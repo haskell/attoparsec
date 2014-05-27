@@ -87,7 +87,7 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
 type Parser = T.Parser B.ByteString Buffer
-type Result = IResult B.ByteString Buffer
+type Result = IResult B.ByteString
 type Failure r = T.Failure B.ByteString Buffer r
 type Success a r = T.Success B.ByteString Buffer a r
 
@@ -465,9 +465,9 @@ ensure n = T.Parser $ \t pos more lose succ ->
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
 prompt :: Buffer -> Pos -> More
-       -> (Buffer -> Pos -> More -> IResult ByteString Buffer r)
-       -> (Buffer -> Pos -> More -> IResult ByteString Buffer r)
-       -> IResult ByteString Buffer r
+       -> (Buffer -> Pos -> More -> IResult ByteString r)
+       -> (Buffer -> Pos -> More -> IResult ByteString r)
+       -> IResult ByteString r
 prompt t pos _more lose succ = Partial $ \s ->
   if B.null s
   then lose t pos Complete

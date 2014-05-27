@@ -82,7 +82,7 @@ import qualified Data.Text.Lazy as L
 import qualified Data.Text.Unsafe as T
 
 type Parser = T.Parser Text Buffer
-type Result = IResult Text Buffer
+type Result = IResult Text
 type Failure r = T.Failure Text Buffer r
 type Success a r = T.Success Text Buffer a r
 
@@ -472,9 +472,9 @@ ensure n = T.Parser $ \t pos more lose succ ->
 -- | Ask for input.  If we receive any, pass it to a success
 -- continuation, otherwise to a failure continuation.
 prompt :: Buffer -> Pos -> More
-       -> (Buffer -> Pos -> More -> IResult Text Buffer r)
-       -> (Buffer -> Pos -> More -> IResult Text Buffer r)
-       -> IResult Text Buffer r
+       -> (Buffer -> Pos -> More -> IResult Text r)
+       -> (Buffer -> Pos -> More -> IResult Text r)
+       -> IResult Text r
 prompt t pos _more lose succ = Partial $ \s ->
   if T.null s
   then lose t pos Complete

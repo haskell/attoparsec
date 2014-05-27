@@ -37,14 +37,14 @@ newtype Pos = Pos { fromPos :: Int }
 --
 -- This type is an instance of 'Functor', where 'fmap' transforms the
 -- value in a 'Done' result.
-data IResult i t r =
+data IResult i r =
     Fail i [String] String
     -- ^ The parse failed.  The @i@ parameter is the input that had
     -- not yet been consumed when the failure occurred.  The
     -- @[@'String'@]@ is a list of contexts in which the error
     -- occurred.  The 'String' is the message describing the error, if
     -- any.
-  | Partial (i -> IResult i t r)
+  | Partial (i -> IResult i r)
     -- ^ Supply this continuation with more input so that the parser
     -- can resume.  To indicate that no more input is available, pass
     -- an empty string to the continuation.
@@ -55,19 +55,19 @@ data IResult i t r =
     -- ^ The parse succeeded.  The @i@ parameter is the input that had
     -- not yet been consumed (if any) when the parse succeeded.
 
-instance (Show i, Show r) => Show (IResult i t r) where
+instance (Show i, Show r) => Show (IResult i r) where
     show (Fail t stk msg) =
       unwords [ "Fail", show t, show stk, show msg]
     show (Partial _)          = "Partial _"
     show (Done t r)       = unwords ["Done", show t, show r]
 
-instance (NFData i, NFData r) => NFData (IResult i t r) where
+instance (NFData i, NFData r) => NFData (IResult i r) where
     rnf (Fail t stk msg) = rnf t `seq` rnf stk `seq` rnf msg
     rnf (Partial _)  = ()
     rnf (Done t r)   = rnf t `seq` rnf r
     {-# INLINE rnf #-}
 
-instance Functor (IResult i t) where
+instance Functor (IResult i) where
     fmap _ (Fail t stk msg) = Fail t stk msg
     fmap f (Partial k)      = Partial (fmap f . k)
     fmap f (Done t r)   = Done t (f r)
@@ -94,12 +94,12 @@ newtype Parser i t a = Parser {
       runParser :: forall r. t -> Pos -> More
                 -> Failure i t   r
                 -> Success i t a r
-                -> IResult i t r
+                -> IResult i r
     }
 
 type Failure i t   r = t -> Pos -> More -> [String] -> String
-                       -> IResult i t r
-type Success i t a r = t -> Pos -> More -> a -> IResult i t r
+                       -> IResult i r
+type Success i t a r = t -> Pos -> More -> a -> IResult i r
 
 -- | Have we read all available input?
 data More = Complete | Incomplete

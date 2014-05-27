@@ -33,8 +33,8 @@ module Data.Attoparsec.ByteString.Buffer
 
 import Control.Applicative ((<$>))
 import Control.Exception (assert)
-import Data.Attoparsec.ByteString.Fhthagn (inlinePerformIO)
 import Data.ByteString.Internal (ByteString(..), memcpy, nullForeignPtr)
+import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.IORef (IORef, atomicModifyIORef, newIORef)
 import Data.List (foldl1')
 import Data.Monoid (Monoid(..))

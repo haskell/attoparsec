@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, Rank2Types, OverloadedStrings,
     RecordWildCards, MagicHash, UnboxedTuples #-}
 
-module Data.Attoparsec.ByteString.Fhthagn
+module Data.Attoparsec.Internal.Fhthagn
     (
       inlinePerformIO
     ) where

@@ -195,6 +195,13 @@ import qualified Data.Text as T
 -- If you do not need support for incremental input, consider using
 -- the 'I.parseOnly' function to run your parser.  It will never
 -- prompt for more input.
+--
+-- /Note/: incremental input does /not/ imply that attoparsec will
+-- release portions of its internal state for garbage collection as it
+-- proceeds.  Its internal representation is equivalent to a single
+-- 'Text': if you feed incremental input to an a parser, it will
+-- require memory proportional to the amount of input you supply.
+-- (This is necessary to support arbitrary backtracking.)
 
 -- $performance
 --

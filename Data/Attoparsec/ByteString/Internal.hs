@@ -8,7 +8,7 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for 'B.ByteString' strings,
+-- Simple, efficient parser combinators for 'ByteString' strings,
 -- loosely based on the Parsec library.
 
 module Data.Attoparsec.ByteString.Internal
@@ -86,10 +86,10 @@ import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 
-type Parser = T.Parser B.ByteString Buffer
-type Result = IResult B.ByteString
-type Failure r = T.Failure B.ByteString Buffer r
-type Success a r = T.Success B.ByteString Buffer a r
+type Parser = T.Parser ByteString Buffer
+type Result = IResult ByteString
+type Failure r = T.Failure ByteString Buffer r
+type Success a r = T.Success ByteString Buffer a r
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -140,7 +140,7 @@ storable = hack undefined
 
 -- | Consume @n@ bytes of input, but succeed only if the predicate
 -- returns 'True'.
-takeWith :: Int -> (B.ByteString -> Bool) -> Parser B.ByteString
+takeWith :: Int -> (ByteString -> Bool) -> Parser ByteString
 takeWith n0 p = do
   let n = max n0 0
   s <- ensure n
@@ -149,7 +149,7 @@ takeWith n0 p = do
     else fail "takeWith"
 
 -- | Consume exactly @n@ bytes of input.
-take :: Int -> Parser B.ByteString
+take :: Int -> Parser ByteString
 take n = takeWith n (const True)
 {-# INLINE take #-}
 
@@ -168,12 +168,12 @@ take n = takeWith n (const True)
 -- partial match, and will consume the letters @\'f\'@ and @\'o\'@
 -- before failing.  In attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.
-string :: B.ByteString -> Parser B.ByteString
+string :: ByteString -> Parser ByteString
 string s = takeWith (B.length s) (==s)
 {-# INLINE string #-}
 
-stringTransform :: (B.ByteString -> B.ByteString) -> B.ByteString
-                -> Parser B.ByteString
+stringTransform :: (ByteString -> ByteString) -> ByteString
+                -> Parser ByteString
 stringTransform f s = takeWith (B.length s) ((==f s) . f)
 {-# INLINE stringTransform #-}
 
@@ -200,7 +200,7 @@ skipWhile p = go
 -- combinators such as 'Control.Applicative.many', because such
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
-takeTill :: (Word8 -> Bool) -> Parser B.ByteString
+takeTill :: (Word8 -> Bool) -> Parser ByteString
 takeTill p = takeWhile (not . p)
 {-# INLINE takeTill #-}
 
@@ -214,7 +214,7 @@ takeTill p = takeWhile (not . p)
 -- combinators such as 'Control.Applicative.many', because such
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
-takeWhile :: (Word8 -> Bool) -> Parser B.ByteString
+takeWhile :: (Word8 -> Bool) -> Parser ByteString
 takeWhile p = (B.concat . reverse) `fmap` go []
  where
   go acc = do
@@ -230,7 +230,7 @@ takeWhile p = (B.concat . reverse) `fmap` go []
       else return (s:acc)
 {-# INLINE takeWhile #-}
 
-takeRest :: Parser [B.ByteString]
+takeRest :: Parser [ByteString]
 takeRest = go []
  where
   go acc = do
@@ -243,7 +243,7 @@ takeRest = go []
       else return (reverse acc)
 
 -- | Consume all remaining input and return it as a single string.
-takeByteString :: Parser B.ByteString
+takeByteString :: Parser ByteString
 takeByteString = B.concat `fmap` takeRest
 
 -- | Consume all remaining input and return it as a single string.
@@ -252,7 +252,7 @@ takeLazyByteString = L.fromChunks `fmap` takeRest
 
 data T s = T {-# UNPACK #-} !Int s
 
-scan_ :: (s -> [B.ByteString] -> Parser r) -> s -> (s -> Word8 -> Maybe s)
+scan_ :: (s -> [ByteString] -> Parser r) -> s -> (s -> Word8 -> Maybe s)
          -> Parser r
 scan_ f s0 p = go [] s0
  where
@@ -296,7 +296,7 @@ scan_ f s0 p = go [] s0
 -- combinators such as 'Control.Applicative.many', because such
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
-scan :: s -> (s -> Word8 -> Maybe s) -> Parser B.ByteString
+scan :: s -> (s -> Word8 -> Maybe s) -> Parser ByteString
 scan = scan_ $ \_ chunks ->
   case chunks of
     [x] -> return x
@@ -305,7 +305,7 @@ scan = scan_ $ \_ chunks ->
 
 -- | Like 'scan', but generalized to return the final state of the
 -- scanner.
-runScanner :: s -> (s -> Word8 -> Maybe s) -> Parser (B.ByteString, s)
+runScanner :: s -> (s -> Word8 -> Maybe s) -> Parser (ByteString, s)
 runScanner = scan_ $ \s xs -> return (B.concat (reverse xs), s)
 {-# INLINE runScanner #-}
 
@@ -315,7 +315,7 @@ runScanner = scan_ $ \s xs -> return (B.concat (reverse xs), s)
 -- This parser requires the predicate to succeed on at least one byte
 -- of input: it will fail if the predicate never returns 'True' or if
 -- there is no input left.
-takeWhile1 :: (Word8 -> Bool) -> Parser B.ByteString
+takeWhile1 :: (Word8 -> Bool) -> Parser ByteString
 takeWhile1 p = do
   (`when` demandInput) =<< endOfChunk
   s <- B8.takeWhile p <$> get
@@ -413,12 +413,12 @@ successK t (Pos pos) _more a = Done (Buf.unsafeDrop pos t) a
 {-# INLINE successK #-}
 
 -- | Run a parser.
-parse :: Parser a -> B.ByteString -> Result a
+parse :: Parser a -> ByteString -> Result a
 parse m s = T.runParser m (buffer s) (Pos 0) Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
-parseOnly :: Parser a -> B.ByteString -> Either String a
+parseOnly :: Parser a -> ByteString -> Either String a
 parseOnly m s = case T.runParser m (buffer s) (Pos 0) Complete failK successK of
                   Fail _ _ err -> Left err
                   Done _ a     -> Right a

@@ -10,7 +10,7 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Simple, efficient parser combinators for 'T.Text' strings, loosely
+-- Simple, efficient parser combinators for 'Text' strings, loosely
 -- based on the Parsec library.
 
 module Data.Attoparsec.Text.Internal
@@ -273,7 +273,7 @@ takeLazyText :: Parser L.Text
 takeLazyText = L.fromChunks `fmap` takeRest
 
 data Scan s = Continue s
-            | Finished {-# UNPACK #-} !Int T.Text
+            | Finished {-# UNPACK #-} !Int Text
 
 scan_ :: (s -> [Text] -> Parser r) -> s -> (s -> Char -> Maybe s) -> Parser r
 scan_ f s0 p = go [] s0

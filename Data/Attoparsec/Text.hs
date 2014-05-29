@@ -198,8 +198,8 @@ import qualified Data.Text as T
 -- $performance
 --
 -- If you write an attoparsec-based parser carefully, it can be
--- realistic to expect it to perform within a factor of 2 of a
--- hand-rolled C parser (measuring megabytes parsed per second).
+-- realistic to expect it to perform similarly to a hand-rolled C
+-- parser (measuring megabytes parsed per second).
 --
 -- To actually achieve high performance, there are a few guidelines
 -- that it is useful to follow.

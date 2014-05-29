@@ -72,8 +72,8 @@ instance Functor (IResult i) where
     fmap f (Partial k)      = Partial (fmap f . k)
     fmap f (Done t r)   = Done t (f r)
 
--- | The core parser type.  This is parameterised over the type @t@ of
--- string being processed.
+-- | The core parser type.  This is parameterised over the types @i@
+-- of string being processed and @t@ of internal state representation.
 --
 -- This type is an instance of the following classes:
 --

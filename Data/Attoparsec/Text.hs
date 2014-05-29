@@ -326,6 +326,24 @@ signed p = (negate <$> (I.char '-' *> p))
 
 -- | Parse a rational number.
 --
+-- The syntax accepted by this parser is the same as for 'double'.
+--
+-- /Note/: this parser is not safe for use with inputs from untrusted
+-- sources.  An input with a suitably large exponent such as
+-- @"1e1000000000"@ will cause a huge 'Integer' to be allocated,
+-- resulting in what is effectively a denial-of-service attack.
+--
+-- In most cases, it is better to use 'double' or 'scientific'
+-- instead.
+rational :: Fractional a => Parser a
+{-# SPECIALIZE rational :: Parser Double #-}
+{-# SPECIALIZE rational :: Parser Float #-}
+{-# SPECIALIZE rational :: Parser Rational #-}
+{-# SPECIALIZE rational :: Parser Scientific #-}
+rational = scientifically realToFrac
+
+-- | Parse a rational number.
+--
 -- This parser accepts an optional leading sign character, followed by
 -- at least one decimal digit.  The syntax similar to that accepted by
 -- the 'read' function, with the exception that a trailing @\'.\'@ or
@@ -351,25 +369,12 @@ signed p = (negate <$> (I.char '-' *> p))
 --
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
-rational :: Fractional a => Parser a
-{-# SPECIALIZE rational :: Parser Double #-}
-{-# SPECIALIZE rational :: Parser Float #-}
-{-# SPECIALIZE rational :: Parser Rational #-}
-{-# SPECIALIZE rational :: Parser Scientific #-}
-rational = scientifically realToFrac
-
--- | Parse a rational number.
---
--- The syntax accepted by this parser is the same as for 'rational'.
---
--- This function does not accept string representations of \"NaN\" or
--- \"Infinity\".
 double :: Parser Double
 double = scientifically Sci.toRealFloat
 
 -- | Parse a number, attempting to preserve both speed and precision.
 --
--- The syntax accepted by this parser is the same as for 'rational'.
+-- The syntax accepted by this parser is the same as for 'double'.
 --
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
@@ -384,7 +389,7 @@ number = scientifically $ \s ->
 
 -- | Parse a scientific number.
 --
--- The syntax accepted by this parser is the same as for 'rational'.
+-- The syntax accepted by this parser is the same as for 'double'.
 scientific :: Parser Scientific
 scientific = scientifically id
 

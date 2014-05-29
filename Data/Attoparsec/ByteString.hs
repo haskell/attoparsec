@@ -140,10 +140,11 @@ import qualified Data.Attoparsec.Internal.Types as T
 -- input and could consume more input, it will suspend parsing and
 -- return a 'T.Partial' continuation.
 --
--- Supplying the 'T.Partial' continuation with another bytestring will
--- resume parsing at the point where it was suspended. You must be
--- prepared for the result of the resumed parse to be another
--- 'T.Partial' continuation.
+-- Supplying the 'T.Partial' continuation with a bytestring will
+-- resume parsing at the point where it was suspended, with the
+-- bytestring you supplied used as new input at the end of the
+-- existing input. You must be prepared for the result of the resumed
+-- parse to be another 'T.Partial' continuation.
 --
 -- To indicate that you have no more input, supply the 'T.Partial'
 -- continuation with an empty bytestring.

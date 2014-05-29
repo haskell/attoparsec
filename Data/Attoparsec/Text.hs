@@ -180,9 +180,10 @@ import qualified Data.Text as T
 -- return a 'T.Partial' continuation.
 --
 -- Supplying the 'T.Partial' continuation with another string will
--- resume parsing at the point where it was suspended. You must be
--- prepared for the result of the resumed parse to be another
--- 'Partial' continuation.
+-- resume parsing at the point where it was suspended, with the string
+-- you supplied used as new input at the end of the existing
+-- input. You must be prepared for the result of the resumed parse to
+-- be another 'Partial' continuation.
 --
 -- To indicate that you have no more input, supply the 'Partial'
 -- continuation with an 'T.empty' 'Text'.

@@ -140,40 +140,40 @@ import qualified Data.Text as T
 
 -- $parsec
 --
--- Compared to Parsec 3, Attoparsec makes several tradeoffs.  It is
+-- Compared to Parsec 3, attoparsec makes several tradeoffs.  It is
 -- not intended for, or ideal for, all possible uses.
 --
--- * While Attoparsec can consume input incrementally, Parsec cannot.
+-- * While attoparsec can consume input incrementally, Parsec cannot.
 --   Incremental input is a huge deal for efficient and secure network
 --   and system programming, since it gives much more control to users
 --   of the library over matters such as resource usage and the I/O
 --   model to use.
 --
--- * Much of the performance advantage of Attoparsec is gained via
+-- * Much of the performance advantage of attoparsec is gained via
 --   high-performance parsers such as 'I.takeWhile' and 'I.string'.
 --   If you use complicated combinators that return lists of
 --   characters, there is less performance difference between the two
 --   libraries.
 --
--- * Unlike Parsec 3, Attoparsec does not support being used as a
+-- * Unlike Parsec 3, attoparsec does not support being used as a
 --   monad transformer.
 --
--- * Attoparsec is specialised to deal only with strict 'Text'
+-- * attoparsec is specialised to deal only with strict 'Text'
 --   input.  Efficiency concerns rule out both lists and lazy text.
 --   The usual use for lazy text would be to allow consumption of very
 --   large input without a large footprint.  For this need,
---   Attoparsec's incremental input provides an excellent substitute,
+--   attoparsec's incremental input provides an excellent substitute,
 --   with much more control over when input takes place.  If you must
 --   use lazy text, see the 'Lazy' module, which feeds lazy chunks to
 --   a regular parser.
 --
 -- * Parsec parsers can produce more helpful error messages than
---   Attoparsec parsers.  This is a matter of focus: Attoparsec avoids
+--   attoparsec parsers.  This is a matter of focus: attoparsec avoids
 --   the extra book-keeping in favour of higher performance.
 
 -- $incremental
 --
--- Attoparsec supports incremental input, meaning that you can feed it
+-- attoparsec supports incremental input, meaning that you can feed it
 -- a 'Text' that represents only part of the expected total amount
 -- of data to parse. If your parser reaches the end of a fragment of
 -- input and could consume more input, it will suspend parsing and
@@ -197,7 +197,7 @@ import qualified Data.Text as T
 
 -- $performance
 --
--- If you write an Attoparsec-based parser carefully, it can be
+-- If you write an attoparsec-based parser carefully, it can be
 -- realistic to expect it to perform within a factor of 2 of a
 -- hand-rolled C parser (measuring megabytes parsed per second).
 --

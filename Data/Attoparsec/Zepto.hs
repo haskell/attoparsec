@@ -12,13 +12,13 @@
 -- A tiny, highly specialized combinator parser for 'B.ByteString'
 -- strings.
 --
--- While the main Attoparsec module generally performs well, this
+-- While the main attoparsec module generally performs well, this
 -- module is particularly fast for simple non-recursive loops that
 -- should not normally result in failed parses.
 --
 -- /Warning/: on more complex inputs involving recursion or failure,
 -- parsers based on this module may be as much as /ten times slower/
--- than regular Attoparsec! You should /only/ use this module when you
+-- than regular attoparsec! You should /only/ use this module when you
 -- have benchmarks that prove that its use speeds your code up.
 module Data.Attoparsec.Zepto
     (

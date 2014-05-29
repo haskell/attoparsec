@@ -155,7 +155,7 @@ take n = takeWith (max n 0) (const True)
 --
 -- The reason for its failure is that the first branch is a
 -- partial match, and will consume the letters @\'f\'@ and @\'o\'@
--- before failing.  In Attoparsec, the above parser will /succeed/ on
+-- before failing.  In attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.
 string :: Text -> Parser Text
 string s = takeWith (T.length s) (==s)

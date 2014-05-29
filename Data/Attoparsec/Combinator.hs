@@ -46,7 +46,7 @@ import Prelude hiding (succ)
 -- input appears to have been consumed.
 --
 -- This combinator is provided for compatibility with Parsec.
--- Attoparsec parsers always backtrack on failure.
+-- attoparsec parsers always backtrack on failure.
 try :: Parser i t a -> Parser i t a
 try p = p
 {-# INLINE try #-}

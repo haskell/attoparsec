@@ -86,7 +86,7 @@ instance Functor (IResult i) where
 --   'mplus' executes the right-hand parser if the left-hand one
 --   fails.  When the parser on the right executes, the input is reset
 --   to the same state as the parser on the left started with. (In
---   other words, Attoparsec is a backtracking parser that supports
+--   other words, attoparsec is a backtracking parser that supports
 --   arbitrary lookahead.)
 --
 -- * 'Alternative', which follows 'MonadPlus'.

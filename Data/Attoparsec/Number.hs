@@ -8,9 +8,18 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
+-- This module is deprecated, and both the module and 'Number' type
+-- will be removed in the next major release.  Use the
+-- <http://hackage.haskell.org/package/scientific scientific> package
+-- and the 'Data.Scientific.Scientific' type instead.
+--
 -- A simple number type, useful for parsing both exact and inexact
 -- quantities without losing much precision.
-module Data.Attoparsec.Number ( Number(..) ) where
+module Data.Attoparsec.Number
+    {-# DEPRECATED "This module will be removed in the next major release." #-}
+    (
+      Number(..)
+    ) where
 
 import Control.DeepSeq (NFData(rnf))
 import Data.Data (Data)
@@ -19,9 +28,13 @@ import Data.Typeable (Typeable)
 
 -- | A numeric type that can represent integers accurately, and
 -- floating point numbers to the precision of a 'Double'.
+--
+-- /Note/: this type is deprecated, and will be removed in the next
+-- major release.  Use the 'Data.Scientific.Scientific' type instead.
 data Number = I !Integer
             | D {-# UNPACK #-} !Double
               deriving (Typeable, Data)
+{-# DEPRECATED Number "Use Scientific instead." #-}
 
 instance Show Number where
     show (I a) = show a

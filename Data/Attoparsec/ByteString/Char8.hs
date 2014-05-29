@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, TypeFamilies,
     TypeSynonymInstances, GADTs #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-warnings-deprecations #-}
 
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Char8
@@ -513,15 +513,6 @@ rational = scientifically realToFrac
 --
 -- The syntax accepted by this parser is the same as for 'rational'.
 --
--- /Note/: This function is almost ten times faster than 'rational',
--- but is slightly less accurate.
---
--- The 'Double' type supports about 16 decimal places of accuracy.
--- For 94.2% of numbers, this function and 'rational' give identical
--- results, but for the remaining 5.8%, this function loses precision
--- around the 15th decimal place.  For 0.001% of numbers, this
--- function will lose precision at the 13th or 14th decimal place.
---
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".
 double :: Parser Double
@@ -531,13 +522,8 @@ double = scientifically Sci.toRealFloat
 --
 -- The syntax accepted by this parser is the same as for 'rational'.
 --
--- /Note/: This function is almost ten times faster than 'rational'.
--- On integral inputs, it gives perfectly accurate answers, and on
--- floating point inputs, it is slightly less accurate than
--- 'rational'.
---
--- This function does not accept string representations of \"NaN\" or
--- \"
+ -- This function does not accept string representations of \"NaN\" or
+ -- \"Infinity\".
 number :: Parser Number
 number = scientifically $ \s ->
             let e = Sci.base10Exponent s
@@ -545,6 +531,7 @@ number = scientifically $ \s ->
             in if e >= 0
                then I (c * 10 ^ e)
                else D (Sci.toRealFloat s)
+{-# DEPRECATED number "Use 'scientific' instead." #-}
 
 -- | Parse a scientific number.
 --

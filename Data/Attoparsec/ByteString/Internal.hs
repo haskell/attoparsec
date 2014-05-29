@@ -418,6 +418,14 @@ parse m s = T.runParser m (buffer s) (Pos 0) Incomplete failK successK
 {-# INLINE parse #-}
 
 -- | Run a parser that cannot be resupplied via a 'Partial' result.
+--
+-- This function does not force a parser to consume all of its input.
+-- Instead, any residual input will be discarded.  To force a parser
+-- to consume all of its input, use something like this:
+--
+-- @
+--'parseOnly' (myParser 'Control.Applicative.<*' 'endOfInput')
+-- @
 parseOnly :: Parser a -> ByteString -> Either String a
 parseOnly m s = case T.runParser m (buffer s) (Pos 0) Complete failK successK of
                   Fail _ _ err -> Left err

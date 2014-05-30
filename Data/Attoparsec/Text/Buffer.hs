@@ -1,4 +1,5 @@
-{-# LANGUAGE MagicHash, RankNTypes, RecordWildCards, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, MagicHash, RankNTypes, RecordWildCards,
+    UnboxedTuples #-}
 
 -- |
 -- Module      :  Data.Attoparsec.Text.Buffer
@@ -35,6 +36,7 @@ module Data.Attoparsec.Text.Buffer
     ) where
 
 import Control.Exception (assert)
+import Data.Bits (shiftR)
 import Data.List (foldl1')
 import Data.Monoid (Monoid(..))
 import Data.Text ()
@@ -42,7 +44,8 @@ import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import Data.Text.Unsafe (Iter(..))
-import GHC.Base (unsafeCoerce#)
+import Foreign.Storable (sizeOf)
+import GHC.Base (Int(..), indexIntArray#, unsafeCoerce#, writeIntArray#)
 import GHC.ST (ST(..), runST)
 import Prelude hiding (length)
 import qualified Data.Text.Array as A
@@ -52,6 +55,7 @@ data Buffer = Buf {
     , _off :: {-# UNPACK #-} !Int
     , _len :: {-# UNPACK #-} !Int
     , _cap :: {-# UNPACK #-} !Int
+    , _gen :: {-# UNPACK #-} !Int
     }
 
 instance Show Buffer where
@@ -61,48 +65,54 @@ instance Show Buffer where
 -- copies in the (hopefully) common case of no further input being fed
 -- to us.
 buffer :: Text -> Buffer
-buffer (Text arr off len) = Buf arr off len len
+buffer (Text arr off len) = Buf arr off len len 0
 
 unbuffer :: Buffer -> Text
-unbuffer (Buf arr off len _cap) = Text arr off len
+unbuffer (Buf arr off len _ _) = Text arr off len
 
 instance Monoid Buffer where
-    mempty = Buf A.empty 0 0 0
+    mempty = Buf A.empty 0 0 0 0
 
-    mappend (Buf _ _ _ 0) b = b
-    mappend a (Buf _ _ _ 0) = a
-    mappend (Buf arr0 off0 len0 cap0) (Buf arr1 off1 len1 _cap1) = runST $ do
-      let newlen = len0 + len1
-      if newlen <= cap0
+    mappend (Buf _ _ _ 0 _) b = b
+    mappend a (Buf _ _ _ 0 _) = a
+    mappend (Buf arr0 off0 len0 cap0 gen0) (Buf arr1 off1 len1 _ _) = runST $ do
+      let woff    = sizeOf (0::Int) `shiftR` 1
+          newlen  = len0 + len1
+          !gen    = if gen0 == 0 then 0 else readGen arr0
+      if gen == gen0 && newlen <= cap0
         then do
+          let newgen = gen + 1
           marr <- unsafeThaw arr0
+          writeGen marr newgen
           A.copyI marr (off0+len0) arr1 off1 (off0+newlen)
           arr2 <- A.unsafeFreeze marr
-          return (Buf arr2 off0 newlen cap0)
+          return (Buf arr2 off0 newlen cap0 newgen)
         else do
           let newcap = newlen * 2
-          marr <- A.new newcap
-          A.copyI marr 0 arr0 off0 len0
-          A.copyI marr len0 arr1 off1 newlen
+              newgen = 1
+          marr <- A.new (newcap + woff)
+          writeGen marr newgen
+          A.copyI marr woff arr0 off0 (woff+len0)
+          A.copyI marr (woff+len0) arr1 off1 (woff+newlen)
           arr2 <- A.unsafeFreeze marr
-          return (Buf arr2 0 newlen newcap)
+          return (Buf arr2 woff newlen newcap newgen)
 
     mconcat [] = mempty
     mconcat xs = foldl1' mappend xs
 
 length :: Buffer -> Int
-length (Buf _ _ len _) = len
+length (Buf _ _ len _ _) = len
 {-# INLINE length #-}
 
 substring :: Int -> Int -> Buffer -> Text
-substring s l (Buf arr off len _cap) =
+substring s l (Buf arr off len _ _) =
   assert (s >= 0 && s <= len) .
   assert (l >= 0 && l <= len-s) $
   Text arr (off+s) l
 {-# INLINE substring #-}
 
 dropWord16 :: Int -> Buffer -> Text
-dropWord16 s (Buf arr off len _cap) =
+dropWord16 s (Buf arr off len _ _) =
   assert (s >= 0 && s <= len) $
   Text arr (off+s) (len-s)
 {-# INLINE dropWord16 #-}
@@ -111,7 +121,7 @@ dropWord16 s (Buf arr off len _cap) =
 -- array, returning the current character and the delta to add to give
 -- the next offset to iterate at.
 iter :: Buffer -> Int -> Iter
-iter (Buf arr off _len _cap) i
+iter (Buf arr off _ _ _) i
     | m < 0xD800 || m > 0xDBFF = Iter (unsafeChr m) 1
     | otherwise                = Iter (chr2 m n) 2
   where m = A.unsafeIndex arr j
@@ -123,7 +133,7 @@ iter (Buf arr off _len _cap) i
 -- | /O(1)/ Iterate one step through a UTF-16 array, returning the
 -- delta to add to give the next offset to iterate at.
 iter_ :: Buffer -> Int -> Int
-iter_ (Buf arr off _len _cap) i | m < 0xD800 || m > 0xDBFF = 1
+iter_ (Buf arr off _ _ _) i | m < 0xD800 || m > 0xDBFF = 1
                                 | otherwise                = 2
   where m = A.unsafeIndex arr (off+i)
 {-# INLINE iter_ #-}
@@ -131,3 +141,11 @@ iter_ (Buf arr off _len _cap) i | m < 0xD800 || m > 0xDBFF = 1
 unsafeThaw :: A.Array -> ST s (A.MArray s)
 unsafeThaw A.Array{..} = ST $ \s# ->
                           (# s#, A.MArray (unsafeCoerce# aBA) #)
+
+readGen :: A.Array -> Int
+readGen a = case indexIntArray# (A.aBA a) 0# of r# -> I# r#
+
+writeGen :: A.MArray s -> Int -> ST s ()
+writeGen a (I# gen#) = ST $ \s0# ->
+  case writeIntArray# (A.maBA a) 0# gen# s0# of
+    s1# -> (# s1#, () #)

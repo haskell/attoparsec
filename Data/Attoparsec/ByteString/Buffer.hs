@@ -91,8 +91,8 @@ instance Monoid Buffer where
     mappend (Buf fp0 off0 len0 cap0 gen0) (Buf fp1 off1 len1 _ _) =
       inlinePerformIO . withForeignPtr fp0 $ \ptr0 ->
         withForeignPtr fp1 $ \ptr1 -> do
-          let genSize          = sizeOf (0::Int)
-              newlen = len0 + len1
+          let genSize = sizeOf (0::Int)
+              newlen  = len0 + len1
           gen <- if gen0 == 0
                  then return 0
                  else peek (castPtr ptr0)

@@ -15,6 +15,7 @@ executable attoparsec-benchmarks
     Links
     Numbers
   hs-source-dirs: .. .
+  c-sources: ../cbits/cbits.c
   ghc-options: -O2 -Wall -rtsopts
   build-depends:
     array,

@@ -38,8 +38,8 @@ import Data.List (foldl1')
 import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
-import Foreign.Ptr (plusPtr)
-import Foreign.Storable (peekByteOff)
+import Foreign.Ptr (castPtr, plusPtr)
+import Foreign.Storable (peek, peekByteOff, poke, sizeOf)
 import GHC.ForeignPtr (mallocPlainForeignPtrBytes)
 import Prelude hiding (length)
 
@@ -48,6 +48,7 @@ data Buffer = Buf {
     , _off :: {-# UNPACK #-} !Int
     , _len :: {-# UNPACK #-} !Int
     , _cap :: {-# UNPACK #-} !Int
+    , _gen :: {-# UNPACK #-} !Int
     }
 
 instance Show Buffer where
@@ -57,56 +58,65 @@ instance Show Buffer where
 -- copies in the (hopefully) common case of no further input being fed
 -- to us.
 buffer :: ByteString -> Buffer
-buffer (PS fp off len) = Buf fp off len len
+buffer (PS fp off len) = Buf fp off len len 0
 
 unbuffer :: Buffer -> ByteString
-unbuffer (Buf fp off len _cap) = PS fp off len
+unbuffer (Buf fp off len _ _) = PS fp off len
 
 instance Monoid Buffer where
-    mempty = Buf nullForeignPtr 0 0 0
+    mempty = Buf nullForeignPtr 0 0 0 0
 
-    mappend (Buf _ _ _ 0) b = b
-    mappend a (Buf _ _ _ 0) = a
-    mappend (Buf fp0 off0 len0 cap0) (Buf fp1 off1 len1 _cap1) =
+    mappend (Buf _ _ _ 0 _) b = b
+    mappend a (Buf _ _ _ 0 _) = a
+    mappend (Buf fp0 off0 len0 cap0 gen0) (Buf fp1 off1 len1 _ _) =
       inlinePerformIO . withForeignPtr fp0 $ \ptr0 ->
         withForeignPtr fp1 $ \ptr1 -> do
-          let newlen = len0 + len1
-          if newlen <= cap0
+          let genSize          = sizeOf (0::Int)
+              newlen = len0 + len1
+          gen <- if gen0 == 0
+                 then return 0
+                 else peek (castPtr ptr0)
+          if gen == gen0 && newlen <= cap0
             then do
+              let newgen = gen + 1
+              poke (castPtr ptr0) newgen
               memcpy (ptr0 `plusPtr` (off0+len0))
                      (ptr1 `plusPtr` off1)
                      (fromIntegral len1)
-              return (Buf fp0 off0 newlen cap0)
+              return (Buf fp0 off0 newlen cap0 newgen)
             else do
               let newcap = newlen * 2
-              fp <- mallocPlainForeignPtrBytes newcap
-              withForeignPtr fp $ \ptr -> do
+              fp <- mallocPlainForeignPtrBytes (newcap + genSize)
+              withForeignPtr fp $ \ptr_ -> do
+                let ptr    = ptr_ `plusPtr` genSize
+                    newgen = 1
+                poke (castPtr ptr_) newgen
                 memcpy ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
                 memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
                        (fromIntegral len1)
-              return (Buf fp 0 newlen newcap)
+                return (Buf fp genSize newlen newcap newgen)
 
     mconcat [] = mempty
     mconcat xs = foldl1' mappend xs
 
 length :: Buffer -> Int
-length (Buf _ _ len _) = len
+length (Buf _ _ len _ _) = len
 {-# INLINE length #-}
 
 unsafeIndex :: Buffer -> Int -> Word8
-unsafeIndex (Buf fp off len _cap) i = assert (i >= 0 && i < len) .
+unsafeIndex (Buf fp off len _ _) i = assert (i >= 0 && i < len) .
     inlinePerformIO . withForeignPtr fp $ flip peekByteOff (off+i)
 {-# INLINE unsafeIndex #-}
 
 substring :: Int -> Int -> Buffer -> ByteString
-substring s l (Buf fp off len _cap) =
+substring s l (Buf fp off len _ _) =
   assert (s >= 0 && s <= len) .
   assert (l >= 0 && l <= len-s) $
   PS fp (off+s) l
 {-# INLINE substring #-}
 
 unsafeDrop :: Int -> Buffer -> ByteString
-unsafeDrop s (Buf fp off len _cap) =
+unsafeDrop s (Buf fp off len _ _) =
   assert (s >= 0 && s <= len) $
   PS fp (off+s) (len-s)
 {-# INLINE unsafeDrop #-}

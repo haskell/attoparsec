@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Buffer
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -32,17 +31,15 @@ module Data.Attoparsec.ByteString.Buffer
     , unsafeDrop
     ) where
 
-import Control.Applicative ((<$>))
 import Control.Exception (assert)
 import Data.ByteString.Internal (ByteString(..), memcpy, nullForeignPtr)
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.List (foldl1')
 import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
-import Foreign.C.Types (CLong(..))
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
-import Foreign.Ptr (Ptr, castPtr, plusPtr)
-import Foreign.Storable (peekByteOff, poke, sizeOf)
+import Foreign.Ptr (castPtr, plusPtr)
+import Foreign.Storable (peek, peekByteOff, poke, sizeOf)
 import GHC.ForeignPtr (mallocPlainForeignPtrBytes)
 import Prelude hiding (length)
 
@@ -78,13 +75,15 @@ instance Monoid Buffer where
               newlen = len0 + len1
           gen <- if gen0 == 0
                  then return 0
-                 else fromIntegral <$> atomic_inc (castPtr ptr0)
-          if newlen <= cap0 && gen == gen0 + 1
+                 else peek (castPtr ptr0)
+          if gen == gen0 && newlen <= cap0
             then do
+              let newgen = gen + 1
+              poke (castPtr ptr0) newgen
               memcpy (ptr0 `plusPtr` (off0+len0))
                      (ptr1 `plusPtr` off1)
                      (fromIntegral len1)
-              return (Buf fp0 off0 newlen cap0 gen)
+              return (Buf fp0 off0 newlen cap0 newgen)
             else do
               let newcap = newlen * 2
               fp <- mallocPlainForeignPtrBytes (newcap + genSize)
@@ -121,6 +120,3 @@ unsafeDrop s (Buf fp off len _ _) =
   assert (s >= 0 && s <= len) $
   PS fp (off+s) (len-s)
 {-# INLINE unsafeDrop #-}
-
-foreign import ccall unsafe "_atto_atomic_inc" atomic_inc
-    :: Ptr CLong -> IO CLong

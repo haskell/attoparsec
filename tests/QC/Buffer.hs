@@ -3,7 +3,8 @@
 
 module QC.Buffer (tests) where
 
-import Data.Monoid (mconcat)
+import Control.Applicative ((<$>))
+import Data.Monoid (Monoid(mconcat))
 import QC.Common ()
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -24,12 +25,19 @@ type BPT = BP T.Text BT.Buffer
 instance Arbitrary BPB where
   arbitrary = do
     bss <- arbitrary
-    return $! BP bss (mconcat bss) (mconcat (map BB.buffer bss))
+    return $! toBP BB.buffer bss
+
+  shrink (BP bss _ _) = toBP BB.buffer <$> shrink bss
 
 instance Arbitrary BPT where
   arbitrary = do
     bss <- arbitrary
-    return $! BP bss (mconcat bss) (mconcat (map BT.buffer bss))
+    return $! toBP BT.buffer bss
+
+  shrink (BP bss _ _) = toBP BT.buffer <$> shrink bss
+
+toBP :: (Monoid a, Monoid b) => (a -> b) -> [a] -> BP a b
+toBP buf bss = BP bss (mconcat bss) (mconcat (map buf bss))
 
 b_unbuffer :: BPB -> Property
 b_unbuffer (BP _ts t buf) = t === BB.unbuffer buf

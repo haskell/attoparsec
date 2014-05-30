@@ -7,8 +7,8 @@
 -- Stability   :  experimental
 -- Portability :  GHC
 --
--- An immutable buffer that supports cheap appends.
-
+-- An "immutable" buffer that supports cheap appends.
+--
 -- A Buffer is divided into an immutable read-only zone, followed by a
 -- mutable area that we've preallocated, but not yet written to.
 --
@@ -19,6 +19,26 @@
 --
 -- Once we run out of space at the end of a Buffer, we do the usual
 -- doubling of the buffer size.
+--
+-- The fact of having a mutable buffer really helps with performance,
+-- but it does have a consequence: if someone misuses the Partial API
+-- that attoparsec uses by calling the same continuation repeatedly
+-- (which never makes sense in practice), they could overwrite data.
+--
+-- Since the API *looks* pure, it should *act* pure, too, so we use
+-- two generation counters (one mutable, one immutable) to track the
+-- number of appends to a mutable buffer. If the counters ever get out
+-- of sync, someone is appending twice to a mutable buffer, so we
+-- duplicate the entire buffer in order to preserve the immutability
+-- of its older self.
+--
+-- While we could go a step further and gain protection against API
+-- abuse on a multicore system, by use of an atomic increment
+-- instruction to bump the mutable generation counter, that would be
+-- very expensive, and feels like it would also be in the realm of the
+-- ridiculous.  Clients should never call a continuation more than
+-- once; we lack a linear type system that could enforce this; and
+-- there's only so far we should go to accommodate broken uses.
 
 module Data.Attoparsec.ByteString.Buffer
     (

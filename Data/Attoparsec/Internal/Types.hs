@@ -123,12 +123,12 @@ instance Monad (Parser i t) where
         in runParser m t pos more lose succ'
     {-# INLINE (>>=) #-}
 
-plus :: (Monoid t) => Parser i t a -> Parser i t a -> Parser i t a
+plus :: Parser i t a -> Parser i t a -> Parser i t a
 plus f g = Parser $ \t pos more lose succ ->
   let lose' t' _pos' more' _ctx _msg = runParser g t' pos more' lose succ
   in runParser f t pos more lose' succ
 
-instance (Monoid t) => MonadPlus (Parser i t) where
+instance MonadPlus (Parser i t) where
     mzero = fail "mzero"
     {-# INLINE mzero #-}
     mplus = plus
@@ -160,13 +160,13 @@ instance Applicative (Parser i t) where
     x <* y = x >>= \a -> y >> return a
     {-# INLINE (<*) #-}
 
-instance (Monoid t) => Monoid (Parser i t a) where
+instance Monoid (Parser i t a) where
     mempty  = fail "mempty"
     {-# INLINE mempty #-}
     mappend = plus
     {-# INLINE mappend #-}
 
-instance (Monoid t) => Alternative (Parser i t) where
+instance Alternative (Parser i t) where
     empty = fail "empty"
     {-# INLINE empty #-}
 

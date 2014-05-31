@@ -15,6 +15,7 @@
 module Data.Attoparsec.Internal.Types
     (
       Parser(..)
+    , Input(..)
     , Failure
     , Success
     , Pos(..)
@@ -26,8 +27,12 @@ module Data.Attoparsec.Internal.Types
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
+import Data.ByteString (ByteString)
 import Data.Monoid (Monoid(..))
+import Data.Text (Text)
 import Prelude hiding (getChar, succ)
+import qualified Data.Attoparsec.ByteString.Buffer as B
+import qualified Data.Attoparsec.Text.Buffer as T
 
 newtype Pos = Pos { fromPos :: Int }
             deriving (Eq, Ord, Show, Num)
@@ -90,12 +95,22 @@ instance Functor (IResult i) where
 --   arbitrary lookahead.)
 --
 -- * 'Alternative', which follows 'MonadPlus'.
-newtype Parser i t a = Parser {
-      runParser :: forall r. t -> Pos -> More
-                -> Failure i t   r
-                -> Success i t a r
+newtype Parser i a = Parser {
+      runParser :: forall r. Input i =>
+                   State i -> Pos -> More
+                -> Failure i (State i)   r
+                -> Success i (State i) a r
                 -> IResult i r
     }
+
+class Input i where
+    type State i :: *
+
+instance Input ByteString where
+    type State ByteString = B.Buffer
+
+instance Input Text where
+    type State Text = T.Buffer
 
 type Failure i t   r = t -> Pos -> More -> [String] -> String
                        -> IResult i r
@@ -110,7 +125,7 @@ instance Monoid More where
     mappend _ m          = m
     mempty               = Incomplete
 
-instance Monad (Parser i t) where
+instance Monad (Parser i) where
     fail err = Parser $ \t pos more lose _succ -> lose t pos more [] msg
       where msg = "Failed reading: " ++ err
     {-# INLINE fail #-}
@@ -123,30 +138,30 @@ instance Monad (Parser i t) where
         in runParser m t pos more lose succ'
     {-# INLINE (>>=) #-}
 
-plus :: Parser i t a -> Parser i t a -> Parser i t a
+plus :: Parser i a -> Parser i a -> Parser i a
 plus f g = Parser $ \t pos more lose succ ->
   let lose' t' _pos' more' _ctx _msg = runParser g t' pos more' lose succ
   in runParser f t pos more lose' succ
 
-instance MonadPlus (Parser i t) where
+instance MonadPlus (Parser i) where
     mzero = fail "mzero"
     {-# INLINE mzero #-}
     mplus = plus
 
-instance Functor (Parser i t) where
+instance Functor (Parser i) where
     fmap f p = Parser $ \t pos more lose succ ->
       let succ' t' pos' more' a = succ t' pos' more' (f a)
       in runParser p t pos more lose succ'
     {-# INLINE fmap #-}
 
-apP :: Parser i t (a -> b) -> Parser i t a -> Parser i t b
+apP :: Parser i (a -> b) -> Parser i a -> Parser i b
 apP d e = do
   b <- d
   a <- e
   return (b a)
 {-# INLINE apP #-}
 
-instance Applicative (Parser i t) where
+instance Applicative (Parser i) where
     pure   = return
     {-# INLINE pure #-}
     (<*>)  = apP
@@ -160,13 +175,13 @@ instance Applicative (Parser i t) where
     x <* y = x >>= \a -> y >> return a
     {-# INLINE (<*) #-}
 
-instance Monoid (Parser i t a) where
+instance Monoid (Parser i a) where
     mempty  = fail "mempty"
     {-# INLINE mempty #-}
     mappend = plus
     {-# INLINE mappend #-}
 
-instance Alternative (Parser i t) where
+instance Alternative (Parser i) where
     empty = fail "empty"
     {-# INLINE empty #-}
 

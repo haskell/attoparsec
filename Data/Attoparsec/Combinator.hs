@@ -47,14 +47,14 @@ import Prelude hiding (succ)
 --
 -- This combinator is provided for compatibility with Parsec.
 -- attoparsec parsers always backtrack on failure.
-try :: Parser i t a -> Parser i t a
+try :: Parser i a -> Parser i a
 try p = p
 {-# INLINE try #-}
 
 -- | Name the parser, in case failure occurs.
-(<?>) :: Parser i t a
+(<?>) :: Parser i a
       -> String                 -- ^ the name to use if parsing fails
-      -> Parser i t a
+      -> Parser i a
 p <?> msg0 = Parser $ \t pos more lose succ ->
              let lose' t' pos' more' strs msg = lose t' pos' more' (msg0:strs) msg
              in runParser p t pos more lose' succ
@@ -66,9 +66,9 @@ infix 0 <?>
 -- action.
 choice :: Alternative f => [f a] -> f a
 choice = foldr (<|>) empty
-{-# SPECIALIZE choice :: [Parser ByteString ByteString a]
-                      -> Parser ByteString ByteString a #-}
-{-# SPECIALIZE choice :: [Parser Text Text a] -> Parser Text Text a #-}
+{-# SPECIALIZE choice :: [Parser ByteString a]
+                      -> Parser ByteString a #-}
+{-# SPECIALIZE choice :: [Parser Text a] -> Parser Text a #-}
 {-# SPECIALIZE choice :: [Z.Parser a] -> Z.Parser a #-}
 
 -- | @option x p@ tries to apply action @p@. If @p@ fails without
@@ -78,8 +78,8 @@ choice = foldr (<|>) empty
 -- > priority  = option 0 (digitToInt <$> digit)
 option :: Alternative f => a -> f a -> f a
 option x p = p <|> pure x
-{-# SPECIALIZE option :: a -> Parser ByteString ByteString a -> Parser ByteString ByteString a #-}
-{-# SPECIALIZE option :: a -> Parser Text Text a -> Parser Text Text a #-}
+{-# SPECIALIZE option :: a -> Parser ByteString a -> Parser ByteString a #-}
+{-# SPECIALIZE option :: a -> Parser Text a -> Parser Text a #-}
 {-# SPECIALIZE option :: a -> Z.Parser a -> Z.Parser a #-}
 
 -- | A version of 'liftM2' that is strict in the result of its first
@@ -125,9 +125,9 @@ many1' p = liftM2' (:) p (many' p)
 -- > commaSep p  = p `sepBy` (symbol ",")
 sepBy :: Alternative f => f a -> f s -> f [a]
 sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
-{-# SPECIALIZE sepBy :: Parser ByteString ByteString a -> Parser ByteString ByteString s
-                     -> Parser ByteString ByteString [a] #-}
-{-# SPECIALIZE sepBy :: Parser Text Text a -> Parser Text Text s -> Parser Text Text [a] #-}
+{-# SPECIALIZE sepBy :: Parser ByteString a -> Parser ByteString s
+                     -> Parser ByteString [a] #-}
+{-# SPECIALIZE sepBy :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 
 -- | @sepBy' p sep@ applies /zero/ or more occurrences of @p@, separated
@@ -138,9 +138,9 @@ sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 sepBy' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy' p s = scan `mplus` return []
   where scan = liftM2' (:) p ((s >> sepBy1' p s) `mplus` return [])
-{-# SPECIALIZE sepBy' :: Parser ByteString ByteString a -> Parser ByteString ByteString s
-                      -> Parser ByteString ByteString [a] #-}
-{-# SPECIALIZE sepBy' :: Parser Text Text a -> Parser Text Text s -> Parser Text Text [a] #-}
+{-# SPECIALIZE sepBy' :: Parser ByteString a -> Parser ByteString s
+                      -> Parser ByteString [a] #-}
+{-# SPECIALIZE sepBy' :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy' :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 
 -- | @sepBy1 p sep@ applies /one/ or more occurrences of @p@, separated
@@ -150,9 +150,9 @@ sepBy' p s = scan `mplus` return []
 sepBy1 :: Alternative f => f a -> f s -> f [a]
 sepBy1 p s = scan
     where scan = liftA2 (:) p ((s *> scan) <|> pure [])
-{-# SPECIALIZE sepBy1 :: Parser ByteString ByteString a -> Parser ByteString ByteString s
-                      -> Parser ByteString ByteString [a] #-}
-{-# SPECIALIZE sepBy1 :: Parser Text Text a -> Parser Text Text s -> Parser Text Text [a] #-}
+{-# SPECIALIZE sepBy1 :: Parser ByteString a -> Parser ByteString s
+                      -> Parser ByteString [a] #-}
+{-# SPECIALIZE sepBy1 :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy1 :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 
 -- | @sepBy1' p sep@ applies /one/ or more occurrences of @p@, separated
@@ -163,9 +163,9 @@ sepBy1 p s = scan
 sepBy1' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy1' p s = scan
     where scan = liftM2' (:) p ((s >> scan) `mplus` return [])
-{-# SPECIALIZE sepBy1' :: Parser ByteString ByteString a -> Parser ByteString ByteString s
-                       -> Parser ByteString ByteString [a] #-}
-{-# SPECIALIZE sepBy1' :: Parser Text Text a -> Parser Text Text s -> Parser Text Text [a] #-}
+{-# SPECIALIZE sepBy1' :: Parser ByteString a -> Parser ByteString s
+                       -> Parser ByteString [a] #-}
+{-# SPECIALIZE sepBy1' :: Parser Text a -> Parser Text s -> Parser Text [a] #-}
 {-# SPECIALIZE sepBy1' :: Z.Parser a -> Z.Parser s -> Z.Parser [a] #-}
 
 -- | @manyTill p end@ applies action @p@ /zero/ or more times until
@@ -180,9 +180,9 @@ sepBy1' p s = scan
 manyTill :: Alternative f => f a -> f b -> f [a]
 manyTill p end = scan
     where scan = (end *> pure []) <|> liftA2 (:) p scan
-{-# SPECIALIZE manyTill :: Parser ByteString ByteString a -> Parser ByteString ByteString b
-                        -> Parser ByteString ByteString [a] #-}
-{-# SPECIALIZE manyTill :: Parser Text Text a -> Parser Text Text b -> Parser Text Text [a] #-}
+{-# SPECIALIZE manyTill :: Parser ByteString a -> Parser ByteString b
+                        -> Parser ByteString [a] #-}
+{-# SPECIALIZE manyTill :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
 
 -- | @manyTill' p end@ applies action @p@ /zero/ or more times until
@@ -199,24 +199,24 @@ manyTill p end = scan
 manyTill' :: (MonadPlus m) => m a -> m b -> m [a]
 manyTill' p end = scan
     where scan = (end >> return []) `mplus` liftM2' (:) p scan
-{-# SPECIALIZE manyTill' :: Parser ByteString ByteString a -> Parser ByteString ByteString b
-                         -> Parser ByteString ByteString [a] #-}
-{-# SPECIALIZE manyTill' :: Parser Text Text a -> Parser Text Text b -> Parser Text Text [a] #-}
+{-# SPECIALIZE manyTill' :: Parser ByteString a -> Parser ByteString b
+                         -> Parser ByteString [a] #-}
+{-# SPECIALIZE manyTill' :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill' :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
 
 -- | Skip zero or more instances of an action.
 skipMany :: Alternative f => f a -> f ()
 skipMany p = scan
     where scan = (p *> scan) <|> pure ()
-{-# SPECIALIZE skipMany :: Parser ByteString ByteString a -> Parser ByteString ByteString () #-}
-{-# SPECIALIZE skipMany :: Parser Text Text a -> Parser Text Text () #-}
+{-# SPECIALIZE skipMany :: Parser ByteString a -> Parser ByteString () #-}
+{-# SPECIALIZE skipMany :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany :: Z.Parser a -> Z.Parser () #-}
 
 -- | Skip one or more instances of an action.
 skipMany1 :: Alternative f => f a -> f ()
 skipMany1 p = p *> skipMany p
-{-# SPECIALIZE skipMany1 :: Parser ByteString ByteString a -> Parser ByteString ByteString () #-}
-{-# SPECIALIZE skipMany1 :: Parser Text Text a -> Parser Text Text () #-}
+{-# SPECIALIZE skipMany1 :: Parser ByteString a -> Parser ByteString () #-}
+{-# SPECIALIZE skipMany1 :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany1 :: Z.Parser a -> Z.Parser () #-}
 
 -- | Apply the given action repeatedly, returning every result.

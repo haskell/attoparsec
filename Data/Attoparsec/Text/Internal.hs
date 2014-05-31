@@ -81,7 +81,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Unsafe as T
 
-type Parser = T.Parser Text Buffer
+type Parser = T.Parser Text
 type Result = IResult Text
 type Failure r = T.Failure Text Buffer r
 type Success a r = T.Success Text Buffer a r

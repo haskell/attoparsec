@@ -486,7 +486,7 @@ prompt :: Buffer -> Pos -> More
 prompt t pos _more lose succ = Partial $ \s ->
   if T.null s
   then lose t pos Complete
-  else succ (t <> buffer s) pos Incomplete
+  else succ (Buf.pappend t s) pos Incomplete
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.

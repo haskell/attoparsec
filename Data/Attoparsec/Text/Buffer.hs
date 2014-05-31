@@ -29,6 +29,7 @@ module Data.Attoparsec.Text.Buffer
     , buffer
     , unbuffer
     , length
+    , pappend
     , iter
     , iter_
     , substring
@@ -75,30 +76,37 @@ instance Monoid Buffer where
 
     mappend (Buf _ _ _ 0 _) b = b
     mappend a (Buf _ _ _ 0 _) = a
-    mappend (Buf arr0 off0 len0 cap0 gen0) (Buf arr1 off1 len1 _ _) = runST $ do
-      let woff    = sizeOf (0::Int) `shiftR` 1
-          newlen  = len0 + len1
-          !gen    = if gen0 == 0 then 0 else readGen arr0
-      if gen == gen0 && newlen <= cap0
-        then do
-          let newgen = gen + 1
-          marr <- unsafeThaw arr0
-          writeGen marr newgen
-          A.copyI marr (off0+len0) arr1 off1 (off0+newlen)
-          arr2 <- A.unsafeFreeze marr
-          return (Buf arr2 off0 newlen cap0 newgen)
-        else do
-          let newcap = newlen * 2
-              newgen = 1
-          marr <- A.new (newcap + woff)
-          writeGen marr newgen
-          A.copyI marr woff arr0 off0 (woff+len0)
-          A.copyI marr (woff+len0) arr1 off1 (woff+newlen)
-          arr2 <- A.unsafeFreeze marr
-          return (Buf arr2 woff newlen newcap newgen)
+    mappend buf (Buf arr off len _ _) = append buf arr off len
 
     mconcat [] = mempty
     mconcat xs = foldl1' mappend xs
+
+pappend :: Buffer -> Text -> Buffer
+pappend (Buf _ _ _ 0 _) (Text arr off len) = Buf arr off len 0 0
+pappend buf (Text arr off len)             = append buf arr off len
+
+append :: Buffer -> A.Array -> Int -> Int -> Buffer
+append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do
+  let woff    = sizeOf (0::Int) `shiftR` 1
+      newlen  = len0 + len1
+      !gen    = if gen0 == 0 then 0 else readGen arr0
+  if gen == gen0 && newlen <= cap0
+    then do
+      let newgen = gen + 1
+      marr <- unsafeThaw arr0
+      writeGen marr newgen
+      A.copyI marr (off0+len0) arr1 off1 (off0+newlen)
+      arr2 <- A.unsafeFreeze marr
+      return (Buf arr2 off0 newlen cap0 newgen)
+    else do
+      let newcap = newlen * 2
+          newgen = 1
+      marr <- A.new (newcap + woff)
+      writeGen marr newgen
+      A.copyI marr woff arr0 off0 (woff+len0)
+      A.copyI marr (woff+len0) arr1 off1 (woff+newlen)
+      arr2 <- A.unsafeFreeze marr
+      return (Buf arr2 woff newlen newcap newgen)
 
 length :: Buffer -> Int
 length (Buf _ _ len _ _) = len

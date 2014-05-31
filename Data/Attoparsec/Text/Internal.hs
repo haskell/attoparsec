@@ -206,11 +206,8 @@ skipWhile p = go
  where
   go = do
     t <- T.takeWhile p <$> get
-    advance (length t)
-    eoc <- endOfChunk
-    when eoc $ do
-      input <- wantInput
-      when input go
+    continue <- inputSpansChunks (length t)
+    when continue go
 {-# INLINE skipWhile #-}
 
 -- | Consume input as long as the predicate returns 'False'
@@ -242,14 +239,9 @@ takeWhile p = (T.concat . reverse) `fmap` go []
  where
   go acc = do
     h <- T.takeWhile p <$> get
-    advance (length h)
-    eoc <- endOfChunk
-    if eoc
-      then do
-        input <- wantInput
-        if input
-          then go (h:acc)
-          else return (h:acc)
+    continue <- inputSpansChunks (length h)
+    if continue
+      then go (h:acc)
       else return (h:acc)
 
 takeRest :: Parser [Text]
@@ -287,9 +279,8 @@ scan_ f s0 p = go [] s0
   go acc s = do
     input <- get
     case scanner s 0 input of
-      Continue s'  -> do advance (length input)
-                         more <- wantInput
-                         if more
+      Continue s'  -> do continue <- inputSpansChunks (length input)
+                         if continue
                            then go (input : acc) s'
                            else f s' (input : acc)
       Finished n t -> do advance (length input - length t)
@@ -451,6 +442,16 @@ endOfChunk :: Parser Bool
 endOfChunk = T.Parser $ \t pos more _lose succ ->
   succ t pos more (pos == lengthOf t)
 {-# INLINE endOfChunk #-}
+
+inputSpansChunks :: Pos -> Parser Bool
+inputSpansChunks i = T.Parser $ \t pos_ more _lose succ ->
+  let pos = pos_ + i
+  in if pos < lengthOf t || more == Complete
+     then succ t pos more False
+     else let lose' t' pos' more' = succ t' pos' more' False
+              succ' t' pos' more' = succ t' pos' more' True
+          in prompt t pos more lose' succ'
+{-# INLINE inputSpansChunks #-}
 
 advance :: Pos -> Parser ()
 advance n = T.Parser $ \t pos more _lose succ -> succ t (pos+n) more ()

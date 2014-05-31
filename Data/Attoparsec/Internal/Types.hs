@@ -22,6 +22,7 @@ module Data.Attoparsec.Internal.Types
     , IResult(..)
     , More(..)
     , (<>)
+    , (<||>)
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
@@ -142,6 +143,15 @@ plus :: Parser i a -> Parser i a -> Parser i a
 plus f g = Parser $ \t pos more lose succ ->
   let lose' t' _pos' more' _ctx _msg = runParser g t' pos more' lose succ
   in runParser f t pos more lose' succ
+
+infixl 3 <||>
+(<||>) :: Parser i a -> Parser i a -> Parser i a
+(<||>) f g = Parser $ \t pos more lose succ ->
+  let lose' t' pos' more' ctx msg
+        = if fromPos pos' == fromPos pos then runParser g t' pos' more' lose succ
+          else lose t' pos' more' ctx msg
+  in runParser f t pos more lose' succ
+{-# INLINE (<||>) #-}
 
 instance MonadPlus (Parser i) where
     mzero = fail "mzero"

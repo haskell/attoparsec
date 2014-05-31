@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Buffer
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -45,6 +46,7 @@ module Data.Attoparsec.ByteString.Buffer
       Buffer
     , buffer
     , unbuffer
+    , pappend
     , length
     , unsafeIndex
     , substring
@@ -86,38 +88,45 @@ unbuffer (Buf fp off len _ _) = PS fp off len
 instance Monoid Buffer where
     mempty = Buf nullForeignPtr 0 0 0 0
 
-    mappend (Buf _ _ _ 0 _) b = b
-    mappend a (Buf _ _ _ 0 _) = a
-    mappend (Buf fp0 off0 len0 cap0 gen0) (Buf fp1 off1 len1 _ _) =
-      inlinePerformIO . withForeignPtr fp0 $ \ptr0 ->
-        withForeignPtr fp1 $ \ptr1 -> do
-          let genSize = sizeOf (0::Int)
-              newlen  = len0 + len1
-          gen <- if gen0 == 0
-                 then return 0
-                 else peek (castPtr ptr0)
-          if gen == gen0 && newlen <= cap0
-            then do
-              let newgen = gen + 1
-              poke (castPtr ptr0) newgen
-              memcpy (ptr0 `plusPtr` (off0+len0))
-                     (ptr1 `plusPtr` off1)
-                     (fromIntegral len1)
-              return (Buf fp0 off0 newlen cap0 newgen)
-            else do
-              let newcap = newlen * 2
-              fp <- mallocPlainForeignPtrBytes (newcap + genSize)
-              withForeignPtr fp $ \ptr_ -> do
-                let ptr    = ptr_ `plusPtr` genSize
-                    newgen = 1
-                poke (castPtr ptr_) newgen
-                memcpy ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
-                memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
-                       (fromIntegral len1)
-                return (Buf fp genSize newlen newcap newgen)
+    mappend (Buf _ _ _ 0 _) b        = b
+    mappend a (Buf _ _ _ 0 _)        = a
+    mappend buf (Buf fp off len _ _) = append buf fp off len
 
     mconcat [] = mempty
     mconcat xs = foldl1' mappend xs
+
+pappend :: Buffer -> ByteString -> Buffer
+pappend (Buf _ _ _ 0 _) (PS fp off len) = Buf fp off len 0 0
+pappend buf (PS fp off len) = append buf fp off len
+
+append :: Buffer -> ForeignPtr a -> Int -> Int -> Buffer
+append (Buf fp0 off0 len0 cap0 gen0) !fp1 !off1 !len1 =
+  inlinePerformIO . withForeignPtr fp0 $ \ptr0 ->
+    withForeignPtr fp1 $ \ptr1 -> do
+      let genSize = sizeOf (0::Int)
+          newlen  = len0 + len1
+      gen <- if gen0 == 0
+             then return 0
+             else peek (castPtr ptr0)
+      if gen == gen0 && newlen <= cap0
+        then do
+          let newgen = gen + 1
+          poke (castPtr ptr0) newgen
+          memcpy (ptr0 `plusPtr` (off0+len0))
+                 (ptr1 `plusPtr` off1)
+                 (fromIntegral len1)
+          return (Buf fp0 off0 newlen cap0 newgen)
+        else do
+          let newcap = newlen * 2
+          fp <- mallocPlainForeignPtrBytes (newcap + genSize)
+          withForeignPtr fp $ \ptr_ -> do
+            let ptr    = ptr_ `plusPtr` genSize
+                newgen = 1
+            poke (castPtr ptr_) newgen
+            memcpy ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
+            memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
+                   (fromIntegral len1)
+            return (Buf fp genSize newlen newcap newgen)
 
 length :: Buffer -> Int
 length (Buf _ _ len _ _) = len

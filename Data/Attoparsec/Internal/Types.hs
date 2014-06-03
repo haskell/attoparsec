@@ -15,7 +15,6 @@
 module Data.Attoparsec.Internal.Types
     (
       Parser(..)
-    , Input(..)
     , Failure
     , Success
     , Pos(..)
@@ -97,21 +96,16 @@ instance Functor (IResult i) where
 --
 -- * 'Alternative', which follows 'MonadPlus'.
 newtype Parser i a = Parser {
-      runParser :: forall r. Input i =>
+      runParser :: forall r.
                    State i -> Pos -> More
                 -> Failure i (State i)   r
                 -> Success i (State i) a r
                 -> IResult i r
     }
 
-class Input i where
-    type State i :: *
-
-instance Input ByteString where
-    type State ByteString = B.Buffer
-
-instance Input Text where
-    type State Text = T.Buffer
+type family State i
+type instance State ByteString = B.Buffer
+type instance State Text = T.Buffer
 
 type Failure i t   r = t -> Pos -> More -> [String] -> String
                        -> IResult i r

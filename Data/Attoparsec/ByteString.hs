@@ -86,6 +86,7 @@ module Data.Attoparsec.ByteString
     , skipMany1
     , eitherP
     , I.match
+    , (<||>)
     -- * State observation and manipulation functions
     , I.endOfInput
     , I.atEnd

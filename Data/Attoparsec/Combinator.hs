@@ -14,6 +14,7 @@ module Data.Attoparsec.Combinator
     -- * Combinators
       try
     , (<?>)
+    , (<||>)
     , choice
     , count
     , option
@@ -35,7 +36,7 @@ module Data.Attoparsec.Combinator
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
-import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
+import Data.Attoparsec.Internal.Types (Parser(..), IResult(..), (<||>))
 import Data.ByteString (ByteString)
 import Data.Monoid (Monoid(mappend))
 import Data.Text (Text)

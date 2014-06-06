@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, GADTs, OverloadedStrings, RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2014

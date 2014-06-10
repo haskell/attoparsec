@@ -15,20 +15,25 @@
 module Data.Attoparsec.Internal.Types
     (
       Parser(..)
+    , State
     , Failure
     , Success
     , Pos(..)
     , IResult(..)
     , More(..)
     , (<>)
+    , Chunk(..)
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
+import Data.Word (Word8)
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.Monoid (Monoid(..))
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Prelude hiding (getChar, succ)
 import qualified Data.Attoparsec.ByteString.Buffer as B
 import qualified Data.Attoparsec.Text.Buffer as T
@@ -196,3 +201,25 @@ instance Alternative (Parser i) where
 (<>) :: (Monoid m) => m -> m -> m
 (<>) = mappend
 {-# INLINE (<>) #-}
+
+-- | A common interface for input chunks.
+class Monoid c => Chunk c where
+  type ChunkElem c
+  -- | Test if the chunk is empty.
+  nullChunk :: c -> Bool
+  -- | Append chunk to a buffer.
+  pappendChunk :: State c -> c -> State c
+
+instance Chunk ByteString where
+  type ChunkElem ByteString = Word8
+  nullChunk = BS.null
+  {-# INLINE nullChunk #-}
+  pappendChunk = B.pappend
+  {-# INLINE pappendChunk #-}
+
+instance Chunk Text where
+  type ChunkElem Text = Char
+  nullChunk = Text.null
+  {-# INLINE nullChunk #-}
+  pappendChunk = T.pappend
+  {-# INLINE pappendChunk #-}

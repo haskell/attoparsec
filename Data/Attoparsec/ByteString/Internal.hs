@@ -70,6 +70,7 @@ import Control.Monad (when)
 import Data.Attoparsec.ByteString.Buffer (Buffer, buffer)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Combinator ((<?>))
+import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.ByteString (ByteString)
@@ -466,27 +467,6 @@ ensure n = T.Parser $ \t pos more lose succ ->
     else ensureSuspended n t pos more lose succ
 -- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
-
--- | Ask for input.  If we receive any, pass it to a success
--- continuation, otherwise to a failure continuation.
-prompt :: Buffer -> Pos -> More
-       -> (Buffer -> Pos -> More -> IResult ByteString r)
-       -> (Buffer -> Pos -> More -> IResult ByteString r)
-       -> IResult ByteString r
-prompt t pos _more lose succ = Partial $ \s ->
-  if B.null s
-  then lose t pos Complete
-  else succ (Buf.pappend t s) pos Incomplete
-
--- | Immediately demand more input via a 'Partial' continuation
--- result.
-demandInput :: Parser ()
-demandInput = T.Parser $ \t pos more lose succ ->
-  case more of
-    Complete -> lose t pos more [] "not enough input"
-    _ -> let lose' t' pos' more' = lose t' pos' more' [] "not enough input"
-             succ' t' pos' more' = succ t' pos' more' ()
-         in prompt t pos more lose' succ'
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end

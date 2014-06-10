@@ -30,12 +30,15 @@ module Data.Attoparsec.Combinator
     , skipMany1
     , eitherP
     , feed
+    , endOfInput
+    , atEnd
     ) where
 
 import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
                             many, (<|>), (*>), (<$>))
 import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
+import Data.Attoparsec.Internal (endOfInput, atEnd)
 import Data.ByteString (ByteString)
 import Data.Monoid (Monoid(mappend))
 import Data.Text (Text)

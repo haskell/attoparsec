@@ -209,6 +209,8 @@ class Monoid c => Chunk c where
   nullChunk :: c -> Bool
   -- | Append chunk to a buffer.
   pappendChunk :: State c -> c -> State c
+  -- | Position at the end of a buffer. The first argument is ignored.
+  atBufferEnd :: c -> State c -> Pos
 
 instance Chunk ByteString where
   type ChunkElem ByteString = Word8
@@ -216,6 +218,8 @@ instance Chunk ByteString where
   {-# INLINE nullChunk #-}
   pappendChunk = B.pappend
   {-# INLINE pappendChunk #-}
+  atBufferEnd _ = Pos . B.length
+  {-# INLINE atBufferEnd #-}
 
 instance Chunk Text where
   type ChunkElem Text = Char
@@ -223,3 +227,5 @@ instance Chunk Text where
   {-# INLINE nullChunk #-}
   pappendChunk = T.pappend
   {-# INLINE pappendChunk #-}
+  atBufferEnd _ = Pos . T.length
+  {-# INLINE atBufferEnd #-}

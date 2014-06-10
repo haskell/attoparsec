@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns #-}
+{-# LANGUAGE CPP, BangPatterns, ScopedTypeVariables #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -15,8 +15,12 @@ module Data.Attoparsec.Internal
     ( compareResults
     , prompt
     , demandInput
+    , wantInput
+    , endOfInput
+    , atEnd
     ) where
 
+import Control.Applicative ((<$>))
 #if __GLASGOW_HASKELL__ >= 700
 import Data.ByteString (ByteString)
 import Data.Text (Text)
@@ -74,3 +78,37 @@ demandInput = Parser $ \t pos more lose succ ->
 {-# SPECIALIZE demandInput :: Parser ByteString () #-}
 {-# SPECIALIZE demandInput :: Parser Text () #-}
 #endif
+
+-- | This parser always succeeds.  It returns 'True' if any input is
+-- available either immediately or on demand, and 'False' if the end
+-- of all input has been reached.
+wantInput :: forall t . Chunk t => Parser t Bool
+wantInput = Parser $ \t pos more _lose succ ->
+  case () of
+    _ | pos < atBufferEnd (undefined :: t) t -> succ t pos more True
+      | more == Complete -> succ t pos more False
+      | otherwise       -> let lose' t' pos' more' = succ t' pos' more' False
+                               succ' t' pos' more' = succ t' pos' more' True
+                           in prompt t pos more lose' succ'
+{-# INLINE wantInput #-}
+
+-- | Match only if all input has been consumed.
+endOfInput :: forall t . Chunk t => Parser t ()
+endOfInput = Parser $ \t pos more lose succ ->
+  case () of
+    _| pos < atBufferEnd (undefined :: t) t -> lose t pos more [] "endOfInput"
+     | more == Complete -> succ t pos more ()
+     | otherwise ->
+       let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
+           succ' t' pos' more' _a = lose t' pos' more' [] "endOfInput"
+       in  runParser demandInput t pos more lose' succ'
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE endOfInput :: Parser ByteString () #-}
+{-# SPECIALIZE endOfInput :: Parser Text () #-}
+#endif
+
+-- | Return an indication of whether the end of input has been
+-- reached.
+atEnd :: Chunk t => Parser t Bool
+atEnd = not <$> wantInput
+{-# INLINE atEnd #-}

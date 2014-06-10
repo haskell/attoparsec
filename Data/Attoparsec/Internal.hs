@@ -18,6 +18,7 @@ module Data.Attoparsec.Internal
     , wantInput
     , endOfInput
     , atEnd
+    , satisfyElem
     ) where
 
 import Control.Applicative ((<$>))
@@ -112,3 +113,43 @@ endOfInput = Parser $ \t pos more lose succ ->
 atEnd :: Chunk t => Parser t Bool
 atEnd = not <$> wantInput
 {-# INLINE atEnd #-}
+
+satisfySuspended :: forall t r . Chunk t
+                 => (ChunkElem t -> Bool)
+                 -> State t -> Pos -> More
+                 -> Failure t (State t) r
+                 -> Success t (State t) (ChunkElem t) r
+                 -> IResult t r
+satisfySuspended p t pos more lose succ =
+    runParser (demandInput >> go) t pos more lose succ
+  where go = Parser $ \t' pos' more' lose' succ' ->
+          case bufferElemAt (undefined :: t) pos' t' of
+            Just (e, l) | p e -> succ' t' (pos' + Pos l) more' e
+                        | otherwise -> lose' t' pos' more' [] "satisfyElem"
+            Nothing -> runParser (demandInput >> go) t' pos' more' lose' succ'
+#if __GLASGOW_HASKELL__ >= 700
+{-# SPECIALIZE satisfySuspended :: (ChunkElem ByteString -> Bool)
+                                -> State ByteString -> Pos -> More
+                                -> Failure ByteString (State ByteString) r
+                                -> Success ByteString (State ByteString)
+                                           (ChunkElem ByteString) r
+                                -> IResult ByteString r #-}
+{-# SPECIALIZE satisfySuspended :: (ChunkElem Text -> Bool)
+                                -> State Text -> Pos -> More
+                                -> Failure Text (State Text) r
+                                -> Success Text (State Text)
+                                           (ChunkElem Text) r
+                                -> IResult Text r #-}
+#endif
+
+-- | The parser @satisfyElem p@ succeeds for any chunk element for which the
+-- predicate @p@ returns 'True'. Returns the element that is
+-- actually parsed.
+satisfyElem :: forall t . Chunk t
+            => (ChunkElem t -> Bool) -> Parser t (ChunkElem t)
+satisfyElem p = Parser $ \t pos more lose succ ->
+    case bufferElemAt (undefined :: t) pos t of
+      Just (e, l) | p e -> succ t (pos + Pos l) more e
+                  | otherwise -> lose t pos more [] "satisfyElem"
+      Nothing -> satisfySuspended p t pos more lose succ
+{-# INLINE satisfyElem #-}

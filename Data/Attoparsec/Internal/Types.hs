@@ -34,6 +34,7 @@ import qualified Data.ByteString as BS
 import Data.Monoid (Monoid(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Text.Unsafe (Iter(..))
 import Prelude hiding (getChar, succ)
 import qualified Data.Attoparsec.ByteString.Buffer as B
 import qualified Data.Attoparsec.Text.Buffer as T
@@ -211,6 +212,8 @@ class Monoid c => Chunk c where
   pappendChunk :: State c -> c -> State c
   -- | Position at the end of a buffer. The first argument is ignored.
   atBufferEnd :: c -> State c -> Pos
+  -- | Return the buffer element at the given position along with its length.
+  bufferElemAt :: c -> Pos -> State c -> Maybe (ChunkElem c, Int)
 
 instance Chunk ByteString where
   type ChunkElem ByteString = Word8
@@ -220,6 +223,10 @@ instance Chunk ByteString where
   {-# INLINE pappendChunk #-}
   atBufferEnd _ = Pos . B.length
   {-# INLINE atBufferEnd #-}
+  bufferElemAt _ (Pos i) buf
+    | i < B.length buf = Just (B.unsafeIndex buf i, 1)
+    | otherwise = Nothing
+  {-# INLINE bufferElemAt #-}
 
 instance Chunk Text where
   type ChunkElem Text = Char
@@ -229,3 +236,7 @@ instance Chunk Text where
   {-# INLINE pappendChunk #-}
   atBufferEnd _ = Pos . T.length
   {-# INLINE atBufferEnd #-}
+  bufferElemAt _ (Pos i) buf
+    | i < T.length buf = let Iter c l = T.iter buf i in Just (c, l)
+    | otherwise = Nothing
+  {-# INLINE bufferElemAt #-}

@@ -31,6 +31,7 @@ import Control.Monad (MonadPlus(..))
 import Data.Word (Word8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import Data.ByteString.Internal (w2c)
 import Data.Monoid (Monoid(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -214,6 +215,9 @@ class Monoid c => Chunk c where
   atBufferEnd :: c -> State c -> Pos
   -- | Return the buffer element at the given position along with its length.
   bufferElemAt :: c -> Pos -> State c -> Maybe (ChunkElem c, Int)
+  -- | Map an element to the corresponding character.
+  --   The first argument is ignored.
+  chunkElemToChar :: c -> ChunkElem c -> Char
 
 instance Chunk ByteString where
   type ChunkElem ByteString = Word8
@@ -227,6 +231,8 @@ instance Chunk ByteString where
     | i < B.length buf = Just (B.unsafeIndex buf i, 1)
     | otherwise = Nothing
   {-# INLINE bufferElemAt #-}
+  chunkElemToChar _ = w2c
+  {-# INLINE chunkElemToChar #-}
 
 instance Chunk Text where
   type ChunkElem Text = Char
@@ -240,3 +246,5 @@ instance Chunk Text where
     | i < T.length buf = let Iter c l = T.iter buf i in Just (c, l)
     | otherwise = Nothing
   {-# INLINE bufferElemAt #-}
+  chunkElemToChar _ = id
+  {-# INLINE chunkElemToChar #-}

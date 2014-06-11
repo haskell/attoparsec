@@ -1,3 +1,9 @@
+0.12.1.0
+
+* Now compatible with GHC 7.9
+
+* Reintroduced the Chunk class, used by the parsers package
+
 0.12.0.0
 
 * A new internal representation makes almost all real-world parsers

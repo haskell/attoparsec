@@ -1,8 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module QC.Combinator where
 
 import Control.Applicative
+import Data.Maybe (fromJust, isJust)
 import Data.Word (Word8)
-import QC.Common (Repack, parseBS, repackBS)
+import QC.Common (Repack, parseBS, repackBS, toLazyBS)
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -22,6 +25,13 @@ count (Positive (Small n)) rs s =
     (length <$> parseBS (C.count n (P.string s)) input) == Just n
   where input = repackBS rs (B.concat (replicate (n+1) s))
 
+lookAhead :: NonEmptyList Word8 -> Bool
+lookAhead (NonEmpty xs) =
+  let ys = B.pack xs
+      withLookAheadThenConsume = (\x y -> (x, y)) <$> C.lookAhead (P.string ys) <*> P.string ys
+      mr = parseBS withLookAheadThenConsume $ toLazyBS ys
+  in isJust mr && fst (fromJust mr) == snd (fromJust mr)
+
 match :: Int -> NonNegative Int -> NonNegative Int -> Repack -> Bool
 match n (NonNegative x) (NonNegative y) rs =
     parseBS (P.match parser) (repackBS rs input) == Just (input, n)
@@ -35,5 +45,6 @@ tests :: [Test]
 tests = [
     testProperty "choice" choice
   , testProperty "count" count
+  , testProperty "lookAhead" lookAhead
   , testProperty "match" match
   ]

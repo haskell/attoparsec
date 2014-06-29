@@ -1,3 +1,7 @@
+0.12.2.0
+
+* Add contexts and unconsumed errors to parseOnly's Left values
+
 0.12.1.0
 
 * Now compatible with GHC 7.9

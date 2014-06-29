@@ -74,6 +74,7 @@ import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.ByteString (ByteString)
+import Data.List (intercalate)
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
@@ -416,7 +417,8 @@ parse m s = T.runParser m (buffer s) (Pos 0) Incomplete failK successK
 -- @
 parseOnly :: Parser a -> ByteString -> Either String a
 parseOnly m s = case T.runParser m (buffer s) (Pos 0) Complete failK successK of
-                  Fail _ _ err -> Left err
+                  Fail input errs err -> let msg = errs ++ [err, "attoparsec failed on input:", B.unpack input]
+                                         in Left . (++ "\n") . intercalate "\n" $ msg
                   Done _ a     -> Right a
                   _            -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}

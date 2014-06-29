@@ -36,7 +36,7 @@ module Data.Attoparsec.ByteString
 
     -- ** Result conversion
     , maybeResult
-    , eitherResult
+    , I.eitherResult
 
     -- * Parsing individual bytes
     , I.word8
@@ -214,10 +214,3 @@ parseWith refill p s = step $ parse p s
 maybeResult :: Result r -> Maybe r
 maybeResult (T.Done _ r) = Just r
 maybeResult _            = Nothing
-
--- | Convert a 'Result' value to an 'Either' value. A 'T.Partial'
--- result is treated as failure.
-eitherResult :: Result r -> Either String r
-eitherResult (T.Done _ r)     = Right r
-eitherResult (T.Fail _ _ msg) = Left msg
-eitherResult _                = Left "Result: incomplete input"

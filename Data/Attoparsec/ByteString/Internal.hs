@@ -429,7 +429,7 @@ eitherResult :: Result r -> Either String r
 eitherResult (T.Done _ r)     = Right r
 eitherResult (T.Fail input contexts msg) =
     Left . intercalate "\n" $
-        contexts ++ [msg, "attoparsec failed on input:", B.unpack input, ""]
+        contexts ++ [msg, "length of remaining input: " ++ show (B.length input), ""]
 eitherResult _                = Left "Result: incomplete input"
 
 get :: Parser ByteString

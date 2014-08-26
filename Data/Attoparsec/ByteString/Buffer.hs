@@ -65,6 +65,7 @@ import Foreign.Storable (peek, peekByteOff, poke, sizeOf)
 import GHC.ForeignPtr (mallocPlainForeignPtrBytes)
 import Prelude hiding (length)
 
+-- If _cap is zero, this buffer is empty.
 data Buffer = Buf {
       _fp  :: {-# UNPACK #-} !(ForeignPtr Word8)
     , _off :: {-# UNPACK #-} !Int
@@ -96,7 +97,7 @@ instance Monoid Buffer where
     mconcat xs = foldl1' mappend xs
 
 pappend :: Buffer -> ByteString -> Buffer
-pappend (Buf _ _ _ 0 _) (PS fp off len) = Buf fp off len 0 0
+pappend (Buf _ _ _ 0 _) bs  = buffer bs
 pappend buf (PS fp off len) = append buf fp off len
 
 append :: Buffer -> ForeignPtr a -> Int -> Int -> Buffer

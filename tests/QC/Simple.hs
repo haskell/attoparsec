@@ -7,12 +7,12 @@ module QC.Simple (
 
 import Control.Applicative ((<|>))
 import Data.ByteString (ByteString)
-import Data.List
-import Data.Maybe
-import QC.Rechunked
+import Data.List (foldl')
+import Data.Maybe (fromMaybe)
+import QC.Rechunked (rechunkBS)
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import Test.QuickCheck (Property, counterexample, forAll)
 import qualified Data.Attoparsec.ByteString.Char8 as A
 
 data Expect a b = Expect a b

@@ -29,7 +29,8 @@ rechunk_ split len xs = (unfoldr go . (,) xs) `fmap` rechunkSizes (len xs)
 
 rechunkSizes :: Int -> Gen [Int]
 rechunkSizes n0 = shuffle =<< loop [] (0:repeat 1) n0
-  where loop acc (lb:lbs) n
+  where loop _ [] _ = error "it's 2014, where's my Stream type?"
+        loop acc (lb:lbs) n
           | n <= 0 = shuffle (reverse acc)
           | otherwise = do
             !i <- choose (lb,n)

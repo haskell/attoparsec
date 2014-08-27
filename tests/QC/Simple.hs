@@ -15,9 +15,6 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck (Property, counterexample, forAll)
 import qualified Data.Attoparsec.ByteString.Char8 as A
 
-data Expect a b = Expect a b
-                deriving (Show)
-
 t_issue75 = expect issue75 "ab" (A.Done "" "b")
 
 issue75 :: A.Parser ByteString

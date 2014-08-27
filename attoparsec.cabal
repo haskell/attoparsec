@@ -84,6 +84,8 @@ test-suite tests
                   QC.ByteString
                   QC.Combinator
                   QC.Common
+                  QC.Rechunked
+                  QC.Simple
                   QC.Text
 
   ghc-options:
@@ -101,7 +103,8 @@ test-suite tests
     scientific,
     test-framework >= 0.8.0.2,
     test-framework-quickcheck2 >= 0.3.0.3,
-    text
+    text,
+    vector
 
 benchmark benchmarks
   type: exitcode-stdio-1.0

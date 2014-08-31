@@ -371,7 +371,7 @@ peekWord8 = T.Parser $ \t pos@(Pos pos_) more _lose succ ->
      | more == Complete ->
        succ t pos more Nothing
      | otherwise ->
-       let succ' t' pos' more' = let !w = Buf.unsafeIndex t pos_
+       let succ' t' pos' more' = let !w = Buf.unsafeIndex t' pos_
                                  in succ t' pos' more' (Just w)
            lose' t' pos' more' = succ t' pos' more' Nothing
        in prompt t pos more lose' succ'

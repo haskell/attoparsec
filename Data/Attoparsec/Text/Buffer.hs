@@ -51,6 +51,7 @@ import GHC.ST (ST(..), runST)
 import Prelude hiding (length)
 import qualified Data.Text.Array as A
 
+-- If _cap is zero, this buffer is empty.
 data Buffer = Buf {
       _arr :: {-# UNPACK #-} !A.Array
     , _off :: {-# UNPACK #-} !Int
@@ -82,8 +83,8 @@ instance Monoid Buffer where
     mconcat xs = foldl1' mappend xs
 
 pappend :: Buffer -> Text -> Buffer
-pappend (Buf _ _ _ 0 _) (Text arr off len) = Buf arr off len 0 0
-pappend buf (Text arr off len)             = append buf arr off len
+pappend (Buf _ _ _ 0 _) t      = buffer t
+pappend buf (Text arr off len) = append buf arr off len
 
 append :: Buffer -> A.Array -> Int -> Int -> Buffer
 append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do

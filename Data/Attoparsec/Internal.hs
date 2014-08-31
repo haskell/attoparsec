@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -22,11 +22,9 @@ module Data.Attoparsec.Internal
     ) where
 
 import Control.Applicative ((<$>))
-#if __GLASGOW_HASKELL__ >= 700
+import Data.Attoparsec.Internal.Types
 import Data.ByteString (ByteString)
 import Data.Text (Text)
-#endif
-import Data.Attoparsec.Internal.Types
 import Prelude hiding (succ)
 
 -- | Compare two 'IResult' values for equality.
@@ -53,7 +51,6 @@ prompt t pos _more lose succ = Partial $ \s ->
   if nullChunk s
   then lose t pos Complete
   else succ (pappendChunk t s) pos Incomplete
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE prompt :: State ByteString -> Pos -> More
                       -> (State ByteString -> Pos -> More
                           -> IResult ByteString r)
@@ -64,7 +61,6 @@ prompt t pos _more lose succ = Partial $ \s ->
                       -> (State Text -> Pos -> More -> IResult Text r)
                       -> (State Text -> Pos -> More -> IResult Text r)
                       -> IResult Text r #-}
-#endif
 
 -- | Immediately demand more input via a 'Partial' continuation
 -- result.
@@ -75,10 +71,8 @@ demandInput = Parser $ \t pos more lose succ ->
     _ -> let lose' t' pos' more' = lose t' pos' more' [] "not enough input"
              succ' t' pos' more' = succ t' pos' more' ()
          in prompt t pos more lose' succ'
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE demandInput :: Parser ByteString () #-}
 {-# SPECIALIZE demandInput :: Parser Text () #-}
-#endif
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end
@@ -103,10 +97,8 @@ endOfInput = Parser $ \t pos more lose succ ->
        let lose' t' pos' more' _ctx _msg = succ t' pos' more' ()
            succ' t' pos' more' _a = lose t' pos' more' [] "endOfInput"
        in  runParser demandInput t pos more lose' succ'
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE endOfInput :: Parser ByteString () #-}
 {-# SPECIALIZE endOfInput :: Parser Text () #-}
-#endif
 
 -- | Return an indication of whether the end of input has been
 -- reached.
@@ -127,7 +119,6 @@ satisfySuspended p t pos more lose succ =
             Just (e, l) | p e -> succ' t' (pos' + Pos l) more' e
                         | otherwise -> lose' t' pos' more' [] "satisfyElem"
             Nothing -> runParser (demandInput >> go) t' pos' more' lose' succ'
-#if __GLASGOW_HASKELL__ >= 700
 {-# SPECIALIZE satisfySuspended :: (ChunkElem ByteString -> Bool)
                                 -> State ByteString -> Pos -> More
                                 -> Failure ByteString (State ByteString) r
@@ -140,7 +131,6 @@ satisfySuspended p t pos more lose succ =
                                 -> Success Text (State Text)
                                            (ChunkElem Text) r
                                 -> IResult Text r #-}
-#endif
 
 -- | The parser @satisfyElem p@ succeeds for any chunk element for which the
 -- predicate @p@ returns 'True'. Returns the element that is

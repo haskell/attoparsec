@@ -427,10 +427,8 @@ parseOnly m s = case T.runParser m (buffer s) (Pos 0) Complete failK successK of
 -- result is treated as failure.
 eitherResult :: Result r -> Either String r
 eitherResult (T.Done _ r)     = Right r
-eitherResult (T.Fail input contexts msg) =
-    Left . intercalate "\n" $
-        contexts ++ [msg, "length of remaining input: " ++ show (B.length input), ""]
-eitherResult _                = Left "Result: incomplete input"
+eitherResult (T.Fail input contexts msg) = Left . intercalate "\n" $ contexts ++ [msg, ""]
+eitherResult _ = Left "Result: incomplete input"
 
 get :: Parser ByteString
 get = T.Parser $ \t pos more _lose succ ->

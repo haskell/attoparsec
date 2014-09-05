@@ -1,3 +1,14 @@
+0.12.1.2
+
+* Fixed the incorrect tracking of capacity if the initial buffer was
+  empty (https://github.com/bos/attoparsec/issues/75)
+
+0.12.1.1
+
+* Fixed a data corruption bug that occurred under some circumstances
+  if a buffer grew after prompting for more input
+  (https://github.com/bos/attoparsec/issues/74)
+
 0.12.1.0
 
 * Now compatible with GHC 7.9

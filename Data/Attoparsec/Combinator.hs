@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
 {-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      :  Data.Attoparsec.Combinator

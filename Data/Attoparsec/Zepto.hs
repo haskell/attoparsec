@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-} -- Data.ByteString.Unsafe
 {-# LANGUAGE BangPatterns, MagicHash, UnboxedTuples #-}
 
 -- |

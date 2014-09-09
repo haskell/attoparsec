@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
 {-# LANGUAGE BangPatterns, FlexibleInstances, TypeFamilies,
     TypeSynonymInstances, GADTs #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-warnings-deprecations #-}

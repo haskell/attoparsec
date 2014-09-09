@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString
 -- Copyright   :  Bryan O'Sullivan 2007-2014

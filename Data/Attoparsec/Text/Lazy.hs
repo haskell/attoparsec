@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Lazy

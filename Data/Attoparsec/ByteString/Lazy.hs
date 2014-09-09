@@ -1,3 +1,5 @@
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
+
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Lazy
 -- Copyright   :  Bryan O'Sullivan 2007-2014

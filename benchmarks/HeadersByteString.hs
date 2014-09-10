@@ -39,9 +39,15 @@ responseLine = (,,) <$>
 int :: B.Parser Int
 int = B.decimal
 
-request = (,) <$> (requestLine <* B.endOfLine) <*> many header
+request = (,) <$> (requestLine <* B.endOfLine) <*> manyheader
 
 response = (,) <$> responseLine <*> many header
+
+manyheader = do
+  c <- B.peekChar'
+  if c == '\r' || c == '\n'
+    then return []
+    else (:) <$> header <*> manyheader
 
 headers :: IO Benchmark
 headers = do

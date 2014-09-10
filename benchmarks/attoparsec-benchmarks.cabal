@@ -22,6 +22,7 @@ executable attoparsec-benchmarks
     array,
     base == 4.*,
     bytestring >= 0.10.4.0,
+    case-insensitive,
     criterion >= 1.0,
     deepseq >= 1.1,
     directory,

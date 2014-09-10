@@ -4,8 +4,9 @@ module HeadersByteString (headers) where
 
 import Common (pathTo, rechunkBS)
 import Control.Applicative
-import Criterion.Main (bench, bgroup, nf)
+import Criterion.Main (bench, bgroup, nf, nfIO)
 import Criterion.Types (Benchmark)
+import Network.Wai.Handler.Warp.RequestHeader (parseHeaderLines)
 import qualified Data.Attoparsec.ByteString.Char8 as B
 import qualified Data.Attoparsec.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as B
@@ -17,11 +18,11 @@ header = do
 
 bodyLine = B.takeTill (\c -> c == '\r' || c == '\n') <* B.endOfLine
 
-requestLine =
-    (,,) <$>
-    (method <* B.skipSpace) <*>
-    (B.takeTill B.isSpace <* B.skipSpace) <*>
-    httpVersion
+requestLine = do
+  m <- (method <* B.skipSpace)
+  (p,q) <- B.break (=='?') <$> (B.takeTill B.isSpace <* B.skipSpace)
+  v <- httpVersion
+  return (m,p,q,v)
   where method = "GET" <|> "POST"
 
 httpVersion = "HTTP/" *> ((,) <$> (int <* B.char '.') <*> int)
@@ -47,6 +48,7 @@ headers = do
   return $ bgroup "headers" [
       bgroup "B" [
         bench "request" $ nf (B.parseOnly request) req
+      , bench "warp" $ nfIO (parseHeaderLines [req])
       , bench "response" $ nf (B.parseOnly response) resp
       ]
     , bgroup "BL" [

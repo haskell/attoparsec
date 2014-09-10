@@ -14,9 +14,9 @@ executable attoparsec-benchmarks
     HeadersText
     Links
     Numbers
+    Network.Wai.Handler.Warp.ReadInt
     Warp
-    Warp.ReadInt
-  hs-source-dirs: .. .
+  hs-source-dirs: .. . warp-3.0.1.1
   ghc-options: -O2 -Wall -rtsopts
   build-depends:
     array,
@@ -31,5 +31,4 @@ executable attoparsec-benchmarks
     scientific >= 0.3.1,
     text >= 1.1.1.0,
     unordered-containers,
-    vector,
-    warp
+    vector

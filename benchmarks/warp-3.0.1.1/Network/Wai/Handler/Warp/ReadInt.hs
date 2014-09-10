@@ -5,7 +5,7 @@
 -- Copyright     : Erik de Castro Lopo <erikd@mega-nerd.com>
 -- License       : BSD3
 
-module Warp.ReadInt (
+module Network.Wai.Handler.Warp.ReadInt (
     readInt
   , readInt64
   ) where

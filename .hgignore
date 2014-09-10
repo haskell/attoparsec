@@ -6,6 +6,7 @@ benchmarks/Arse
 benchmarks/dist
 benchmarks/med.txt
 benchmarks/tiny
+benchmarks/warp-[0-9]*
 cabal.sandbox.config
 examples/c-http
 examples/http_parser.[ch]

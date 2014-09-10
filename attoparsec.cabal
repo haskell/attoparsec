@@ -108,7 +108,7 @@ test-suite tests
 
 benchmark benchmarks
   type: exitcode-stdio-1.0
-  hs-source-dirs: benchmarks, .
+  hs-source-dirs: benchmarks benchmarks/warp-3.0.1.1 .
   ghc-options: -O2 -Wall -rtsopts
   main-is: Benchmarks.hs
   other-modules:
@@ -118,7 +118,6 @@ benchmark benchmarks
     Links
     Numbers
     Warp
-    Warp.ReadInt
   ghc-options: -O2 -Wall
 
   if flag(developer)
@@ -128,17 +127,18 @@ benchmark benchmarks
     array,
     base == 4.*,
     bytestring >= 0.10.4.0,
+    case-insensitive,
     criterion >= 1.0,
     deepseq >= 1.1,
     directory,
     filepath,
     ghc-prim,
+    http-types,
     parsec >= 3.1.2,
     scientific,
     text >= 1.1.1.0,
     unordered-containers,
-    vector,
-    warp
+    vector
 
 source-repository head
   type:     git

@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module HeadersByteString (headers) where
 
-import Common (rechunkBS)
+import Common (pathTo, rechunkBS)
 import Control.Applicative
 import Criterion.Main (bench, bgroup, nf)
 import Criterion.Types (Benchmark)
@@ -40,8 +40,8 @@ response = (,) <$> responseLine <*> many header
 
 headers :: IO Benchmark
 headers = do
-  req <- B.readFile "http-request.txt"
-  resp <- B.readFile "http-response.txt"
+  req <- B.readFile =<< pathTo "http-request.txt"
+  resp <- B.readFile =<< pathTo "http-response.txt"
   let reql    = rechunkBS 4 req
       respl   = rechunkBS 4 resp
   return $ bgroup "headers" [

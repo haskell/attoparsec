@@ -3,11 +3,14 @@
 
 module Common (
       chunksOf
+    , pathTo
     , rechunkBS
     , rechunkT
     ) where
 
 import Control.DeepSeq (NFData(rnf))
+import System.Directory (doesDirectoryExist)
+import System.FilePath ((</>))
 import Text.Parsec (ParseError)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -35,3 +38,10 @@ rechunkBS n = BL.fromChunks . map B.pack . chunksOf n . B.unpack
 
 rechunkT :: Int -> T.Text -> TL.Text
 rechunkT n = TL.fromChunks . map T.pack . chunksOf n . T.unpack
+
+pathTo :: String -> IO FilePath
+pathTo wat = do
+  exists <- doesDirectoryExist "benchmarks"
+  return $ if exists
+           then "benchmarks" </> wat
+           else wat

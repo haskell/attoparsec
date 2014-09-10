@@ -10,6 +10,7 @@ module Aeson
 import Data.ByteString.Builder
   (Builder, byteString, toLazyByteString, charUtf8, word8)
 
+import Common (pathTo)
 import Control.Applicative ((*>), (<$>), (<*), liftA2, pure)
 import Control.DeepSeq (NFData(..))
 import Control.Monad (forM)
@@ -340,7 +341,7 @@ toByteString = L.toStrict . toLazyByteString
 
 aeson :: IO Benchmark
 aeson = do
-  let path = "json-data"
+  path <- pathTo "json-data"
   names <- sort . filter (`notElem` [".", ".."]) <$> getDirectoryContents path
   benches <- forM names $ \name -> do
     bs <- B.readFile (path </> name)

@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module HeadersText (headers) where
 
-import Common (rechunkT)
+import Common (pathTo, rechunkT)
 import Control.Applicative
 import Criterion.Main (bench, bgroup, nf)
 import Criterion.Types (Benchmark)
@@ -41,8 +41,8 @@ response = (,) <$> responseLine <*> many header
 
 headers :: IO Benchmark
 headers = do
-  req <- T.readFile "http-request.txt"
-  resp <- T.readFile "http-response.txt"
+  req <- T.readFile =<< pathTo "http-request.txt"
+  resp <- T.readFile =<< pathTo "http-response.txt"
   let reql    = rechunkT 4 req
       respl   = rechunkT 4 resp
   return $ bgroup "headers" [

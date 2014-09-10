@@ -11,6 +11,7 @@ import Numbers (numbers)
 import Common (chunksOf)
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
+import qualified Warp
 import qualified Aeson
 import qualified Data.Attoparsec.ByteString as AB
 import qualified Data.Attoparsec.ByteString.Char8 as AC
@@ -83,6 +84,7 @@ main = do
    , headersT
    , Links.links
    , numbers
+   , Warp.benchmarks
    ]
 
 -- Benchmarks bind and (potential) bounds-check merging.

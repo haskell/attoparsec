@@ -1,31 +1,35 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-orphans #-}
 module HeadersByteString (headers) where
 
 import Common (pathTo, rechunkBS)
 import Control.Applicative
+import Control.DeepSeq (NFData(..))
 import Criterion.Main (bench, bgroup, nf, nfIO)
 import Criterion.Types (Benchmark)
 import Network.Wai.Handler.Warp.RequestHeader (parseHeaderLines)
+import Network.HTTP.Types.Version (HttpVersion, http11)
 import qualified Data.Attoparsec.ByteString.Char8 as B
 import qualified Data.Attoparsec.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as B
 
+instance NFData HttpVersion where
+    rnf !_ = ()
+
 header = do
   name <- B.takeWhile1 (B.inClass "a-zA-Z0-9_-") <* B.char ':' <* B.skipSpace
-  body <- (:) <$> bodyLine <*> many (B.takeWhile1 B.isSpace *> bodyLine)
+  body <- bodyLine
   return (name, body)
 
 bodyLine = B.takeTill (\c -> c == '\r' || c == '\n') <* B.endOfLine
 
 requestLine = do
-  m <- (method <* B.skipSpace)
-  (p,q) <- B.break (=='?') <$> (B.takeTill B.isSpace <* B.skipSpace)
+  m <- (B.takeTill B.isSpace <* B.char ' ')
+  (p,q) <- B.break (=='?') <$> (B.takeTill B.isSpace <* B.char ' ')
   v <- httpVersion
   return (m,p,q,v)
-  where method = "GET" <|> "POST"
 
-httpVersion = "HTTP/" *> ((,) <$> (int <* B.char '.') <*> int)
+httpVersion = http11 <$ "HTTP/1.1"
 
 responseLine = (,,) <$>
                (httpVersion <* B.skipSpace) <*>

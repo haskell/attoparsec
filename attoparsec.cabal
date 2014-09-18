@@ -114,6 +114,7 @@ benchmark benchmarks
   other-modules:
     Common
     HeadersByteString
+    HeadersByteString.Atto
     HeadersText
     Links
     Numbers

@@ -131,6 +131,7 @@ import Data.Attoparsec.Text.Internal (Parser, Result, parse, takeWhile1)
 import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
+import Data.List (intercalate)
 import Data.Text (Text)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import qualified Data.Attoparsec.Internal as I
@@ -257,9 +258,10 @@ maybeResult _            = Nothing
 -- | Convert a 'Result' value to an 'Either' value. A 'Partial' result
 -- is treated as failure.
 eitherResult :: Result r -> Either String r
-eitherResult (T.Done _ r)     = Right r
-eitherResult (T.Fail _ _ msg) = Left msg
-eitherResult _                = Left "Result: incomplete input"
+eitherResult (T.Done _ r)        = Right r
+eitherResult (T.Fail _ [] msg)   = Left msg
+eitherResult (T.Fail _ ctxs msg) = Left (intercalate " > " ctxs ++ ": " ++ msg)
+eitherResult _                   = Left "Result: incomplete input"
 
 -- | A predicate that matches either a carriage return @\'\\r\'@ or
 -- newline @\'\\n\'@ character.

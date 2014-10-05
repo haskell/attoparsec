@@ -235,7 +235,8 @@ isDigit c = c >= '0' && c <= '9'
 
 -- | A fast digit predicate.
 isDigit_w8 :: Word8 -> Bool
-isDigit_w8 w = w >= 48 && w <= 57
+isDigit_w8 w | w - 48 <= 9 = True
+             | otherwise   = False
 {-# INLINE isDigit_w8 #-}
 
 -- | Match any character.
@@ -272,7 +273,9 @@ isSpace c = (c == ' ') || ('\t' <= c && c <= '\r')
 
 -- | Fast 'Word8' predicate for matching ASCII space characters.
 isSpace_w8 :: Word8 -> Bool
-isSpace_w8 w = (w == 32) || (9 <= w && w <= 13)
+isSpace_w8 w | w == 32    = True
+             | w - 9 <= 4 = True
+             | otherwise  = False
 {-# INLINE isSpace_w8 #-}
 
 

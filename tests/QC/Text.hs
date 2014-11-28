@@ -145,11 +145,11 @@ scan s (Positive k) = parseT p s === Just (toStrict $ L.take k s)
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
             
 members :: String -> Property
-members s = property . all (`S.memberWord8` set) s
+members s = property . all (`S.member` set) s
     where set = S.fromList s
      
 nonmembers :: String -> String -> Property
-nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
+nonmembers s s' = property . not . any (`S.member` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
  
 tests :: [Test]

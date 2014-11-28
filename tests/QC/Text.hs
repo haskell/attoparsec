@@ -145,7 +145,7 @@ scan s (Positive k) = parseT p s === Just (toStrict $ L.take k s)
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
             
 members :: String -> Property
-members s = property . all (`S.member` set) s
+members s = property $ all (`S.member` set) s
     where set = S.fromList s
      
 nonmembers :: String -> String -> Property

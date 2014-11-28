@@ -163,4 +163,6 @@ tests = [
     , testProperty "takeWhile1" takeWhile1
     , testProperty "takeWhile1_empty" takeWhile1_empty
     , testProperty "word8" word8
+    , testProperty "members" members
+    , testProperty "nonmembers" nonmembers
   ]

@@ -45,6 +45,10 @@ data Entry = Entry {key :: {-# UNPACK #-} !Char,
                     
 probe :: Entry -> Int
 probe e = offset e - initialOffset e
+
+fastHash :: Char -> Int
+fastHash c = (x `xor` (x `shiftR` 7) `xor` (x `shiftL` 7)) * 2147483647
+    where x = fromEnum c
                     
 resolveCollisions :: [Entry] -> [Entry]
 resolveCollisions [] = []
@@ -73,7 +77,7 @@ fromList :: String -> FastSet
 fromList s = FastSet (arr key) (arr initialOffset) mask'
     where l = length s
           mask' = nextPowerOf2 ((5 * l) `div` 4) - 1
-          offsets = map (\c -> fromEnum c .&. mask') s
+          offsets = map (\c -> fastHash c .&. mask') s
           entries = pad . resolveCollisions $ sortBy (compare `on` initialOffset) $ zipWith (\c o -> Entry c o o) s offsets
           arr :: A.IArray a e => (Entry -> e) -> a Int e
           arr f = AB.listArray (0, length entries - 1) $ map f entries
@@ -84,7 +88,7 @@ set = fromList . T.unpack
 -- | Check the set for membership.
 member :: Char -> FastSet -> Bool
 member c a = go 0
-    where i = fromEnum c .&. mask a
+    where i = fastHash c .&. mask a
           go :: Int -> Bool
           go p
               | p > p' || p' == maxBound = False

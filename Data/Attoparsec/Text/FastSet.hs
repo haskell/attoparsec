@@ -46,13 +46,6 @@ data Entry = Entry {key :: {-# UNPACK #-} !Char,
 probe :: Entry -> Int
 probe e = offset e - initialOffset e
 
-fastHash :: Char -> Int
-fastHash :: Char -> Int
-fastHash c = v `xor` (v `shiftR` 27) + 1858994727
-    where x = fromEnum c
-          u = x `xor` (x `shiftR` 12) + 942815629
-          v = u `xor` (u `shiftL` 25) * 260401194
-                    
 resolveCollisions :: [Entry] -> [Entry]
 resolveCollisions [] = []
 resolveCollisions [x] = [x]
@@ -75,6 +68,9 @@ nextPowerOf2 :: Int -> Int
 nextPowerOf2 x = go (x - 1) 1
     where go y 32 = y + 1
           go y k  = go (y .|. (y `shiftR` k)) $ k * 2
+
+fastHash :: Char -> Int
+fastHash c = fromEnum
 
 fromList :: String -> FastSet
 fromList s = FastSet (arr key) (arr initialOffset) mask'

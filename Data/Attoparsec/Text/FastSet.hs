@@ -70,7 +70,7 @@ nextPowerOf2 x = go (x - 1) 1
           go y k  = go (y .|. (y `shiftR` k)) $ k * 2
 
 fastHash :: Char -> Int
-fastHash c = fromEnum
+fastHash = fromEnum
 
 fromList :: String -> FastSet
 fromList s = FastSet (arr key) (arr initialOffset) mask'

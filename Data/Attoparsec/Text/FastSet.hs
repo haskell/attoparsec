@@ -10,7 +10,7 @@
 --
 -- Fast set membership tests for 'Char' values.  The set
 -- representation is unboxed for efficiency.  We test for
--- membership using a hashtable implemented with robin hood
+-- membership using a hashtable implemented with Robin Hood
 -- collision resolution.
 --
 -----------------------------------------------------------------------------

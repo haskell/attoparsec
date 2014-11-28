@@ -133,12 +133,12 @@ scan s (Positive k) = parseBS p s === Just (toStrictBS $ L.take k s)
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
             
 members :: [Word8] -> Property
-    members s = property . all (`S.memberWord8` set) s
-        where set = S.fromList s
+members s = property $ all (`S.memberWord8` set) s
+    where set = S.fromList s
         
 nonmembers :: [Word8] -> [Word8] -> Property
-    nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
-        where set = S.fromList s
+nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
+    where set = S.fromList s
 
 tests :: [Test]
 tests = [

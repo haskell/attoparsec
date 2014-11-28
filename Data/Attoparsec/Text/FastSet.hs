@@ -47,8 +47,11 @@ probe :: Entry -> Int
 probe e = offset e - initialOffset e
 
 fastHash :: Char -> Int
-fastHash c = (x `xor` (x `shiftR` 7) `xor` (x `shiftL` 7)) * 2147483647
+fastHash :: Char -> Int
+fastHash c = v `xor` (v `shiftR` 27) + 1858994727
     where x = fromEnum c
+          u = x `xor` (x `shiftR` 12) + 942815629
+          v = u `xor` (u `shiftL` 25) * 260401194
                     
 resolveCollisions :: [Entry] -> [Entry]
 resolveCollisions [] = []

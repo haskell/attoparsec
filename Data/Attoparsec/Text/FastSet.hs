@@ -33,10 +33,9 @@ import Data.Function (on)
 import qualified Data.Array.Base as AB
 import qualified Data.Array.Unboxed as A
 import qualified Data.Text as T
-import Test.QuickCheck hiding ((.&.))
 
-data FastSet = FastSet {keys :: !(A.UArray Int Char), 
-                        initialOffsets :: !(A.UArray Int Int), 
+data FastSet = FastSet {keys :: {-# UNPACK #-} !(A.UArray Int Char), 
+                        initialOffsets :: {-# UNPACK #-} !(A.UArray Int Int), 
                         mask :: {-# UNPACK #-} !Int}
     deriving (Eq, Ord, Show)
     

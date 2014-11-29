@@ -48,10 +48,10 @@ probe e = offset e - initialOffset e
 
 resolveCollisions :: [Entry] -> [Entry]
 resolveCollisions [] = []
-resolveCollisions [x] = [x]
-resolveCollisions (a:b:ys)
-    | key a == key b = resolveCollisions (a:ys)
-    | otherwise = a' : resolveCollisions (b':ys)
+resolveCollisions [e] = [e]
+resolveCollisions (a:b:entries)
+    | key a == key b = resolveCollisions (a:entries)
+    | otherwise = a' : resolveCollisions (b':entries)
     where (a', b')
             | offset a < offset b = (a, b)
             | probe a < probe b = (b{offset=offset a}, a{offset=offset a + 1})
@@ -60,11 +60,12 @@ resolveCollisions (a:b:ys)
 pad :: [Entry]-> [Entry]
 pad = go 0
     where go _ [] = [empty]
-          go k (p:ps) = map (const empty) [k..o - 1] ++ p : go (o + 1) ps
-              where o = offset p
+          go k (e:entries) = map (const empty) [k..o - 1] ++ e : go (o + 1) entries
+              where o = offset e
           empty = Entry '\0' maxBound 0
     
 nextPowerOf2 :: Int -> Int
+nextPowerOf2 0 = 1
 nextPowerOf2 x = go (x - 1) 1
     where go y 32 = y + 1
           go y k  = go (y .|. (y `shiftR` k)) $ k * 2
@@ -86,15 +87,13 @@ set = fromList . T.unpack
                                       
 -- | Check the set for membership.
 member :: Char -> FastSet -> Bool
-member c a = go 0
-    where i = fastHash c .&. mask a
-          go :: Int -> Bool
-          go p
-              | p > p' || p' == maxBound = False
-              | p' == p && c' == c = True
-              | otherwise = go (p + 1)
-              where j = i + p
-                    p' = j - AB.unsafeAt (initialOffsets a) j
+member c a = go i
+    where i = (fastHash c .&. mask a)
+          go j
+              | i' > i = False
+              | i' == i && c == c' = True
+              | otherwise = go (j + 1)
+              where i' = AB.unsafeAt (initialOffsets a) j
                     c' = AB.unsafeAt (keys a) j
                        
 charClass :: String -> FastSet

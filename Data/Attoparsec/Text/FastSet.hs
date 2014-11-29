@@ -35,31 +35,31 @@ import qualified Data.Array.Unboxed as A
 import qualified Data.Text as T
 
 data FastSet = FastSet {keys :: {-# UNPACK #-} !(A.UArray Int Char), 
-                        initialOffsets :: {-# UNPACK #-} !(A.UArray Int Int), 
+                        initialIndeces :: {-# UNPACK #-} !(A.UArray Int Int), 
                         mask :: {-# UNPACK #-} !Int}
     deriving (Eq, Ord, Show)
     
 data Entry = Entry {key :: {-# UNPACK #-} !Char,
-                    initialOffset :: {-# UNPACK #-} !Int,
-                    offset :: {-# UNPACK #-} !Int} deriving (Show)
+                    initialIndex :: {-# UNPACK #-} !Int,
+                    index :: {-# UNPACK #-} !Int} deriving (Show)
                     
-probe :: Entry -> Int
-probe e = offset e - initialOffset e
+offset :: Entry -> Int
+offset e = index e - initialIndex e
 
 resolveCollisions :: [Entry] -> [Entry]
 resolveCollisions [] = []
 resolveCollisions [e] = [e]
 resolveCollisions (a:b:entries) = a' : resolveCollisions (b':entries)
     where (a', b')
-            | offset a < offset b = (a, b)
-            | probe a < probe b = (b{offset=offset a}, a{offset=offset a + 1})
-            | otherwise = (a, b{offset=offset a + 1})
+            | index a < index b = (a, b)
+            | offset a < offset b = (b{index=index a}, a{index=index a + 1})
+            | otherwise = (a, b{index=index a + 1})
                           
 pad :: Int -> [Entry]-> [Entry]
 pad = go 0
     where go _ m [] = replicate (max 1 m) empty
           go k m (e:entries) = map (const empty) [k..o - 1] ++ e : go (o + 1) (m + o - k - 1) entries
-              where o = offset e
+              where o = index e
           empty = Entry '\0' maxBound 0
     
 nextPowerOf2 :: Int -> Int
@@ -72,15 +72,15 @@ fastHash :: Char -> Int
 fastHash = fromEnum
 
 fromList :: String -> FastSet
-fromList s = FastSet (arr key) (arr initialOffset) mask'
+fromList s = FastSet (arr key) (arr initialIndex) mask'
     where s' = nub $ sort s
           l = length s'
           mask' = nextPowerOf2 ((5 * l) `div` 4) - 1
-          offsets = map (\c -> fastHash c .&. mask') s'
+          indeces = map (\c -> fastHash c .&. mask') s'
           entries = pad mask' . 
                     resolveCollisions . 
-                    sortBy (compare `on` initialOffset) $ 
-                    zipWith (\c o -> Entry c o o) s' offsets
+                    sortBy (compare `on` initialIndex) $ 
+                    zipWith (\c o -> Entry c o o) s' indeces
           arr :: A.IArray a e => (Entry -> e) -> a Int e
           arr f = AB.listArray (0, length entries - 1) $ map f entries
           
@@ -95,7 +95,7 @@ member c a = go i
               | i' > i = False
               | i' == i && c == c' = True
               | otherwise = go (j + 1)
-              where i' = AB.unsafeAt (initialOffsets a) j
+              where i' = AB.unsafeAt (initialIndeces a) j
                     c' = AB.unsafeAt (keys a) j
                        
 charClass :: String -> FastSet

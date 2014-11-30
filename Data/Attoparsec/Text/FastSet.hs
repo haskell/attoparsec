@@ -1,4 +1,4 @@
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.FastSet
 -- Copyright   :  Felipe Lessa 2010, Bryan O'Sullivan 2007-2014
@@ -8,10 +8,11 @@
 -- Stability   :  experimental
 -- Portability :  unknown
 --
--- Fast set membership tests for 'Char' values.  The set
--- representation is unboxed for efficiency.  We test for
+-- Fast set membership tests for 'Char' values. We test for
 -- membership using a hashtable implemented with Robin Hood
--- collision resolution.
+-- collision resolution. The set representation is unboxed, 
+-- and the characters and hashes interleaved, for efficiency. 
+--
 --
 -----------------------------------------------------------------------------
 module Data.Attoparsec.Text.FastSet
@@ -34,8 +35,7 @@ import qualified Data.Array.Base as AB
 import qualified Data.Array.Unboxed as A
 import qualified Data.Text as T
 
-data FastSet = FastSet {keys :: {-# UNPACK #-} !(A.UArray Int Char), 
-                        initialIndeces :: {-# UNPACK #-} !(A.UArray Int Int), 
+data FastSet = FastSet {table :: {-# UNPACK #-} !(A.UArray Int Int),
                         mask :: {-# UNPACK #-} !Int}
     deriving (Eq, Ord, Show)
     
@@ -58,8 +58,8 @@ resolveCollisions (a:b:entries) = a' : resolveCollisions (b':entries)
 pad :: Int -> [Entry]-> [Entry]
 pad = go 0
     where go _ m [] = replicate (max 1 m) empty
-          go k m (e:entries) = map (const empty) [k..o - 1] ++ e : go (o + 1) (m + o - k - 1) entries
-              where o = index e
+          go k m (e:entries) = map (const empty) [k..i - 1] ++ e : go (i + 1) (m + i - k - 1) entries
+              where i = index e
           empty = Entry '\0' maxBound 0
     
 nextPowerOf2 :: Int -> Int
@@ -72,7 +72,7 @@ fastHash :: Char -> Int
 fastHash = fromEnum
 
 fromList :: String -> FastSet
-fromList s = FastSet (arr key) (arr initialIndex) mask'
+fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved) mask'
     where s' = nub $ sort s
           l = length s'
           mask' = nextPowerOf2 ((5 * l) `div` 4) - 1
@@ -80,26 +80,24 @@ fromList s = FastSet (arr key) (arr initialIndex) mask'
           entries = pad mask' . 
                     resolveCollisions . 
                     sortBy (compare `on` initialIndex) $ 
-                    zipWith (\c o -> Entry c o o) s' indeces
-          arr :: A.IArray a e => (Entry -> e) -> a Int e
-          arr f = AB.listArray (0, length entries - 1) $ map f entries
-          
+                    zipWith (\c i -> Entry c i i) s' indeces
+          interleaved = concatMap (\(c, i) -> [c,i]) $ zip (map (fromEnum . key) entries) (map initialIndex entries)
+        
 set :: T.Text -> FastSet
 set = fromList . T.unpack
                                       
 -- | Check the set for membership.
 member :: Char -> FastSet -> Bool
-member c a = go i
-    where i = (fastHash c .&. mask a)
-          go j
-              | i' > i = False
-              | i' == i && c == c' = True
-              | otherwise = go (j + 1)
-              where i' = AB.unsafeAt (initialIndeces a) j
-                    c' = AB.unsafeAt (keys a) j
+member c a = go (2 * i)
+    where i = fastHash c .&. mask a
+          lookupAt j b = (i' <= i) && (c == c' || b)
+              where c' = toEnum $ AB.unsafeAt (table a) j
+                    i' = AB.unsafeAt (table a) $ j + 1
+          go j = lookupAt j $ lookupAt (j + 2) $ lookupAt (j + 4) $ lookupAt (j + 6) $ go (j + 8)
                        
 charClass :: String -> FastSet
 charClass = fromList . go
     where go (a:'-':b:xs) = [a..b] ++ go xs
           go (x:xs) = x : go xs
           go _ = ""
+    

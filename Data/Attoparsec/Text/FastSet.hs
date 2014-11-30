@@ -76,7 +76,7 @@ fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved) mask
     where s' = nub $ sort s
           l = length s'
           mask' = nextPowerOf2 ((5 * l) `div` 4) - 1
-          indeces = map (\c -> fastHash c .&. mask') s'
+          indeces = map ((.&. mask') . fastHash) s'
           entries = pad mask' . 
                     resolveCollisions . 
                     sortBy (compare `on` initialIndex) $ 

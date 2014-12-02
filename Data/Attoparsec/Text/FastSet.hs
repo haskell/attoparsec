@@ -82,6 +82,7 @@ fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved) mask
                     sortBy (compare `on` initialIndex) $ 
                     zipWith (\c i -> Entry c i i) s' indeces
           interleaved = concatMap (\e -> [fromEnum $ key e, initialIndex e]) entries
+          
 set :: T.Text -> FastSet
 set = fromList . T.unpack
                                       

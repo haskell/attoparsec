@@ -30,7 +30,7 @@ module Data.Attoparsec.Text.FastSet
 
 import Data.Bits ((.|.), (.&.), shiftR)
 import Data.Function (on)
-import Data.List (sort, sortBy, nub)
+import Data.List (sort, sortBy)
 import qualified Data.Array.Base as AB
 import qualified Data.Array.Unboxed as A
 import qualified Data.Text as T
@@ -78,7 +78,7 @@ fastHash = fromEnum
 fromList :: String -> FastSet
 fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved)
              mask'
-  where s'      = nub $ sort s
+  where s'      = ordNub (sort s)
         l       = length s'
         mask'   = nextPowerOf2 ((5 * l) `div` 4) - 1
         entries = pad mask' .
@@ -88,6 +88,14 @@ fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved)
                   map ((.&. mask') . fastHash) $ s'
         interleaved = concatMap (\e -> [fromEnum $ key e, initialIndex e])
                       entries
+
+ordNub :: Eq a => [a] -> [a]
+ordNub []     = []
+ordNub (y:ys) = go y ys
+  where go x (z:zs)
+          | x == z    = go x zs
+          | otherwise = x : go z zs
+        go x []       = [x]
 
 set :: T.Text -> FastSet
 set = fromList . T.unpack

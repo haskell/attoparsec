@@ -81,11 +81,11 @@ fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved)
   where s'      = nub $ sort s
         l       = length s'
         mask'   = nextPowerOf2 ((5 * l) `div` 4) - 1
-        indices = map ((.&. mask') . fastHash) s'
         entries = pad mask' .
                   resolveCollisions .
                   sortBy (compare `on` initialIndex) .
-                  zipWith (\c i -> Entry c i i) s' $ indices
+                  zipWith (\c i -> Entry c i i) s' .
+                  map ((.&. mask') . fastHash) $ s'
         interleaved = concatMap (\e -> [fromEnum $ key e, initialIndex e])
                       entries
 

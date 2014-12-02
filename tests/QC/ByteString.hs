@@ -12,6 +12,7 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString as P
 import qualified Data.Attoparsec.ByteString.Char8 as P8
+import qualified Data.Attoparsec.ByteString.FastSet as S
 import qualified Data.Attoparsec.ByteString.Lazy as PL
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
@@ -130,6 +131,14 @@ scan :: L.ByteString -> Positive Int64 -> Property
 scan s (Positive k) = parseBS p s === Just (toStrictBS $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
+            
+members :: [Word8] -> Property
+members s = property $ all (`S.memberWord8` set) s
+    where set = S.fromList s
+        
+nonmembers :: [Word8] -> [Word8] -> Property
+nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
+    where set = S.fromList s
 
 tests :: [Test]
 tests = [
@@ -154,4 +163,6 @@ tests = [
     , testProperty "takeWhile1" takeWhile1
     , testProperty "takeWhile1_empty" takeWhile1_empty
     , testProperty "word8" word8
+    , testProperty "members" members
+    , testProperty "nonmembers" nonmembers
   ]

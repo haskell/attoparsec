@@ -32,7 +32,7 @@ module Data.Attoparsec.Text.FastSet
 
 import Data.Bits ((.|.), (.&.), shiftR)
 import Data.Function (on)
-import Data.List (sort, sortBy)
+import Data.List (sort, sortBy, foldl')
 import qualified Data.Array.Base as AB
 import qualified Data.Array.Unboxed as A
 import qualified Data.Text as T

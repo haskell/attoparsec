@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 ------------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Attoparsec.FastSet
@@ -60,11 +62,11 @@ resolveCollisions (a:b:entries) = a' : resolveCollisions (b' : entries)
 
 pad :: Int -> [Entry] -> [Entry]
 pad = go 0
-  where go _ m []          = replicate (max 1 m) empty
-        go k m (e:entries) = map (const empty) [k..i - 1] ++ e :
-                             go (i + 1) (m + i - k - 1) entries
-            where i        = index e
-        empty              = Entry '\0' maxBound 0
+  where go !_ !m []          = replicate (max 1 m) empty
+        go  k  m (e:entries) = map (const empty) [k..i - 1] ++ e :
+                               go (i + 1) (m + i - k - 1) entries
+          where i            = index e
+        empty                = Entry '\0' maxBound 0
 
 nextPowerOf2 :: Int -> Int
 nextPowerOf2 0  = 1

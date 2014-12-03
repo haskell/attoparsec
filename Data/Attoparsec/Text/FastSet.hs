@@ -40,13 +40,13 @@ import qualified Data.Text as T
 data FastSet = FastSet {
     table :: {-# UNPACK #-} !(A.UArray Int Int)
   , mask  :: {-# UNPACK #-} !Int
-  } deriving (Show)
+  }
 
 data Entry = Entry {
     key          :: {-# UNPACK #-} !Char
   , initialIndex :: {-# UNPACK #-} !Int
   , index        :: {-# UNPACK #-} !Int
-  } deriving (Show)
+  }
 
 offset :: Entry -> Int
 offset e = index e - initialIndex e

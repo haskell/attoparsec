@@ -40,7 +40,7 @@ import qualified Data.Text as T
 data FastSet = FastSet {
     table :: {-# UNPACK #-} !(A.UArray Int Int)
   , mask  :: {-# UNPACK #-} !Int
-  } deriving (Eq, Ord, Show)
+  } deriving (Show)
 
 data Entry = Entry {
     key          :: {-# UNPACK #-} !Char

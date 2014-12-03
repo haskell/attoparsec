@@ -92,12 +92,8 @@ fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved)
                       entries
 
 ordNub :: Eq a => [a] -> [a]
-ordNub []     = []
-ordNub (y:ys) = go y ys
-  where go x (z:zs)
-          | x == z    = go x zs
-          | otherwise = x : go z zs
-        go x []       = [x]
+ordNub [] = []
+ordNub (x:xs) = foldl' (\ys@(y:_) z -> if y == z then ys else z:ys) [x] xs
 
 set :: T.Text -> FastSet
 set = fromList . T.unpack

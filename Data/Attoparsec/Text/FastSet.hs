@@ -32,7 +32,7 @@ module Data.Attoparsec.Text.FastSet
 
 import Data.Bits ((.|.), (.&.), shiftR)
 import Data.Function (on)
-import Data.List (sort, sortBy, foldl')
+import Data.List (sort, sortBy)
 import qualified Data.Array.Base as AB
 import qualified Data.Array.Unboxed as A
 import qualified Data.Text as T
@@ -92,8 +92,12 @@ fromList s = FastSet (AB.listArray (0, length interleaved - 1) interleaved)
                       entries
 
 ordNub :: Eq a => [a] -> [a]
-ordNub [] = []
-ordNub (x:xs) = foldl' (\ys@(y:_) z -> if y == z then ys else z:ys) [x] xs
+ordNub []     = []
+ordNub (y:ys) = go y ys
+  where go x (z:zs)
+          | x == z    = go x zs
+          | otherwise = x : go z zs
+        go x []       = [x]
 
 set :: T.Text -> FastSet
 set = fromList . T.unpack

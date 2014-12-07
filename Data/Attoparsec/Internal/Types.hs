@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, OverloadedStrings,
+{-# LANGUAGE BangPatterns, FlexibleInstances, GeneralizedNewtypeDeriving, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
@@ -65,12 +65,10 @@ data IResult i r =
   | Done i r
     -- ^ The parse succeeded.  The @i@ parameter is the input that had
     -- not yet been consumed (if any) when the parse succeeded.
-
-instance (Show i, Show r) => Show (IResult i r) where
-    show (Fail t stk msg) =
-      unwords [ "Fail", show t, show stk, show msg]
-    show (Partial _)          = "Partial _"
-    show (Done t r)       = unwords ["Done", show t, show r]
+    deriving (Show)
+    
+instance Show (i -> IResult i r) where
+    show _ = "_"
 
 instance (NFData i, NFData r) => NFData (IResult i r) where
     rnf (Fail t stk msg) = rnf t `seq` rnf stk `seq` rnf msg

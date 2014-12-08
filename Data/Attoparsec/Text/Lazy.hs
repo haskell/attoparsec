@@ -54,6 +54,7 @@ data Result r = Fail Text [String] String
               -- ^ The parse succeeded.  The 'ByteString' is the
               -- input that had not yet been consumed (if any) when
               -- the parse succeeded.
+    deriving (Show)
 
 instance Show r => Show (Result r) where
     show (Fail bs stk msg) =

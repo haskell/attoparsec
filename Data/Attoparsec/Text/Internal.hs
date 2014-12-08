@@ -75,7 +75,7 @@ import Data.Attoparsec.Text.Buffer (Buffer, buffer)
 import Data.Char (chr, ord)
 import Data.String (IsString(..))
 import Data.Text.Internal (Text(..))
-import Prelude hiding (getChar, length, succ, take, takeWhile)
+import Prelude hiding (getChar, succ, take, takeWhile)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.FastSet as Set
 import qualified Data.Text as T
@@ -207,7 +207,7 @@ skipWhile p = go
  where
   go = do
     t <- T.takeWhile p <$> get
-    continue <- inputSpansChunks (length t)
+    continue <- inputSpansChunks (size t)
     when continue go
 {-# INLINE skipWhile #-}
 
@@ -240,7 +240,7 @@ takeWhile p = (T.concat . reverse) `fmap` go []
  where
   go acc = do
     h <- T.takeWhile p <$> get
-    continue <- inputSpansChunks (length h)
+    continue <- inputSpansChunks (size h)
     if continue
       then go (h:acc)
       else return (h:acc)
@@ -253,7 +253,7 @@ takeRest = go []
     if input
       then do
         s <- get
-        advance (length s)
+        advance (size s)
         go (s:acc)
       else return (reverse acc)
 
@@ -280,11 +280,11 @@ scan_ f s0 p = go [] s0
   go acc s = do
     input <- get
     case scanner s 0 input of
-      Continue s'  -> do continue <- inputSpansChunks (length input)
+      Continue s'  -> do continue <- inputSpansChunks (size input)
                          if continue
                            then go (input : acc) s'
                            else f s' (input : acc)
-      Finished n t -> do advance (length input - length t)
+      Finished n t -> do advance (size input - size t)
                          f s (T.take n input : acc)
 {-# INLINE scan_ #-}
 
@@ -323,9 +323,9 @@ takeWhile1 :: (Char -> Bool) -> Parser Text
 takeWhile1 p = do
   (`when` demandInput) =<< endOfChunk
   h <- T.takeWhile p <$> get
-  let len = length h
-  when (len == 0) $ fail "takeWhile1"
-  advance len
+  let size' = size h
+  when (size' == 0) $ fail "takeWhile1"
+  advance size'
   eoc <- endOfChunk
   if eoc
     then (h<>) `fmap` takeWhile p
@@ -503,5 +503,5 @@ substring (Pos pos) (Pos n) = Buf.substring pos n
 lengthOf :: Buffer -> Pos
 lengthOf = Pos . Buf.length
 
-length :: Text -> Pos
-length (Text _ _ l) = Pos l
+size :: Text -> Pos
+size (Text _ _ l) = Pos l

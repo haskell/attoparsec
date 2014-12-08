@@ -504,4 +504,4 @@ lengthOf :: Buffer -> Pos
 lengthOf = Pos . Buf.length
 
 length :: Text -> Pos
-length = Pos . T.length
+length (Text _ _ l) = Pos l

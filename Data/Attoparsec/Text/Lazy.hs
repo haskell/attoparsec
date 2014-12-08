@@ -56,11 +56,6 @@ data Result r = Fail Text [String] String
               -- the parse succeeded.
     deriving (Show)
 
-instance Show r => Show (Result r) where
-    show (Fail bs stk msg) =
-        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
-    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
-
 instance NFData r => NFData (Result r) where
     rnf (Fail bs ctxs msg) = rnf bs `seq` rnf ctxs `seq` rnf msg
     rnf (Done bs r)        = rnf bs `seq` rnf r

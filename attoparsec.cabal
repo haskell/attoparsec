@@ -100,6 +100,7 @@ test-suite tests
     bytestring,
     deepseq >= 1.1,
     QuickCheck >= 2.7,
+    quickcheck-unicode,
     scientific,
     test-framework >= 0.8.0.2,
     test-framework-quickcheck2 >= 0.3.0.3,

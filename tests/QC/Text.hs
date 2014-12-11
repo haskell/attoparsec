@@ -110,7 +110,7 @@ takeWhile w s =
 
 takeWhile1 :: Char -> L.Text -> Property
 takeWhile1 w s =
-    let s'    = L.cons w s
+  let s'    = L.cons w s
         (h,t) = L.span (<=w) s'
     in case PL.parse (P.takeWhile1 (<=w)) s' of
          PL.Done t' h' -> t === t' .&&. toStrict h === h'
@@ -143,15 +143,15 @@ scan :: L.Text -> Positive Int64 -> Property
 scan s (Positive k) = parseT p s === Just (toStrict $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
-            
+
 members :: String -> Property
 members s = property $ all (`S.member` set) s
     where set = S.fromList s
-     
+
 nonmembers :: String -> String -> Property
 nonmembers s s' = property . not . any (`S.member` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
- 
+
 tests :: [Test]
 tests = [
       testProperty "anyChar" anyChar

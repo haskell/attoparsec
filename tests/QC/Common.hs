@@ -16,6 +16,7 @@ module QC.Common
 import Control.Applicative ((<$>), (<*>))
 import Data.Char (isAlpha)
 import Test.QuickCheck
+import Test.QuickCheck.Unicode (shrinkChar, string)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -55,29 +56,13 @@ repackBS_ = go . cycle
                         in h : go bs t
         go _ _ = error "unpossible"
 
-
-newtype Unicode = Unicode {fromUnicode :: Char}
-
-valid :: Unicode -> Bool
-valid (Unicode c) = c < '\55296' || '\57343' < c
-
-instance Arbitrary Unicode where
-    arbitrary = fmap Unicode (oneof [arbitrary, arbitraryBoundedEnum]) `suchThat` valid
-    shrink = filter valid . map (Unicode . toEnum) . shrink . fromEnum . fromUnicode
-
-packUnicode :: [Unicode] -> T.Text
-packUnicode = T.pack . map fromUnicode
-
-unpackUnicode :: T.Text -> [Unicode]
-unpackUnicode = map Unicode . T.unpack
-
 instance Arbitrary T.Text where
-    arbitrary = packUnicode <$> arbitrary
-    shrink = map packUnicode . shrink . unpackUnicode
+    arbitrary = T.pack <$> string
+    shrink    = map T.pack . shrinkList shrinkChar . T.unpack
 
 instance Arbitrary TL.Text where
-    arbitrary = repackT <$> arbitrary <*> arbitrary
-    shrink = map TL.fromChunks . shrink . TL.toChunks
+    arbitrary = TL.pack <$> string
+    shrink    = map TL.pack . shrinkList shrinkChar . TL.unpack
 
 repackT :: Repack -> T.Text -> TL.Text
 repackT (NonEmpty bs) =

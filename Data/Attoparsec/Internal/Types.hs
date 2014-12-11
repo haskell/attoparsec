@@ -72,7 +72,7 @@ instance (Show i, Show r) => Show (IResult i r) where
         (Fail t stk msg) -> showString "Fail" . f t . f stk . f msg
         (Partial _)      -> showString "Partial _"
         (Done t r)       -> showString "Done" . f t . f r 
-      where f x = showString " " . showsPrec 11 x 
+      where f x = showChar ' ' . showsPrec 11 x 
 
 instance (NFData i, NFData r) => NFData (IResult i r) where
     rnf (Fail t stk msg) = rnf t `seq` rnf stk `seq` rnf msg

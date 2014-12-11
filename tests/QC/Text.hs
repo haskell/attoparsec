@@ -111,7 +111,7 @@ takeWhile w s =
 takeWhile1 :: Char -> L.Text -> Property
 takeWhile1 w s =
   let s'    = L.cons w s
-        (h,t) = L.span (<=w) s'
+      (h,t) = L.span (<=w) s'
     in case PL.parse (P.takeWhile1 (<=w)) s' of
          PL.Done t' h' -> t === t' .&&. toStrict h === h'
          _             -> property False

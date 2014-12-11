@@ -28,9 +28,7 @@ extra-source-files:
     examples/*.hs
     examples/Makefile
     tests/*.hs
-    tests/Makefile
     tests/QC/*.hs
-    tests/TestFastSet.hs
 
 Flag developer
   Description: Whether to build the library in development mode

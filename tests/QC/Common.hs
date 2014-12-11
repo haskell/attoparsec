@@ -54,12 +54,30 @@ repackBS_ = go . cycle
           | otherwise = let (h,t) = B.splitAt b s
                         in h : go bs t
         go _ _ = error "unpossible"
+        
+ 
+newtype Unicode = Unicode {fromUnicode :: Char}
+
+valid :: Unicode -> Bool
+valid (Unicode c) = c < '\55296' || '\57343' < c
+
+instance Arbitrary Unicode where
+    arbitrary = fmap Unicode (oneof [arbitrary, arbitraryBoundedEnum]) `suchThat` valid 
+    shrink = filter valid . map (Unicode . toEnum) . shrink . fromEnum . fromUnicode
+
+packUnicode :: [Unicode] -> T.Text
+packUnicode = T.pack . map fromUnicode
+
+unpackUnicode :: T.Text -> [Unicode]
+unpackUnicode = map Unicode . T.unpack
 
 instance Arbitrary T.Text where
-    arbitrary = T.pack <$> arbitrary
+    arbitrary = packUnicode <$> arbitrary
+    shrink = map packUnicode . shrink . unpackUnicode
 
 instance Arbitrary TL.Text where
     arbitrary = repackT <$> arbitrary <*> arbitrary
+    shrink = map TL.fromChunks . shrink . TL.toChunks
 
 repackT :: Repack -> T.Text -> TL.Text
 repackT (NonEmpty bs) =

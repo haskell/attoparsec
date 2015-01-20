@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, TypeFamilies,
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, TypeFamilies,
     TypeSynonymInstances, GADTs #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-warnings-deprecations #-}
 
@@ -124,7 +124,11 @@ module Data.Attoparsec.ByteString.Char8
     , I.atEnd
     ) where
 
-import Control.Applicative (pure, (*>), (<*), (<$>), (<|>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative (pure, (*>), (<*))
+import Data.Word (Word)
+#endif
+import Control.Applicative ((<$>), (<|>))
 import Control.Monad (void, when)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser)
@@ -136,7 +140,7 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.String (IsString(..))
 import Data.Scientific (Scientific)
 import qualified Data.Scientific as Sci
-import Data.Word (Word8, Word16, Word32, Word64, Word)
+import Data.Word (Word8, Word16, Word32, Word64)
 import Prelude hiding (takeWhile)
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.Attoparsec.ByteString.Internal as I

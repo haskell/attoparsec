@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, OverloadedStrings,
+{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
@@ -25,14 +25,17 @@ module Data.Attoparsec.Internal.Types
     , Chunk(..)
     ) where
 
-import Control.Applicative (Alternative(..), Applicative(..), (<$>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative (Applicative(..))
+import Data.Monoid (Monoid(..))
+#endif
+import Control.Applicative (Alternative(..), (<$>))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
 import Data.Word (Word8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Internal (w2c)
-import Data.Monoid (Monoid(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Text.Unsafe (Iter(..))

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 -- |
@@ -122,7 +122,11 @@ module Data.Attoparsec.Text
     , I.atEnd
     ) where
 
-import Control.Applicative (pure, (<$>), (*>), (<*), (<|>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative (pure, (*>), (<*))
+import Data.Word (Word)
+#endif
+import Control.Applicative ((<$>), (<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Scientific (Scientific)
@@ -132,7 +136,7 @@ import Data.Bits (Bits, (.|.), shiftL)
 import Data.Char (isAlpha, isDigit, isSpace, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Text (Text)
-import Data.Word (Word8, Word16, Word32, Word64, Word)
+import Data.Word (Word8, Word16, Word32, Word64)
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text.Internal as I

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      :  Data.Attoparsec.Combinator
 -- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2007-2014
@@ -35,13 +35,16 @@ module Data.Attoparsec.Combinator
     , atEnd
     ) where
 
-import Control.Applicative (Alternative(..), Applicative(..), empty, liftA2,
-                            many, (<|>), (*>), (<$>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative (Applicative(..))
+import Data.Monoid (Monoid(mappend))
+#endif
+import Control.Applicative (Alternative(..), empty, liftA2, many, (<|>), 
+                            (<$>))
 import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
 import Data.Attoparsec.Internal (endOfInput, atEnd, satisfyElem)
 import Data.ByteString (ByteString)
-import Data.Monoid (Monoid(mappend))
 import Data.Text (Text)
 import qualified Data.Attoparsec.Zepto as Z
 import Prelude hiding (succ)

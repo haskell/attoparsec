@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Buffer
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -57,7 +57,9 @@ import Control.Exception (assert)
 import Data.ByteString.Internal (ByteString(..), memcpy, nullForeignPtr)
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.List (foldl1')
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid(..))
+#endif
 import Data.Word (Word8)
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
 import Foreign.Ptr (castPtr, plusPtr)

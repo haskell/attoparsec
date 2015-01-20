@@ -136,7 +136,7 @@ storable = hack undefined
   hack :: Storable b => b -> Parser b
   hack dummy = do
     (fp,o,_) <- B.toForeignPtr `fmap` take (sizeOf dummy)
-    return . B.inlinePerformIO . withForeignPtr fp $ \p ->
+    return . inlinePerformIO . withForeignPtr fp $ \p ->
         peek (castPtr $ p `plusPtr` o)
 
 -- | Consume @n@ bytes of input, but succeed only if the predicate

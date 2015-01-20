@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MagicHash, RankNTypes, RecordWildCards,
+{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, RecordWildCards,
     UnboxedTuples #-}
 
 -- |
@@ -39,7 +39,9 @@ module Data.Attoparsec.Text.Buffer
 import Control.Exception (assert)
 import Data.Bits (shiftR)
 import Data.List (foldl1')
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid(..))
+#endif
 import Data.Text ()
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Encoding.Utf16 (chr2)

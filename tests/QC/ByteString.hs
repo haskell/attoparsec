@@ -1,7 +1,10 @@
-{-# LANGUAGE BangPatterns, OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, CPP, OverloadedStrings #-}
 module QC.ByteString (tests) where
 
-import Control.Applicative ((<$>), (<*>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<*>))
+#endif
+import Control.Applicative ((<$>))
 import Data.Char (chr, ord)
 import Data.Int (Int64)
 import Data.Word (Word8)

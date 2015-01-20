@@ -20,6 +20,7 @@ module Data.Attoparsec.ByteString.Internal
     -- * Running parsers
     , parse
     , parseOnly
+    , eitherResult
 
     -- * Combinators
     , module Data.Attoparsec.Combinator
@@ -74,6 +75,7 @@ import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.ByteString (ByteString)
+import Data.List (intercalate)
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
@@ -416,10 +418,17 @@ parse m s = T.runParser m (buffer s) (Pos 0) Incomplete failK successK
 -- @
 parseOnly :: Parser a -> ByteString -> Either String a
 parseOnly m s = case T.runParser m (buffer s) (Pos 0) Complete failK successK of
-                  Fail _ _ err -> Left err
-                  Done _ a     -> Right a
-                  _            -> error "parseOnly: impossible error!"
+                  f@(Fail _ _ _) -> eitherResult f
+                  Done _ a       -> Right a
+                  _              -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
+
+-- | Convert a 'Result' value to an 'Either' value. A 'T.Partial'
+-- result is treated as failure.
+eitherResult :: Result r -> Either String r
+eitherResult (T.Done _ r)     = Right r
+eitherResult (T.Fail input contexts msg) = Left . intercalate "\n" $ contexts ++ [msg, ""]
+eitherResult _ = Left "Result: incomplete input"
 
 get :: Parser ByteString
 get = T.Parser $ \t pos more _lose succ ->

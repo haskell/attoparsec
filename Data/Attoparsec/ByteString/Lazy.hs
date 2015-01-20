@@ -36,6 +36,8 @@ module Data.Attoparsec.ByteString.Lazy
 
 import Control.DeepSeq (NFData(rnf))
 import Data.ByteString.Lazy.Internal (ByteString(..), chunk)
+import Data.List (intercalate)
+import qualified Data.ByteString.Lazy.Char8 as BL (length)
 import qualified Data.ByteString as B
 import qualified Data.Attoparsec.ByteString as A
 import qualified Data.Attoparsec.Internal.Types as T
@@ -100,4 +102,5 @@ maybeResult _          = Nothing
 -- | Convert a 'Result' value to an 'Either' value.
 eitherResult :: Result r -> Either String r
 eitherResult (Done _ r)     = Right r
-eitherResult (Fail _ _ msg) = Left msg
+eitherResult (Fail _ contexts msg) =
+    Left . intercalate "\n" $ contexts ++ [msg, ""]

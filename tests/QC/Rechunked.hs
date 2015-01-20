@@ -6,7 +6,7 @@ module QC.Rechunked (
     ) where
 
 import Control.Monad (forM, forM_)
-import Control.Monad.ST (runST)
+import Control.Monad.ST (ST, runST)
 import Data.List (unfoldr)
 import Test.QuickCheck (Gen, choose)
 import qualified Data.ByteString as B
@@ -49,6 +49,7 @@ fisherYates xs = (V.toList . V.backpermute v) `fmap` swapIndices (G.length v)
         return (runST (swapAll swaps))
       where
         n = n0 - 1
+        swapAll :: [(Int,Int)] -> ST s (V.Vector Int)
         swapAll ijs = do
           mv <- G.unsafeThaw (G.enumFromTo 0 n :: V.Vector Int)
           forM_ ijs $ uncurry (M.swap mv)

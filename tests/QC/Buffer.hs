@@ -1,10 +1,12 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
     TypeSynonymInstances #-}
 
 module QC.Buffer (tests) where
 
 import Control.Applicative ((<$>))
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid(mconcat))
+#endif
 import QC.Common ()
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)

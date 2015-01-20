@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module QC.Common
     (
@@ -13,7 +14,10 @@ module QC.Common
     , liftOp
     ) where
 
-import Control.Applicative ((<$>), (<*>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<*>))
+#endif
+import Control.Applicative ((<$>))
 import Data.Char (isAlpha)
 import Test.QuickCheck
 import Test.QuickCheck.Unicode (shrinkChar, string)

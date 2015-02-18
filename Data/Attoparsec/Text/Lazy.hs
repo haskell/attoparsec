@@ -45,13 +45,13 @@ import Data.Attoparsec.Text hiding (IResult(..), Result, eitherResult,
 
 -- | The result of a parse.
 data Result r = Fail Text [String] String
-              -- ^ The parse failed.  The 'ByteString' is the input
+              -- ^ The parse failed.  The 'Text' is the input
               -- that had not yet been consumed when the failure
               -- occurred.  The @[@'String'@]@ is a list of contexts
               -- in which the error occurred.  The 'String' is the
               -- message describing the error, if any.
               | Done Text r
-              -- ^ The parse succeeded.  The 'ByteString' is the
+              -- ^ The parse succeeded.  The 'Text' is the
               -- input that had not yet been consumed (if any) when
               -- the parse succeeded.
 

@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, FlexibleInstances, TypeSynonymInstances #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
+#endif
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 -- |

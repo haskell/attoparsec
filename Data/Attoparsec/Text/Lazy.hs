@@ -1,3 +1,8 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
+#endif
+
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Lazy

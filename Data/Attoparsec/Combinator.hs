@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
+#endif
 -- |
 -- Module      :  Data.Attoparsec.Combinator
 -- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2007-2014

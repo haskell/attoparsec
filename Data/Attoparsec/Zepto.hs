@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-} -- Data.ByteString.Unsafe
+#endif
 {-# LANGUAGE BangPatterns, MagicHash, UnboxedTuples #-}
 
 -- |

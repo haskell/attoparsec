@@ -1,3 +1,8 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-} -- Imports internal modules
+#endif
+
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Lazy
 -- Copyright   :  Bryan O'Sullivan 2007-2014

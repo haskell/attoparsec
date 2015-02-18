@@ -36,6 +36,7 @@ module Data.Attoparsec.Combinator
     , satisfyElem
     , endOfInput
     , atEnd
+    , lookAhead
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
@@ -246,3 +247,10 @@ feed f@(Fail _ _ _) _ = f
 feed (Partial k) d    = k d
 feed (Done t r) d     = Done (mappend t d) r
 {-# INLINE feed #-}
+
+-- | Apply a parser without consuming any input.
+lookAhead :: Parser i a -> Parser i a
+lookAhead p = Parser $ \t pos more lose succ ->
+  let succ' t' _pos' more' = succ t' pos more'
+  in runParser p t pos more lose succ'
+{-# INLINE lookAhead #-}

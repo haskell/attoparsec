@@ -1,3 +1,8 @@
+0.12.1.3
+
+* Fixed incorrect tracking of Text lengths
+  (https://github.com/bos/attoparsec/issues/80)
+
 0.12.1.2
 
 * Fixed the incorrect tracking of capacity if the initial buffer was

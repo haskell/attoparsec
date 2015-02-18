@@ -132,7 +132,7 @@ many1' p = liftM2' (:) p (many' p)
 -- | @sepBy p sep@ applies /zero/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@.
 --
--- > commaSep p  = p `sepBy` (symbol ",")
+-- > commaSep p  = p `sepBy` (char ',')
 sepBy :: Alternative f => f a -> f s -> f [a]
 sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 {-# SPECIALIZE sepBy :: Parser ByteString a -> Parser ByteString s
@@ -144,7 +144,7 @@ sepBy p s = liftA2 (:) p ((s *> sepBy1 p s) <|> pure []) <|> pure []
 -- by @sep@. Returns a list of the values returned by @p@. The value
 -- returned by @p@ is forced to WHNF.
 --
--- > commaSep p  = p `sepBy'` (symbol ",")
+-- > commaSep p  = p `sepBy'` (char ',')
 sepBy' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy' p s = scan `mplus` return []
   where scan = liftM2' (:) p ((s >> sepBy1' p s) `mplus` return [])
@@ -156,7 +156,7 @@ sepBy' p s = scan `mplus` return []
 -- | @sepBy1 p sep@ applies /one/ or more occurrences of @p@, separated
 -- by @sep@. Returns a list of the values returned by @p@.
 --
--- > commaSep p  = p `sepBy1` (symbol ",")
+-- > commaSep p  = p `sepBy1` (char ',')
 sepBy1 :: Alternative f => f a -> f s -> f [a]
 sepBy1 p s = scan
     where scan = liftA2 (:) p ((s *> scan) <|> pure [])
@@ -169,7 +169,7 @@ sepBy1 p s = scan
 -- by @sep@. Returns a list of the values returned by @p@. The value
 -- returned by @p@ is forced to WHNF.
 --
--- > commaSep p  = p `sepBy1'` (symbol ",")
+-- > commaSep p  = p `sepBy1'` (char ',')
 sepBy1' :: (MonadPlus m) => m a -> m s -> m [a]
 sepBy1' p s = scan
     where scan = liftM2' (:) p ((s >> scan) `mplus` return [])

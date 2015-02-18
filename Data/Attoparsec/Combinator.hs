@@ -243,7 +243,7 @@ eitherP a b = (Left <$> a) <|> (Right <$> b)
 -- | If a parser has returned a 'T.Partial' result, supply it with more
 -- input.
 feed :: Monoid i => IResult i r -> i -> IResult i r
-feed f@(Fail _ _ _) _ = f
+feed (Fail t ctxs msg) d = Fail (mappend t d) ctxs msg
 feed (Partial k) d    = k d
 feed (Done t r) d     = Done (mappend t d) r
 {-# INLINE feed #-}

@@ -53,6 +53,8 @@ library
                    Data.Attoparsec.ByteString.Lazy
                    Data.Attoparsec.Char8
                    Data.Attoparsec.Combinator
+                   Data.Attoparsec.Internal
+                   Data.Attoparsec.Internal.Types
                    Data.Attoparsec.Lazy
                    Data.Attoparsec.Number
                    Data.Attoparsec.Text
@@ -62,9 +64,7 @@ library
   other-modules:   Data.Attoparsec.ByteString.Buffer
                    Data.Attoparsec.ByteString.FastSet
                    Data.Attoparsec.ByteString.Internal
-                   Data.Attoparsec.Internal
                    Data.Attoparsec.Internal.Fhthagn
-                   Data.Attoparsec.Internal.Types
                    Data.Attoparsec.Text.Buffer
                    Data.Attoparsec.Text.FastSet
                    Data.Attoparsec.Text.Internal

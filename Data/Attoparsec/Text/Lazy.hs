@@ -59,11 +59,7 @@ data Result r = Fail Text [String] String
               -- ^ The parse succeeded.  The 'Text' is the
               -- input that had not yet been consumed (if any) when
               -- the parse succeeded.
-
-instance Show r => Show (Result r) where
-    show (Fail bs stk msg) =
-        "Fail " ++ show bs ++ " " ++ show stk ++ " " ++ show msg
-    show (Done bs r)       = "Done " ++ show bs ++ " " ++ show r
+    deriving (Show)
 
 instance NFData r => NFData (Result r) where
     rnf (Fail bs ctxs msg) = rnf bs `seq` rnf ctxs `seq` rnf msg

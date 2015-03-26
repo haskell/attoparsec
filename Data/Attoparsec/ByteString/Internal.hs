@@ -170,8 +170,36 @@ take n = takeWith n (const True)
 -- before failing.  In attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.
 string :: ByteString -> Parser ByteString
-string s = takeWith (B.length s) (==s)
+string s = T.Parser $ \t pos more lose succ ->
+  let n = B.length s
+  in if lengthAtLeast pos n t
+     then if s == substring pos (Pos n) t
+          then succ t (pos + Pos n) more s
+          else lose t pos more [] "string"
+     else let t' = Buf.unsafeDrop (fromPos pos) t
+          in if t' `B.isPrefixOf` s
+             then stringSuspended s (B.drop (B.length t') s)
+                                  t pos more lose succ
+             else lose t pos more [] "string"
 {-# INLINE string #-}
+
+stringSuspended :: ByteString -> ByteString -> Buffer -> Pos -> More
+                -> Failure r
+                -> Success ByteString r
+                -> Result r
+stringSuspended s0 s t pos more lose succ =
+    runParser (demandInput_ >>= go) t pos more lose succ
+  where go s' = T.Parser $ \t' pos' more' lose' succ' ->
+          let m = B.length s
+              n = B.length s'
+          in if n >= m
+             then if B.unsafeTake m s' == s
+                  then succ' t' (pos' + Pos (B.length s0)) more' s0
+                  else lose' t' pos' more' [] "string"
+             else if s' == B.unsafeTake n s
+                  then stringSuspended s0 (B.unsafeDrop n s)
+                       t' pos' more' lose' succ'
+                  else lose' t' pos' more' [] "string"
 
 stringTransform :: (ByteString -> ByteString) -> ByteString
                 -> Parser ByteString

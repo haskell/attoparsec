@@ -15,6 +15,7 @@ module Data.Attoparsec.Internal
     ( compareResults
     , prompt
     , demandInput
+    , demandInput_
     , wantInput
     , endOfInput
     , atEnd
@@ -40,8 +41,8 @@ compareResults (Done t0 r0) (Done t1 r1) =
 compareResults (Partial _) (Partial _) = Nothing
 compareResults _ _ = Just False
 
--- | Ask for input.  If we receive any, pass it to a success
--- continuation, otherwise to a failure continuation.
+-- | Ask for input.  If we receive any, pass the augmented input to a
+-- success continuation, otherwise to a failure continuation.
 prompt :: Chunk t
        => State t -> Pos -> More
        -> (State t -> Pos -> More -> IResult t r)
@@ -68,11 +69,24 @@ demandInput :: Chunk t => Parser t ()
 demandInput = Parser $ \t pos more lose succ ->
   case more of
     Complete -> lose t pos more [] "not enough input"
-    _ -> let lose' t' pos' more' = lose t' pos' more' [] "not enough input"
+    _ -> let lose' _ pos' more' = lose t pos' more' [] "not enough input"
              succ' t' pos' more' = succ t' pos' more' ()
          in prompt t pos more lose' succ'
 {-# SPECIALIZE demandInput :: Parser ByteString () #-}
 {-# SPECIALIZE demandInput :: Parser Text () #-}
+
+-- | Immediately demand more input via a 'Partial' continuation
+-- result.  Return the new input.
+demandInput_ :: Chunk t => Parser t t
+demandInput_ = Parser $ \t pos more lose succ ->
+  case more of
+    Complete -> lose t pos more [] "not enough input"
+    _ -> Partial $ \s ->
+         if nullChunk s
+         then lose t pos Complete [] "not enough input"
+         else succ (pappendChunk t s) pos more s
+{-# SPECIALIZE demandInput_ :: Parser ByteString ByteString #-}
+{-# SPECIALIZE demandInput_ :: Parser Text Text #-}
 
 -- | This parser always succeeds.  It returns 'True' if any input is
 -- available either immediately or on demand, and 'False' if the end

@@ -476,7 +476,6 @@ ensure n = T.Parser $ \t pos more lose succ ->
       Just n' -> succ t pos more (n', substring pos n' t)
       -- The uncommon case is kept out-of-line to reduce code size:
       Nothing -> ensureSuspended n t pos more lose succ
--- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
 
 -- | Return both the result of a parse and the portion of the input
@@ -487,6 +486,7 @@ match p = T.Parser $ \t pos more lose succ ->
                               (substring pos (pos'-pos) t', a)
   in runParser p t pos more lose succ'
 
+-- | Ensure that at least @n@ code points of input are available.
 lengthAtLeast :: Pos -> Int -> Buffer -> Maybe Pos
 lengthAtLeast pos n t = go 0 (fromPos pos)
   where go i !p

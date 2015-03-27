@@ -501,7 +501,6 @@ ensure n = T.Parser $ \t pos more lose succ ->
     then succ t pos more (substring pos (Pos n) t)
     -- The uncommon case is kept out-of-line to reduce code size:
     else ensureSuspended n t pos more lose succ
--- Non-recursive so the bounds check can be inlined:
 {-# INLINE ensure #-}
 
 -- | Return both the result of a parse and the portion of the input

@@ -16,14 +16,21 @@ import Common (rechunkBS)
 
 genome :: Benchmark
 genome = bgroup "genome" [
-    bench "search/B" $ nf (map (parse searchBS)) (B8.tails geneB)
-  , bench "search/BL" $ nf (map (L.parse searchBS)) (L8.tails geneBL)
+    bench "B" $ nf (map (parse searchBS)) (B8.tails geneB)
+  , bench "BL" $ nf (map (L.parse searchBS)) (L8.tails geneBL)
+  , bgroup "CI" [
+      bench "B" $ nf (map (parse searchBSCI)) (B8.tails geneB)
+    , bench "BL" $ nf (map (L.parse searchBSCI)) (L8.tails geneBL)
+  ]
   ]
   where geneB  = B8.pack gene
         geneBL = rechunkBS 4 geneB
 
 searchBS :: Parser ByteString
 searchBS = "caac" *> ("aaca" <|> "aact")
+
+searchBSCI :: Parser ByteString
+searchBSCI = stringCI "CAAC" *> (stringCI "AACA" <|> stringCI "AACT")
 
 -- Dictyostelium discoideum developmental protein DG1094 (gacT) gene,
 -- partial cds. http://www.ncbi.nlm.nih.gov/nuccore/AF081586.1

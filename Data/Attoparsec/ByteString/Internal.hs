@@ -139,19 +139,12 @@ storable = hack undefined
     return . inlinePerformIO . withForeignPtr fp $ \p ->
         peek (castPtr $ p `plusPtr` o)
 
--- | Consume @n@ bytes of input, but succeed only if the predicate
--- returns 'True'.
-takeWith :: Int -> (ByteString -> Bool) -> Parser ByteString
-takeWith n0 p = do
-  let n = max n0 0
-  s <- ensure n
-  if p s
-    then advance n >> return s
-    else fail "takeWith"
-
 -- | Consume exactly @n@ bytes of input.
 take :: Int -> Parser ByteString
-take n = takeWith n (const True)
+take n0 = do
+  let n = max n0 0
+  s <- ensure n
+  advance n >> return s
 {-# INLINE take #-}
 
 -- | @string s@ parses a sequence of bytes that identically match

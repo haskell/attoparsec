@@ -183,6 +183,7 @@ string_ :: (forall r. ByteString -> ByteString -> Buffer -> Pos -> More
         -> ByteString -> Parser ByteString
 string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
   let n = B.length s
+      s = f s0
   in if lengthAtLeast pos n t
      then if s == substring pos (Pos n) t
           then succ t (pos + Pos n) more s
@@ -191,7 +192,6 @@ string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
           in if t' `B.isPrefixOf` s
              then suspended s (B.drop (B.length t') s) t pos more lose succ
              else lose t pos more [] "string"
-  where s = f s0
 {-# INLINE string_ #-}
 
 stringSuspended :: (ByteString -> ByteString)

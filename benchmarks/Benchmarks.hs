@@ -13,6 +13,7 @@ import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()
 import qualified Warp
 import qualified Aeson
+import qualified Genome
 import qualified Data.Attoparsec.ByteString as AB
 import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.Attoparsec.ByteString.Lazy as ABL
@@ -80,6 +81,7 @@ main = do
      , bench "long" $ nf (AB.parse quotedString) b
      ]
    , aeson
+   , Genome.genome
    , headersBS
    , headersT
    , Links.links

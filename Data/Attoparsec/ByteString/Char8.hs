@@ -70,7 +70,7 @@ module Data.Attoparsec.ByteString.Char8
 
     -- * Efficient string handling
     , I.string
-    , stringCI
+    , I.stringCI
     , skipSpace
     , skipWhile
     , I.take
@@ -168,16 +168,6 @@ instance (a ~ B.ByteString) => IsString (Parser a) where
 -- @0xA4@ (which is the Euro symbol in ISO-8859-15, but the generic
 -- currency sign in ISO-8859-1).  Haskell 'Char' values above U+00FF
 -- are truncated, so e.g. U+1D6B7 is truncated to the byte @0xB7@.
-
--- ASCII-specific but fast, oh yes.
-toLower :: Word8 -> Word8
-toLower w | w >= 65 && w <= 90 = w + 32
-          | otherwise          = w
-
--- | Satisfy a literal string, ignoring case.
-stringCI :: B.ByteString -> Parser B.ByteString
-stringCI = I.stringTransform (B8.map toLower)
-{-# INLINE stringCI #-}
 
 -- | Consume input as long as the predicate returns 'True', and return
 -- the consumed input.

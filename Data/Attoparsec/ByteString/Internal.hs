@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, GADTs, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, GADTs, OverloadedStrings, RankNTypes, RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2014
@@ -46,7 +46,7 @@ module Data.Attoparsec.ByteString.Internal
     -- * Efficient string handling
     , skipWhile
     , string
-    , stringTransform
+    , stringCI
     , take
     , scan
     , runScanner
@@ -170,7 +170,25 @@ take n = takeWith n (const True)
 -- before failing.  In attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.
 string :: ByteString -> Parser ByteString
-string s = T.Parser $ \t pos more lose succ ->
+string s = string_ (stringSuspended id) id s
+{-# INLINE string #-}
+
+-- ASCII-specific but fast, oh yes.
+toLower :: Word8 -> Word8
+toLower w | w >= 65 && w <= 90 = w + 32
+          | otherwise          = w
+
+-- | Satisfy a literal string, ignoring case.
+stringCI :: ByteString -> Parser ByteString
+stringCI s = string_ (stringSuspended lower) lower s
+  where lower = B8.map toLower
+{-# INLINE stringCI #-}
+
+string_ :: (forall r. ByteString -> ByteString -> Buffer -> Pos -> More
+            -> Failure r -> Success ByteString r -> Result r)
+        -> (ByteString -> ByteString)
+        -> ByteString -> Parser ByteString
+string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
   let n = B.length s
   in if lengthAtLeast pos n t
      then if s == substring pos (Pos n) t
@@ -178,33 +196,30 @@ string s = T.Parser $ \t pos more lose succ ->
           else lose t pos more [] "string"
      else let t' = Buf.unsafeDrop (fromPos pos) t
           in if t' `B.isPrefixOf` s
-             then stringSuspended s (B.drop (B.length t') s)
-                                  t pos more lose succ
+             then suspended s (B.drop (B.length t') s) t pos more lose succ
              else lose t pos more [] "string"
-{-# INLINE string #-}
+  where s = f s0
+{-# INLINE string_ #-}
 
-stringSuspended :: ByteString -> ByteString -> Buffer -> Pos -> More
+stringSuspended :: (ByteString -> ByteString)
+                -> ByteString -> ByteString -> Buffer -> Pos -> More
                 -> Failure r
                 -> Success ByteString r
                 -> Result r
-stringSuspended s0 s t pos more lose succ =
+stringSuspended f s0 s t pos more lose succ =
     runParser (demandInput_ >>= go) t pos more lose succ
-  where go s' = T.Parser $ \t' pos' more' lose' succ' ->
+  where go s'0 = T.Parser $ \t' pos' more' lose' succ' ->
           let m = B.length s
+              s' = f s'0
               n = B.length s'
           in if n >= m
              then if B.unsafeTake m s' == s
                   then succ' t' (pos' + Pos (B.length s0)) more' s0
                   else lose' t' pos' more' [] "string"
              else if s' == B.unsafeTake n s
-                  then stringSuspended s0 (B.unsafeDrop n s)
+                  then stringSuspended f s0 (B.unsafeDrop n s)
                        t' pos' more' lose' succ'
                   else lose' t' pos' more' [] "string"
-
-stringTransform :: (ByteString -> ByteString) -> ByteString
-                -> Parser ByteString
-stringTransform f s = takeWith (B.length s) ((==f s) . f)
-{-# INLINE stringTransform #-}
 
 -- | Skip past input for as long as the predicate returns 'True'.
 skipWhile :: (Word8 -> Bool) -> Parser ()

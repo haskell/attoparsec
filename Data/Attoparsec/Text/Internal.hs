@@ -159,8 +159,44 @@ take n = takeWith (max n 0) (const True)
 -- before failing.  In attoparsec, the above parser will /succeed/ on
 -- that input, because the failed first branch will consume nothing.
 string :: Text -> Parser Text
-string s = takeWith (T.length s) (==s)
+string s = string_ (stringSuspended id) id s
 {-# INLINE string #-}
+
+string_ :: (forall r. Text -> Text -> Buffer -> Pos -> More
+            -> Failure r -> Success Text r -> Result r)
+        -> (Text -> Text)
+        -> Text -> Parser Text
+string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
+  let s  = f s0
+      ft = f (Buf.unbuffer t)
+  in case T.commonPrefixes s ft of
+       Nothing
+         | T.null s          -> succ t pos more T.empty
+         | T.null ft         -> suspended s s t pos more lose succ
+         | otherwise         -> lose t pos more [] "string"
+       Just (pfx,ssfx,tsfx)
+         | T.null ssfx       -> succ t (pos + Pos (T.lengthWord16 pfx)) more pfx
+         | not (T.null tsfx) -> lose t pos more [] "string"
+         | otherwise         -> suspended s ssfx t pos more lose succ
+{-# INLINE string_ #-}
+
+stringSuspended :: (Text -> Text)
+                -> Text -> Text -> Buffer -> Pos -> More
+                -> Failure r
+                -> Success Text r
+                -> Result r
+stringSuspended f s000 s0 t0 pos0 more0 lose0 succ0 =
+    runParser (demandInput_ >>= go) t0 pos0 more0 lose0 succ0
+  where
+    go s' = T.Parser $ \t pos more lose succ ->
+      let s = f s'
+      in case T.commonPrefixes s0 s of
+        Nothing         -> lose t pos more [] "string"
+        Just (_pfx,ssfx,tsfx)
+          | T.null ssfx -> let l = Pos (T.lengthWord16 s000)
+                           in succ t (pos + l) more (substring pos l t)
+          | T.null tsfx -> stringSuspended f s000 ssfx t pos more lose succ
+          | otherwise   -> lose t pos more [] "string"
 
 -- | Satisfy a literal string, ignoring case.
 --
@@ -487,6 +523,7 @@ match p = T.Parser $ \t pos more lose succ ->
   in runParser p t pos more lose succ'
 
 -- | Ensure that at least @n@ code points of input are available.
+-- Returns the number of words consumed while traversing.
 lengthAtLeast :: Pos -> Int -> Buffer -> Maybe Pos
 lengthAtLeast pos n t = go 0 (fromPos pos)
   where go i !p

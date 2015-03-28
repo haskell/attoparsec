@@ -169,7 +169,7 @@ string_ :: (forall r. Text -> Text -> Buffer -> Pos -> More
         -> Text -> Parser Text
 string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
   let s  = f s0
-      ft = f (Buf.unbuffer t)
+      ft = f (Buf.unbufferAt (fromPos pos) t)
   in case T.commonPrefixes s ft of
        Nothing
          | T.null s          -> succ t pos more T.empty

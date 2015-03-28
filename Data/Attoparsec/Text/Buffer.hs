@@ -28,6 +28,7 @@ module Data.Attoparsec.Text.Buffer
       Buffer
     , buffer
     , unbuffer
+    , unbufferAt
     , length
     , pappend
     , iter
@@ -73,6 +74,11 @@ buffer (Text arr off len) = Buf arr off len len 0
 
 unbuffer :: Buffer -> Text
 unbuffer (Buf arr off len _ _) = Text arr off len
+
+unbufferAt :: Int -> Buffer -> Text
+unbufferAt s (Buf arr off len _ _) =
+  assert (s >= 0 && s <= len) $
+  Text arr (off+s) (len-s)
 
 instance Monoid Buffer where
     mempty = Buf A.empty 0 0 0 0

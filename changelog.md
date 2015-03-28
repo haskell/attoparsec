@@ -1,3 +1,8 @@
+0.12.1.5
+
+* Fixed an indexing bug in the new Text implementation of string,
+  reported by Michel Boucey.
+
 0.12.1.4
 
 * Fixed a case where the string parser would consume an unnecessary

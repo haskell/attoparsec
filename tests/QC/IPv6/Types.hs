@@ -11,7 +11,7 @@
 
 -- -----------------------------------------------------------------------------
 
-module Text.IPv6Addr.Types where
+module QC.IPv6.Types where
 
 import qualified Data.Text as T
 

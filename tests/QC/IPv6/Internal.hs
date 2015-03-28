@@ -13,7 +13,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Text.IPv6Addr.Internal
+module QC.IPv6.Internal
     ( expandTokens
     , macAddr
     , maybeIPv6AddrTokens
@@ -26,7 +26,6 @@ module Text.IPv6Addr.Internal
     , fromDoubleColon
     , fromIPv6Addr
     , toDoubleColon
-    , networkInterfacesIPv6AddrList
     ) where
 
 import Control.Monad (replicateM)
@@ -35,13 +34,13 @@ import Data.Char (isDigit,isHexDigit,toLower)
 import Data.Monoid ((<>))
 import Control.Applicative ((<|>),(<*))
 import Data.List (group,isSuffixOf,elemIndex,elemIndices,intersperse)
+import Data.Word (Word32)
 import Numeric (showHex)
 import qualified Data.Text as T
 import qualified Data.Text.Read as R (decimal)
 import Data.Maybe (fromJust)
-import Network.Info
 
-import Text.IPv6Addr.Types
+import QC.IPv6.Types
 
 tok0 = "0"
 
@@ -249,12 +248,6 @@ toDoubleColon tks =
 
 ipv6TokensToIPv6Addr :: [IPv6AddrToken] -> Maybe IPv6Addr
 ipv6TokensToIPv6Addr l = Just $ IPv6Addr $ ipv6TokensToText l
-
-networkInterfacesIPv6AddrList :: IO [(String,IPv6)]
-networkInterfacesIPv6AddrList =
-    getNetworkInterfaces >>= \n -> return $ map networkInterfacesIPv6Addr n
-  where
-    networkInterfacesIPv6Addr (NetworkInterface n _ a _) = (n,a)
 
 fullSixteenBit :: T.Text -> Maybe IPv6AddrToken
 fullSixteenBit t =

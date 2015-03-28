@@ -29,6 +29,7 @@ extra-source-files:
     examples/Makefile
     tests/*.hs
     tests/QC/*.hs
+    tests/QC/IPv6/*.hs
 
 Flag developer
   Description: Whether to build the library in development mode
@@ -82,6 +83,8 @@ test-suite tests
                   QC.ByteString
                   QC.Combinator
                   QC.Common
+                  QC.IPv6.Internal
+                  QC.IPv6.Types
                   QC.Rechunked
                   QC.Simple
                   QC.Text

@@ -96,6 +96,7 @@ module Data.Attoparsec.ByteString
     ) where
 
 import Data.Attoparsec.Combinator
+import Data.List (intercalate)
 import qualified Data.Attoparsec.ByteString.Internal as I
 import qualified Data.Attoparsec.Internal as I
 import qualified Data.ByteString as B
@@ -222,6 +223,7 @@ maybeResult _            = Nothing
 -- | Convert a 'Result' value to an 'Either' value. A 'T.Partial'
 -- result is treated as failure.
 eitherResult :: Result r -> Either String r
-eitherResult (T.Done _ r)     = Right r
-eitherResult (T.Fail _ _ msg) = Left msg
-eitherResult _                = Left "Result: incomplete input"
+eitherResult (T.Done _ r)        = Right r
+eitherResult (T.Fail _ [] msg)   = Left msg
+eitherResult (T.Fail _ ctxs msg) = Left (intercalate " > " ctxs ++ ": " ++ msg)
+eitherResult _                   = Left "Result: incomplete input"

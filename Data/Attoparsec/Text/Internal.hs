@@ -73,6 +73,7 @@ import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import qualified Data.Attoparsec.Text.Buffer as Buf
 import Data.Attoparsec.Text.Buffer (Buffer, buffer)
 import Data.Char (chr, ord)
+import Data.List (intercalate)
 import Data.String (IsString(..))
 import Data.Text.Internal (Text(..))
 import Prelude hiding (getChar, succ, take, takeWhile)
@@ -458,9 +459,10 @@ parse m s = runParser m (buffer s) 0 Incomplete failK successK
 -- @
 parseOnly :: Parser a -> Text -> Either String a
 parseOnly m s = case runParser m (buffer s) 0 Complete failK successK of
-                  Fail _ _ err -> Left err
-                  Done _ a     -> Right a
-                  _            -> error "parseOnly: impossible error!"
+                  Fail _ [] err   -> Left err
+                  Fail _ ctxs err -> Left (intercalate " > " ctxs ++ ": " ++ err)
+                  Done _ a        -> Right a
+                  _               -> error "parseOnly: impossible error!"
 {-# INLINE parseOnly #-}
 
 get :: Parser Text

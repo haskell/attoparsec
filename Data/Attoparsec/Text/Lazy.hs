@@ -41,6 +41,7 @@ module Data.Attoparsec.Text.Lazy
     ) where
 
 import Control.DeepSeq (NFData(rnf))
+import Data.List (intercalate)
 import Data.Text.Lazy.Internal (Text(..), chunk)
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text as A
@@ -95,5 +96,6 @@ maybeResult _          = Nothing
 
 -- | Convert a 'Result' value to an 'Either' value.
 eitherResult :: Result r -> Either String r
-eitherResult (Done _ r)     = Right r
-eitherResult (Fail _ _ msg) = Left msg
+eitherResult (Done _ r)        = Right r
+eitherResult (Fail _ [] msg)   = Left msg
+eitherResult (Fail _ ctxs msg) = Left (intercalate " > " ctxs ++ ": " ++ msg)

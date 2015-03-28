@@ -4,7 +4,7 @@
 #endif
 -- |
 -- Module      :  Data.Attoparsec.Combinator
--- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2007-2014
+-- Copyright   :  Daan Leijen 1999-2001, Bryan O'Sullivan 2007-2015
 -- License     :  BSD3
 --
 -- Maintainer  :  bos@serpentine.com

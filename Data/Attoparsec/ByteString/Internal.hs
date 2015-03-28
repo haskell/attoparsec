@@ -201,10 +201,10 @@ stringSuspended :: (ByteString -> ByteString)
                 -> Result r
 stringSuspended f s0 s t pos more lose succ =
     runParser (demandInput_ >>= go) t pos more lose succ
-  where go s'0 = T.Parser $ \t' pos' more' lose' succ' ->
-          let m = B.length s
+  where go s'0   = T.Parser $ \t' pos' more' lose' succ' ->
+          let m  = B.length s
               s' = f s'0
-              n = B.length s'
+              n  = B.length s'
           in if n >= m
              then if B.unsafeTake m s' == s
                   then succ' t' (pos' + Pos (B.length s0)) more' s0

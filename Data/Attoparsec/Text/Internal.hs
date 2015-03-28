@@ -175,7 +175,8 @@ string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
          | T.null ft         -> suspended s s t pos more lose succ
          | otherwise         -> lose t pos more [] "string"
        Just (pfx,ssfx,tsfx)
-         | T.null ssfx       -> succ t (pos + Pos (T.lengthWord16 pfx)) more pfx
+         | T.null ssfx       -> let l = Pos (T.lengthWord16 pfx)
+                                in succ t (pos + l) more (substring pos l t)
          | not (T.null tsfx) -> lose t pos more [] "string"
          | otherwise         -> suspended s ssfx t pos more lose succ
 {-# INLINE string_ #-}
@@ -220,16 +221,8 @@ stringCI s = go 0
 
 -- | Satisfy a literal string, ignoring case for characters in the ASCII range.
 asciiCI :: Text -> Parser Text
-asciiCI input = do
-  (k,t) <- ensure n
-  if asciiToLower t == s
-    then advance k >> return t
-    else fail "asciiCI"
+asciiCI s = string_ (stringSuspended asciiToLower) asciiToLower s
   where
-    n = T.length input
-    s = asciiToLower input
-
-    -- convert letters in the ASCII range to lower-case
     asciiToLower = T.map f
       where
         offset = ord 'a' - ord 'A'

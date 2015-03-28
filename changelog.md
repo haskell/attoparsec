@@ -1,3 +1,12 @@
+0.12.1.4
+
+* Fixed a case where the string parser would consume an unnecessary
+  amount of input before failing a match, when it could bail much
+  earlier (https://github.com/bos/attoparsec/issues/97)
+
+* Added more context to error messages
+  (https://github.com/bos/attoparsec/pull/79)
+
 0.12.1.3
 
 * Fixed incorrect tracking of Text lengths

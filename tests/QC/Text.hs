@@ -63,6 +63,12 @@ string :: L.Text -> L.Text -> Property
 string s t = parseT (P.string s') (s `L.append` t) === Just s'
   where s' = toStrict s
 
+strings :: L.Text -> L.Text -> L.Text -> Property
+strings s t u =
+    parseT (P.string (toStrict s) >> P.string t') (L.concat [s,t,u])
+    === Just t'
+  where t' = toStrict t
+
 stringCI :: T.Text -> Property
 stringCI s = P.parseOnly (P.stringCI fs) s === Right s
   where fs = T.toCaseFold s
@@ -171,6 +177,7 @@ tests = [
     , testProperty "skip" skip
     , testProperty "skipWhile" skipWhile
     , testProperty "string" string
+    , testProperty "strings" strings
     , testProperty "stringCI" stringCI
     , testProperty "take" take
     , testProperty "takeText" takeText

@@ -66,6 +66,12 @@ string :: L.ByteString -> L.ByteString -> Property
 string s t = parseBS (P.string s') (s `L.append` t) === Just s'
   where s' = toStrictBS s
 
+strings :: L.ByteString -> L.ByteString -> L.ByteString -> Property
+strings s t u =
+    parseBS (P.string (toStrictBS s) >> P.string t') (L.concat [s,t,u])
+    === Just t'
+  where t' = toStrictBS t
+
 skipWhile :: Word8 -> L.ByteString -> Property
 skipWhile w s =
     let t = L.dropWhile (<=w) s
@@ -157,6 +163,7 @@ tests = [
     , testProperty "skip" skip
     , testProperty "skipWhile" skipWhile
     , testProperty "string" string
+    , testProperty "strings" strings
     , testProperty "take" take
     , testProperty "takeByteString" takeByteString
     , testProperty "takeCount" takeCount

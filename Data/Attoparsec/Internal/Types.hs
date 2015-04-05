@@ -26,10 +26,10 @@ module Data.Attoparsec.Internal.Types
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative(..))
+import Control.Applicative (Applicative(..), (<$>))
 import Data.Monoid (Monoid(..))
 #endif
-import Control.Applicative (Alternative(..), (<$>))
+import Control.Applicative (Alternative(..))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
 import Data.Word (Word8)

@@ -5,11 +5,11 @@ module QC.ByteString (tests) where
 import Control.Applicative ((<*>))
 #endif
 import Control.Applicative ((<$>))
-import Data.Char (chr, ord)
+import Data.Char (chr, ord, toUpper)
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
-import QC.Common (liftOp, parseBS, toStrictBS)
+import QC.Common (ASCII(..), liftOp, parseBS, toStrictBS)
 import Test.Framework (Test)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
@@ -18,6 +18,7 @@ import qualified Data.Attoparsec.ByteString.Char8 as P8
 import qualified Data.Attoparsec.ByteString.FastSet as S
 import qualified Data.Attoparsec.ByteString.Lazy as PL
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Lazy.Char8 as L8
 
@@ -65,6 +66,12 @@ peekWord8' s = parseBS P.peekWord8' s === (fst <$> L.uncons s)
 string :: L.ByteString -> L.ByteString -> Property
 string s t = parseBS (P.string s') (s `L.append` t) === Just s'
   where s' = toStrictBS s
+
+stringCI :: ASCII L.ByteString -> ASCII L.ByteString -> Property
+stringCI (ASCII s) (ASCII t) =
+    parseBS (P8.stringCI up) (s `L.append` t) === Just s'
+  where s' = toStrictBS s
+        up = B8.map toUpper s'
 
 strings :: L.ByteString -> L.ByteString -> L.ByteString -> Property
 strings s t u =
@@ -163,6 +170,7 @@ tests = [
     , testProperty "skip" skip
     , testProperty "skipWhile" skipWhile
     , testProperty "string" string
+    , testProperty "stringCI" stringCI
     , testProperty "strings" strings
     , testProperty "take" take
     , testProperty "takeByteString" takeByteString

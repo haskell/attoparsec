@@ -209,7 +209,9 @@ stringSuspended f s0 s t pos more lose succ =
               n  = B.length s'
           in if n >= m
              then if B.unsafeTake m s' == s
-                  then succ' t' (pos' + Pos (B.length s0)) more' s0
+                  then let o = Pos (B.length s0)
+                       in succ' t' (pos' + o) more'
+                          (substring pos' o t')
                   else lose' t' pos' more' [] "string"
              else if s' == B.unsafeTake n s
                   then stringSuspended f s0 (B.unsafeDrop n s)

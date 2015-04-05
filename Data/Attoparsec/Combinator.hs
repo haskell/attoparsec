@@ -40,11 +40,10 @@ module Data.Attoparsec.Combinator
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative(..))
+import Control.Applicative (Applicative(..), (<$>))
 import Data.Monoid (Monoid(mappend))
 #endif
-import Control.Applicative (Alternative(..), empty, liftA2, many, (<|>), 
-                            (<$>))
+import Control.Applicative (Alternative(..), empty, liftA2, many, (<|>))
 import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
 import Data.Attoparsec.Internal (endOfInput, atEnd, satisfyElem)

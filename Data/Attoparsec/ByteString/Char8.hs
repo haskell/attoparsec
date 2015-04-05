@@ -128,10 +128,10 @@ module Data.Attoparsec.ByteString.Char8
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (pure, (*>), (<*))
+import Control.Applicative (pure, (*>), (<*), (<$>))
 import Data.Word (Word)
 #endif
-import Control.Applicative ((<$>), (<|>))
+import Control.Applicative ((<|>))
 import Control.Monad (void, when)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser)

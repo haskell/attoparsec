@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, CPP, ScopedTypeVariables #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2015
@@ -22,7 +22,9 @@ module Data.Attoparsec.Internal
     , satisfyElem
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+#endif
 import Data.Attoparsec.Internal.Types
 import Data.ByteString (ByteString)
 import Data.Text (Text)

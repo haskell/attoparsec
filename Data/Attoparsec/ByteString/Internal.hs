@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, GADTs, OverloadedStrings, RankNTypes, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, CPP, GADTs, OverloadedStrings, RankNTypes,
+    RecordWildCards #-}
 -- |
 -- Module      :  Data.Attoparsec.ByteString.Internal
 -- Copyright   :  Bryan O'Sullivan 2007-2015
@@ -65,7 +66,10 @@ module Data.Attoparsec.ByteString.Internal
     , atEnd
     ) where
 
-import Control.Applicative ((<|>), (<$>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+#endif
+import Control.Applicative ((<|>))
 import Control.Monad (when)
 import Data.Attoparsec.ByteString.Buffer (Buffer, buffer)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)

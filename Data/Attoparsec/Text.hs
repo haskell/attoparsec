@@ -126,10 +126,10 @@ module Data.Attoparsec.Text
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (pure, (*>), (<*))
+import Control.Applicative (pure, (*>), (<*), (<$>))
 import Data.Word (Word)
 #endif
-import Control.Applicative ((<$>), (<|>))
+import Control.Applicative ((<|>))
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))
 import Data.Scientific (Scientific)

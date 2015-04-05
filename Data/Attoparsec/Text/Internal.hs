@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, GADTs, OverloadedStrings,
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, GADTs, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
@@ -65,7 +65,10 @@ module Data.Attoparsec.Text.Internal
     , atEnd
     ) where
 
-import Control.Applicative ((<|>), (<$>))
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
+#endif
+import Control.Applicative ((<|>))
 import Control.Monad (when)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal

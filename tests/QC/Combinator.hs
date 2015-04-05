@@ -1,8 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 
 module QC.Combinator where
 
-import Control.Applicative
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<*>), (<$>))
+#endif
 import Data.Maybe (fromJust, isJust)
 import Data.Word (Word8)
 import QC.Common (Repack, parseBS, repackBS, toLazyBS)

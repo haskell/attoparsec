@@ -5,8 +5,8 @@ module Links (links) where
 import Control.Applicative
 import Control.DeepSeq (NFData(..))
 import Criterion.Main (Benchmark, bench, nf)
-import Data.Attoparsec as A
-import Data.Attoparsec.Char8 as A8
+import Data.Attoparsec.ByteString as A
+import Data.Attoparsec.ByteString.Char8 as A8
 import Data.ByteString.Char8 as B8
 
 data Link = Link {

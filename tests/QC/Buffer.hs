@@ -3,8 +3,8 @@
 
 module QC.Buffer (tests) where
 
-import Control.Applicative ((<$>))
 #if !MIN_VERSION_base(4,8,0)
+import Control.Applicative ((<$>))
 import Data.Monoid (Monoid(mconcat))
 #endif
 import QC.Common ()

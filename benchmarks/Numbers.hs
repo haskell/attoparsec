@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 module Numbers (numbers) where
 

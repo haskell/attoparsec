@@ -3,9 +3,8 @@
 module QC.Text (tests) where
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<*>))
+import Control.Applicative ((<*>), (<$>))
 #endif
-import Control.Applicative ((<$>))
 import Data.Int (Int64)
 import Prelude hiding (take, takeWhile)
 import QC.Common (liftOp, parseT)

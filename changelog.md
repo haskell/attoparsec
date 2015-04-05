@@ -1,3 +1,7 @@
+0.12.1.6
+
+* Fixed a case folding bug in the ByteString version of stringCI.
+
 0.12.1.5
 
 * Fixed an indexing bug in the new Text implementation of string,

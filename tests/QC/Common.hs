@@ -28,7 +28,8 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Attoparsec.ByteString.Lazy as BL
 import qualified Data.Attoparsec.Text.Lazy as TL
 
-#if !MIN_VERSION_random(1,0,1)
+#if !MIN_VERSION_base(4,4,0)
+-- This should really be a dependency on the random package :-(
 instance Random Word8 where
   randomR = integralRandomR
   random = randomR (minBound,maxBound)

@@ -186,11 +186,12 @@ string_ suspended f s0 = T.Parser $ \t pos more lose succ ->
   let n = B.length s
       s = f s0
   in if lengthAtLeast pos n t
-     then if s == substring pos (Pos n) t
-          then succ t (pos + Pos n) more s
-          else lose t pos more [] "string"
+     then let t' = substring pos (Pos n) t
+          in if s == f t'
+             then succ t (pos + Pos n) more t'
+             else lose t pos more [] "string"
      else let t' = Buf.unsafeDrop (fromPos pos) t
-          in if t' `B.isPrefixOf` s
+          in if f t' `B.isPrefixOf` s
              then suspended s (B.drop (B.length t') s) t pos more lose succ
              else lose t pos more [] "string"
 {-# INLINE string_ #-}

@@ -1,8 +1,9 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module QC.Common
     (
-      parseBS
+      ASCII(..)
+    , parseBS
     , parseT
     , toLazyBS
     , toStrictBS
@@ -47,6 +48,17 @@ instance Arbitrary B.ByteString where
 instance Arbitrary BL.ByteString where
     arbitrary = repackBS <$> arbitrary <*> arbitrary
     shrink = map BL.pack . shrink . BL.unpack
+
+newtype ASCII a = ASCII { fromASCII :: a }
+                  deriving (Eq, Ord, Show)
+
+instance Arbitrary (ASCII B.ByteString) where
+    arbitrary = (ASCII . B.pack) <$> listOf (choose (0,127))
+    shrink = map (ASCII . B.pack) . shrink . B.unpack . fromASCII
+
+instance Arbitrary (ASCII BL.ByteString) where
+    arbitrary = ASCII <$> (repackBS <$> arbitrary <*> (fromASCII <$> arbitrary))
+    shrink = map (ASCII . BL.pack) . shrink . BL.unpack . fromASCII
 
 type Repack = NonEmptyList (Positive (Small Int))
 

@@ -42,9 +42,11 @@ toLazyBS = BL.fromChunks . (:[])
 
 instance Arbitrary B.ByteString where
     arbitrary = B.pack <$> arbitrary
+    shrink = map B.pack . shrink . B.unpack
 
 instance Arbitrary BL.ByteString where
     arbitrary = repackBS <$> arbitrary <*> arbitrary
+    shrink = map BL.pack . shrink . BL.unpack
 
 type Repack = NonEmptyList (Positive (Small Int))
 

@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.12.1.6
+version:         0.13.0.0
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing

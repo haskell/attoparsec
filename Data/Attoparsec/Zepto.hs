@@ -41,11 +41,14 @@ import Control.Monad (MonadPlus(..), ap)
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
 import Data.Functor.Identity (Identity(runIdentity))
-import Data.Monoid (Monoid(..))
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
+
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid (Monoid(..))
+#endif
 
 newtype S = S {
       input :: ByteString

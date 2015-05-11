@@ -43,6 +43,7 @@ library
                  containers,
                  deepseq,
                  scientific >= 0.3.1 && < 0.4,
+                 transformers,
                  text >= 1.1.1.3
   if impl(ghc < 7.4)
     build-depends:
@@ -106,6 +107,7 @@ test-suite tests
     test-framework >= 0.8.0.2,
     test-framework-quickcheck2 >= 0.3.0.3,
     text,
+    transformers,
     vector
 
 benchmark benchmarks

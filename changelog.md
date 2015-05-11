@@ -1,3 +1,8 @@
+0.13.0.0
+
+* Made the parser type in the Zepto module a monad transformer
+  (needed by aeson's string unescaping parser).
+
 0.12.1.6
 
 * Fixed a case folding bug in the ByteString version of stringCI.

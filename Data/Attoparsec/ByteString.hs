@@ -63,6 +63,7 @@ module Data.Attoparsec.ByteString
     , I.skipWhile
     , I.take
     , I.scan
+    , I.runScanner
     , I.takeWhile
     , I.takeWhile1
     , I.takeTill

@@ -33,5 +33,6 @@ executable attoparsec-benchmarks
     parsec >= 3.1.2,
     scientific >= 0.3.1,
     text >= 1.1.1.0,
+    transformers,
     unordered-containers,
     vector

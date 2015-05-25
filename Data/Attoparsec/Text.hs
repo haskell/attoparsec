@@ -72,6 +72,7 @@ module Data.Attoparsec.Text
     , skipSpace
     , I.skipWhile
     , I.scan
+    , I.runScanner
     , I.take
     , I.takeWhile
     , I.takeWhile1

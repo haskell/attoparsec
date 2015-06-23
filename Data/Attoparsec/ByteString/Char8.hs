@@ -444,9 +444,8 @@ hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
 
 -- | Parse and decode an unsigned decimal number.
 decimal :: Integral a => Parser a
-decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDig
-  where isDig w  = w >= 48 && w <= 57
-        step a w = a * 10 + fromIntegral (w - 48)
+decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDigit_w8
+  where step a w = a * 10 + fromIntegral (w - 48)
 {-# SPECIALISE decimal :: Parser Int #-}
 {-# SPECIALISE decimal :: Parser Int8 #-}
 {-# SPECIALISE decimal :: Parser Int16 #-}

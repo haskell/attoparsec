@@ -123,6 +123,7 @@ benchmark benchmarks
     Links
     Numbers
     Sets
+    TextFastSet
     Warp
   ghc-options: -O2 -Wall
 

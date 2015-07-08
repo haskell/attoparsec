@@ -122,6 +122,7 @@ benchmark benchmarks
     HeadersText
     Links
     Numbers
+    Sets
     Warp
   ghc-options: -O2 -Wall
 

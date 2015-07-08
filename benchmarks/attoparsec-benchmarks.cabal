@@ -16,6 +16,7 @@ executable attoparsec-benchmarks
     Links
     Numbers
     Network.Wai.Handler.Warp.ReadInt
+    Sets
     Warp
   hs-source-dirs: .. . warp-3.0.1.1
   ghc-options: -O2 -Wall -rtsopts
@@ -24,6 +25,7 @@ executable attoparsec-benchmarks
     base == 4.*,
     bytestring >= 0.10.4.0,
     case-insensitive,
+    containers,
     criterion >= 1.0,
     deepseq >= 1.1,
     directory,

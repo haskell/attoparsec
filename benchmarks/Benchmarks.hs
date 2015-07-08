@@ -28,6 +28,7 @@ import qualified HeadersByteString
 import qualified HeadersText
 import qualified Links
 import qualified Text.Parsec as P
+import qualified Sets
 
 main :: IO ()
 main = do
@@ -86,6 +87,7 @@ main = do
    , headersT
    , Links.links
    , numbers
+   , Sets.benchmarks
    , Warp.benchmarks
    ]
 

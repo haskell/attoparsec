@@ -1,3 +1,8 @@
+0.13.0.1
+
+* Fixed a bug in the implementations of inClass and notInClass for
+  Text (https://github.com/bos/attoparsec/issues/103)
+
 0.13.0.0
 
 * Made the parser type in the Zepto module a monad transformer

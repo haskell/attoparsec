@@ -20,10 +20,12 @@ module Data.Attoparsec.Internal
     , endOfInput
     , atEnd
     , satisfyElem
+    , concatReverse
     ) where
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>))
+import Data.Monoid (Monoid, mconcat)
 #endif
 import Data.Attoparsec.Internal.Types
 import Data.ByteString (ByteString)
@@ -159,3 +161,11 @@ satisfyElem p = Parser $ \t pos more lose succ ->
                   | otherwise -> lose t pos more [] "satisfyElem"
       Nothing -> satisfySuspended p t pos more lose succ
 {-# INLINE satisfyElem #-}
+
+-- | Concatenate a monoid after reversing its elements.  Used to
+-- glue together a series of textual chunks that have been accumulated
+-- \"backwards\".
+concatReverse :: Monoid m => [m] -> m
+concatReverse [x] = x
+concatReverse xs  = mconcat (reverse xs)
+{-# INLINE concatReverse #-}

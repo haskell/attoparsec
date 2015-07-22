@@ -257,7 +257,7 @@ takeTill p = takeWhile (not . p)
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
 takeWhile :: (Word8 -> Bool) -> Parser ByteString
-takeWhile p = (B.concat . reverse) `fmap` go []
+takeWhile p = concatReverse `fmap` go []
  where
   go acc = do
     s <- B8.takeWhile p <$> get
@@ -329,16 +329,13 @@ scan_ f s0 p = go [] s0
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
 scan :: s -> (s -> Word8 -> Maybe s) -> Parser ByteString
-scan = scan_ $ \_ chunks ->
-  case chunks of
-    [x] -> return x
-    xs  -> return $! B.concat $ reverse xs
+scan = scan_ $ \_ chunks -> return $! concatReverse chunks
 {-# INLINE scan #-}
 
 -- | Like 'scan', but generalized to return the final state of the
 -- scanner.
 runScanner :: s -> (s -> Word8 -> Maybe s) -> Parser (ByteString, s)
-runScanner = scan_ $ \s xs -> return (B.concat (reverse xs), s)
+runScanner = scan_ $ \s xs -> let !sx = concatReverse xs in return (sx, s)
 {-# INLINE runScanner #-}
 
 -- | Consume input as long as the predicate returns 'True', and return

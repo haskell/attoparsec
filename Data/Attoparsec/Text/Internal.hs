@@ -269,7 +269,7 @@ takeTill p = takeWhile (not . p)
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
 takeWhile :: (Char -> Bool) -> Parser Text
-takeWhile p = (T.concat . reverse) `fmap` go []
+takeWhile p = concatReverse `fmap` go []
  where
   go acc = do
     h <- T.takeWhile p <$> get
@@ -334,16 +334,13 @@ scan_ f s0 p = go [] s0
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
 scan :: s -> (s -> Char -> Maybe s) -> Parser Text
-scan = scan_ $ \_ chunks ->
-  case chunks of
-    [x] -> return x
-    xs  -> return . T.concat . reverse $ xs
+scan = scan_ $ \_ chunks -> return $! concatReverse chunks
 {-# INLINE scan #-}
 
 -- | Like 'scan', but generalized to return the final state of the
 -- scanner.
 runScanner :: s -> (s -> Char -> Maybe s) -> Parser (Text, s)
-runScanner = scan_ $ \s xs -> return (T.concat (reverse xs), s)
+runScanner = scan_ $ \s xs -> let !sx = concatReverse xs in return (sx, s)
 {-# INLINE runScanner #-}
 
 -- | Consume input as long as the predicate returns 'True', and return

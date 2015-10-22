@@ -299,7 +299,7 @@ takeLazyText :: Parser L.Text
 takeLazyText = L.fromChunks `fmap` takeRest
 
 data Scan s = Continue s
-            | Finished {-# UNPACK #-} !Int Text
+            | Finished s {-# UNPACK #-} !Int Text
 
 scan_ :: (s -> [Text] -> Parser r) -> s -> (s -> Char -> Maybe s) -> Parser r
 scan_ f s0 p = go [] s0
@@ -308,7 +308,7 @@ scan_ f s0 p = go [] s0
     case T.uncons t of
       Just (c,t') -> case p s c of
                        Just s' -> scanner s' (n+1) t'
-                       Nothing -> Finished n t
+                       Nothing -> Finished s n t
       Nothing     -> Continue s
   go acc s = do
     input <- get
@@ -317,8 +317,8 @@ scan_ f s0 p = go [] s0
                          if continue
                            then go (input : acc) s'
                            else f s' (input : acc)
-      Finished n t -> do advance (size input - size t)
-                         f s (T.take n input : acc)
+      Finished s' n t -> do advance (size input - size t)
+                            f s' (T.take n input : acc)
 {-# INLINE scan_ #-}
 
 -- | A stateful scanner.  The predicate consumes and transforms a

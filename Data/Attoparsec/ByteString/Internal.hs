@@ -426,10 +426,14 @@ peekWord8' = T.Parser $ \t pos more lose succ ->
          in ensureSuspended 1 t pos more lose succ'
 {-# INLINE peekWord8' #-}
 
--- | Match either a single newline character @\'\\n\'@, or a carriage
--- return followed by a newline character @\"\\r\\n\"@.
+-- | Match a carriage return followed by a newline character @\"\\r\\n\"@,
+-- a single newline character @\'\\n\'@, or a single carriage return
+-- @\'\\r\'@.
 endOfLine :: Parser ()
-endOfLine = (word8 10 >> return ()) <|> (string "\r\n" >> return ())
+endOfLine = 
+  (string "\r\n" >> return ())
+  <|> (word8 10 >> return ())
+  <|> (word8 13 >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a

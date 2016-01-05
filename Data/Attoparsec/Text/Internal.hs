@@ -428,10 +428,14 @@ peekChar' = do
   return $! T.unsafeHead s
 {-# INLINE peekChar' #-}
 
--- | Match either a single newline character @\'\\n\'@, or a carriage
--- return followed by a newline character @\"\\r\\n\"@.
+-- | Match a carriage return followed by a newline character @\"\\r\\n\"@,
+-- a single newline character @\'\\n\'@, or a single carriage return
+-- @\'\\r\'@.
 endOfLine :: Parser ()
-endOfLine = (char '\n' >> return ()) <|> (string "\r\n" >> return ())
+endOfLine =
+  (string "\r\n" >> return ())
+  <|> (char '\n' >> return ())
+  <|> (char '\r' >> return ())
 
 -- | Terminal failure continuation.
 failK :: Failure a

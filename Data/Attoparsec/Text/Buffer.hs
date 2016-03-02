@@ -40,9 +40,8 @@ module Data.Attoparsec.Text.Buffer
 import Control.Exception (assert)
 import Data.Bits (shiftR)
 import Data.List (foldl1')
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (Monoid(..))
-#endif
+import Data.Monoid as Mon (Monoid(..))
+import Data.Semigroup (Semigroup(..))
 import Data.Text ()
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Encoding.Utf16 (chr2)
@@ -80,17 +79,20 @@ unbufferAt s (Buf arr off len _ _) =
   assert (s >= 0 && s <= len) $
   Text arr (off+s) (len-s)
 
+instance Semigroup Buffer where
+    (Buf _ _ _ 0 _) <> b                     = b
+    a               <> (Buf _ _ _ 0 _)       = a
+    buf             <> (Buf arr off len _ _) = append buf arr off len
+    {-# INLINE (<>) #-}
+
 instance Monoid Buffer where
     mempty = Buf A.empty 0 0 0 0
     {-# INLINE mempty #-}
 
-    mappend (Buf _ _ _ 0 _) b = b
-    mappend a (Buf _ _ _ 0 _) = a
-    mappend buf (Buf arr off len _ _) = append buf arr off len
-    {-# INLINE mappend #-}
+    mappend = (<>)
 
-    mconcat [] = mempty
-    mconcat xs = foldl1' mappend xs
+    mconcat [] = Mon.mempty
+    mconcat xs = foldl1' (<>) xs
 
 pappend :: Buffer -> Text -> Buffer
 pappend (Buf _ _ _ 0 _) t      = buffer t

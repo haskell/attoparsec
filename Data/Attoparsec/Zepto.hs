@@ -38,17 +38,16 @@ module Data.Attoparsec.Zepto
 
 import Control.Applicative
 import Control.Monad (MonadPlus(..), ap)
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.IO.Class (MonadIO(..))
 import Data.ByteString (ByteString)
 import Data.Functor.Identity (Identity(runIdentity))
+import Data.Monoid as Mon (Monoid(..))
+import Data.Semigroup (Semigroup(..))
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
-
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (Monoid(..))
-#endif
 
 newtype S = S {
       input :: ByteString
@@ -83,7 +82,7 @@ instance MonadIO m => MonadIO (ZeptoT m) where
   {-# INLINE liftIO #-}
 
 instance Monad m => Monad (ZeptoT m) where
-    return a = Parser $ \s -> return (OK a s)
+    return = pure
     {-# INLINE return #-}
 
     m >>= k   = Parser $ \s -> do
@@ -93,6 +92,10 @@ instance Monad m => Monad (ZeptoT m) where
         Fail err -> return (Fail err)
     {-# INLINE (>>=) #-}
 
+    fail = Fail.fail
+    {-# INLINE fail #-}
+
+instance Monad m => Fail.MonadFail (ZeptoT m) where
     fail msg = Parser $ \_ -> return (Fail msg)
     {-# INLINE fail #-}
 
@@ -108,7 +111,7 @@ instance Monad m => MonadPlus (ZeptoT m) where
     {-# INLINE mplus #-}
 
 instance (Monad m) => Applicative (ZeptoT m) where
-    pure   = return
+    pure a = Parser $ \s -> return (OK a s)
     {-# INLINE pure #-}
     (<*>)  = ap
     {-# INLINE (<*>) #-}
@@ -137,10 +140,14 @@ parseT p bs = do
     Fail err -> return (Left err)
 {-# INLINE parseT #-}
 
-instance Monad m => Monoid (ZeptoT m a) where
+instance Monad m => Semigroup (ZeptoT m a) where
+    (<>) = mplus
+    {-# INLINE (<>) #-}
+
+instance Monad m => Mon.Monoid (ZeptoT m a) where
     mempty  = fail "mempty"
     {-# INLINE mempty #-}
-    mappend = mplus
+    mappend = (<>)
     {-# INLINE mappend #-}
 
 instance Monad m => Alternative (ZeptoT m) where

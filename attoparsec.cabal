@@ -49,6 +49,11 @@ library
     build-depends:
       bytestring < 0.10.4.0
 
+  if !impl(ghc >= 8.0)
+    -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
+    build-depends: fail == 4.9.*,
+                   semigroups >=0.16.1 && <0.19
+
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.ByteString
                    Data.Attoparsec.ByteString.Char8
@@ -111,6 +116,11 @@ test-suite tests
     transformers,
     vector
 
+  if !impl(ghc >= 8.0)
+    -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
+    build-depends: fail == 4.9.*,
+                   semigroups >=0.16.1 && <0.19
+
 benchmark benchmarks
   type: exitcode-stdio-1.0
   hs-source-dirs: benchmarks benchmarks/warp-3.0.1.1 .
@@ -148,6 +158,11 @@ benchmark benchmarks
     text >= 1.1.1.0,
     unordered-containers,
     vector
+
+  if !impl(ghc >= 8.0)
+    -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
+    build-depends: fail == 4.9.*,
+                   semigroups >=0.16.1 && <0.19
 
 source-repository head
   type:     git

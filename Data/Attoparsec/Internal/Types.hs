@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, OverloadedStrings,
+{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, OverloadedStrings,
     Rank2Types, RecordWildCards, TypeFamilies #-}
 -- |
 -- Module      :  Data.Attoparsec.Internal.Types
@@ -25,13 +25,13 @@ module Data.Attoparsec.Internal.Types
     , Chunk(..)
     ) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative(..), (<$>))
-import Data.Monoid (Monoid(..))
-#endif
+import Control.Applicative as App (Applicative(..), (<$>))
 import Control.Applicative (Alternative(..))
 import Control.DeepSeq (NFData(rnf))
 import Control.Monad (MonadPlus(..))
+import qualified Control.Monad.Fail as Fail (MonadFail(..))
+import Data.Monoid as Mon (Monoid(..))
+import Data.Semigroup  (Semigroup(..))
 import Data.Word (Word8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
@@ -127,23 +127,34 @@ type Success i t a r = t -> Pos -> More -> a -> IResult i r
 data More = Complete | Incomplete
             deriving (Eq, Show)
 
-instance Monoid More where
-    mappend c@Complete _ = c
-    mappend _ m          = m
-    mempty               = Incomplete
+instance Semigroup More where
+    c@Complete <> _ = c
+    _          <> m = m
+
+instance Mon.Monoid More where
+    mappend = (<>)
+    mempty  = Incomplete
 
 instance Monad (Parser i) where
-    fail err = Parser $ \t pos more lose _succ -> lose t pos more [] msg
-      where msg = "Failed reading: " ++ err
+    fail = Fail.fail
     {-# INLINE fail #-}
 
-    return v = Parser $ \t pos more _lose succ -> succ t pos more v
+    return = App.pure
     {-# INLINE return #-}
 
     m >>= k = Parser $ \t !pos more lose succ ->
         let succ' t' !pos' more' a = runParser (k a) t' pos' more' lose succ
         in runParser m t pos more lose succ'
     {-# INLINE (>>=) #-}
+
+    (>>) = (*>)
+    {-# INLINE (>>) #-}
+
+
+instance Fail.MonadFail (Parser i) where
+    fail err = Parser $ \t pos more lose _succ -> lose t pos more [] msg
+      where msg = "Failed reading: " ++ err
+    {-# INLINE fail #-}
 
 plus :: Parser i a -> Parser i a -> Parser i a
 plus f g = Parser $ \t pos more lose succ ->
@@ -169,23 +180,23 @@ apP d e = do
 {-# INLINE apP #-}
 
 instance Applicative (Parser i) where
-    pure   = return
+    pure v = Parser $ \t pos more _lose succ -> succ t pos more v
     {-# INLINE pure #-}
     (<*>)  = apP
     {-# INLINE (<*>) #-}
-
-    -- These definitions are equal to the defaults, but this
-    -- way the optimizer doesn't have to work so hard to figure
-    -- that out.
-    (*>)   = (>>)
+    m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
-    x <* y = x >>= \a -> y >> return a
+    x <* y = x >>= \a -> y >> pure a
     {-# INLINE (<*) #-}
+
+instance Semigroup (Parser i a) where
+    (<>) = plus
+    {-# INLINE (<>) #-}
 
 instance Monoid (Parser i a) where
     mempty  = fail "mempty"
     {-# INLINE mempty #-}
-    mappend = plus
+    mappend = (<>)
     {-# INLINE mappend #-}
 
 instance Alternative (Parser i) where
@@ -197,7 +208,7 @@ instance Alternative (Parser i) where
 
     many v = many_v
         where many_v = some_v <|> pure []
-              some_v = (:) <$> v <*> many_v
+              some_v = (:) App.<$> v <*> many_v
     {-# INLINE many #-}
 
     some v = some_v
@@ -205,10 +216,6 @@ instance Alternative (Parser i) where
         many_v = some_v <|> pure []
         some_v = (:) <$> v <*> many_v
     {-# INLINE some #-}
-
-(<>) :: (Monoid m) => m -> m -> m
-(<>) = mappend
-{-# INLINE (<>) #-}
 
 -- | A common interface for input chunks.
 class Monoid c => Chunk c where

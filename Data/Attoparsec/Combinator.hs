@@ -25,6 +25,7 @@ module Data.Attoparsec.Combinator
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1
@@ -215,6 +216,20 @@ manyTill' p end = scan
                          -> Parser ByteString [a] #-}
 {-# SPECIALIZE manyTill' :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill' :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
+
+-- | @till' p end@ applies action @p@ /zero/ or more times until
+-- action @end@ succeeds, and returns a tuple of the list of
+-- values returned by @p@, and @end@.
+--
+-- The value returned by @p@ is forced to WHNF.
+till' :: (MonadPlus m) => m a -> m b -> m ([a], b)
+till' p end = mapFst ($ []) <$> scan (id, undefined)
+  where scan (fp, e) = liftM (fp,) end `mplus` do !a <- p; scan (fp . (a:), e)
+        mapFst f (x, y) = (f x, y)
+{-# SPECIALIZE till' :: Parser ByteString a -> Parser ByteString b
+                         -> Parser ByteString ([a], b) #-}
+{-# SPECIALIZE till' :: Parser Text a -> Parser Text b -> Parser Text ([a], b) #-}
+{-# SPECIALIZE till' :: Z.Parser a -> Z.Parser b -> Z.Parser ([a], b) #-}
 
 -- | Skip zero or more instances of an action.
 skipMany :: Alternative f => f a -> f ()

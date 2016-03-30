@@ -113,6 +113,7 @@ module Data.Attoparsec.Text
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1

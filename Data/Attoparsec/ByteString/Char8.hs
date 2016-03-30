@@ -114,6 +114,7 @@ module Data.Attoparsec.ByteString.Char8
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1

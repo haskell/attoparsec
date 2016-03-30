@@ -83,6 +83,7 @@ module Data.Attoparsec.ByteString
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1

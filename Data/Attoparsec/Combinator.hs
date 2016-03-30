@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, CPP, TupleSections #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-} -- Imports internal modules
 #endif
@@ -224,7 +224,7 @@ manyTill' p end = scan
 -- The value returned by @p@ is forced to WHNF.
 till' :: (MonadPlus m) => m a -> m b -> m ([a], b)
 till' p end = mapFst ($ []) <$> scan (id, undefined)
-  where scan (fp, e) = liftM (fp,) end `mplus` do !a <- p; scan (fp . (a:), e)
+  where scan (fp, e) = fmap (fp,) end `mplus` do !a <- p; scan (fp . (a:), e)
         mapFst f (x, y) = (f x, y)
 {-# SPECIALIZE till' :: Parser ByteString a -> Parser ByteString b
                          -> Parser ByteString ([a], b) #-}

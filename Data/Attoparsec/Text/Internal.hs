@@ -269,14 +269,25 @@ takeTill p = takeWhile (not . p)
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
 takeWhile :: (Char -> Bool) -> Parser Text
-takeWhile p = concatReverse `fmap` go []
+takeWhile p = do
+    h <- T.takeWhile p <$> get
+    continue <- inputSpansChunks (size h)
+    -- only use slow concat path if necessary
+    if continue
+      then takeWhileAcc p [h]
+      else return h
+{-# INLINE takeWhile #-}
+
+takeWhileAcc :: (Char -> Bool) -> [Text] -> Parser Text
+takeWhileAcc p = go
  where
   go acc = do
     h <- T.takeWhile p <$> get
     continue <- inputSpansChunks (size h)
     if continue
       then go (h:acc)
-      else return (h:acc)
+      else return $ concatReverse (h:acc)
+{-# INLINE takeWhileAcc #-}
 
 takeRest :: Parser [Text]
 takeRest = go []
@@ -358,8 +369,9 @@ takeWhile1 p = do
   advance size'
   eoc <- endOfChunk
   if eoc
-    then (h<>) `fmap` takeWhile p
+    then takeWhileAcc p [h]
     else return h
+{-# INLINE takeWhile1 #-}
 
 -- | Match any character in a set.
 --

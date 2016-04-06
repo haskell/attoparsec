@@ -82,10 +82,12 @@ unbufferAt s (Buf arr off len _ _) =
 
 instance Monoid Buffer where
     mempty = Buf A.empty 0 0 0 0
+    {-# INLINE mempty #-}
 
     mappend (Buf _ _ _ 0 _) b = b
     mappend a (Buf _ _ _ 0 _) = a
     mappend buf (Buf arr off len _ _) = append buf arr off len
+    {-# INLINE mappend #-}
 
     mconcat [] = mempty
     mconcat xs = foldl1' mappend xs

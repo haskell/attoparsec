@@ -257,15 +257,24 @@ takeTill p = takeWhile (not . p)
 -- parsers loop until a failure occurs.  Careless use will thus result
 -- in an infinite loop.
 takeWhile :: (Word8 -> Bool) -> Parser ByteString
-takeWhile p = concatReverse `fmap` go []
+takeWhile p = do
+    s <- B8.takeWhile p <$> get
+    continue <- inputSpansChunks (B.length s)
+    if continue
+      then takeWhileAcc p [s]
+      else return s
+{-# INLINE takeWhile #-}
+
+takeWhileAcc :: (Word8 -> Bool) -> [ByteString] -> Parser ByteString
+takeWhileAcc p = go
  where
   go acc = do
     s <- B8.takeWhile p <$> get
     continue <- inputSpansChunks (B.length s)
     if continue
       then go (s:acc)
-      else return (s:acc)
-{-# INLINE takeWhile #-}
+      else return $ concatReverse (s:acc)
+{-# INLINE takeWhileAcc #-}
 
 takeRest :: Parser [ByteString]
 takeRest = go []
@@ -355,8 +364,9 @@ takeWhile1 p = do
       advance len
       eoc <- endOfChunk
       if eoc
-        then (s<>) `fmap` takeWhile p
+        then takeWhileAcc p [s]
         else return s
+{-# INLINE takeWhile1 #-}
 
 -- | Match any byte in a set.
 --

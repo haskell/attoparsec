@@ -71,10 +71,14 @@ main = do
      , bench "isAlpha_ascii" $ nf (ABL.parse (AC.takeWhile AC.isAlpha_ascii)) bl
      , bench "isAlpha_iso8859_15" $
        nf (ABL.parse (AC.takeWhile AC.isAlpha_iso8859_15)) bl
+     , bench "T isAlpha" $ nf (AT.parse (AT.takeWhile isAlpha)) t
+     , bench "TL isAlpha" $ nf (ATL.parse (AT.takeWhile isAlpha)) tl
      ]
    , bgroup "takeWhile1" [
        bench "isAlpha" $ nf (ABL.parse (AC.takeWhile1 isAlpha)) bl
      , bench "isAlpha_ascii" $ nf (ABL.parse (AC.takeWhile1 AC.isAlpha_ascii)) bl
+     , bench "T isAlpha" $ nf (AT.parse (AT.takeWhile1 isAlpha)) t
+     , bench "TL isAlpha" $ nf (ATL.parse (AT.takeWhile1 isAlpha)) tl
      ]
    , bench "word32LE" $ nf (AB.parse word32LE) b
    , bgroup "scan" [

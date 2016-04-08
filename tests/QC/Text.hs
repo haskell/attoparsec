@@ -8,7 +8,8 @@ import Control.Applicative ((<*>), (<$>))
 import Data.Int (Int64)
 import Prelude hiding (take, takeWhile)
 import QC.Common (liftOp, parseT)
-import Test.Framework (Test)
+import qualified QC.Text.FastSet as FastSet
+import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.Text as P
@@ -188,4 +189,5 @@ tests = [
     , testProperty "takeWhile1_empty" takeWhile1_empty
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers
+    , testGroup "FastSet" FastSet.tests
   ]

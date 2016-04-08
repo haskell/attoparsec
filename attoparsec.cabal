@@ -89,6 +89,7 @@ test-suite tests
                   QC.Rechunked
                   QC.Simple
                   QC.Text
+                  QC.Text.FastSet
 
   ghc-options:
     -Wall -threaded -rtsopts

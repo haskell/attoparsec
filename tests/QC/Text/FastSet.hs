@@ -1,7 +1,7 @@
 module QC.Text.FastSet where
 
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.Text.FastSet as FastSet
 
@@ -11,5 +11,5 @@ membershipCorrect members others =
         correct c = (c `FastSet.member` fs) == (c `elem` members)
     in property $ all correct (members ++ others)
 
-tests :: [Test]
+tests :: [TestTree]
 tests = [ testProperty "membership is correct" membershipCorrect ]

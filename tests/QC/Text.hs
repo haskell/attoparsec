@@ -9,8 +9,8 @@ import Data.Int (Int64)
 import Prelude hiding (take, takeWhile)
 import QC.Common (liftOp, parseT)
 import qualified QC.Text.FastSet as FastSet
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.Text as P
 import qualified Data.Attoparsec.Text.Lazy as PL
@@ -161,7 +161,7 @@ nonmembers :: String -> String -> Property
 nonmembers s s' = property . not . any (`S.member` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
 
-tests :: [Test]
+tests :: [TestTree]
 tests = [
       testProperty "anyChar" anyChar
     , testProperty "asciiCI" asciiCI

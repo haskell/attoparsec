@@ -1,3 +1,9 @@
+0.13.0.2
+
+* Restore the fast specialised character set implementation for Text
+* Move testsuite from test-framework to tasty
+* Performance optimization of takeWhile and takeWhile1
+
 0.13.0.1
 
 * Fixed a bug in the implementations of inClass and notInClass for

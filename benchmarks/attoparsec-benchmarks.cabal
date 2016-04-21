@@ -17,6 +17,7 @@ executable attoparsec-benchmarks
     Numbers
     Network.Wai.Handler.Warp.ReadInt
     Sets
+    TextFastSet
     Warp
   hs-source-dirs: .. . warp-3.0.1.1
   ghc-options: -O2 -Wall -rtsopts

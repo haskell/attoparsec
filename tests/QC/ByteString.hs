@@ -9,8 +9,8 @@ import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
 import QC.Common (ASCII(..), liftOp, parseBS, toStrictBS)
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString as P
 import qualified Data.Attoparsec.ByteString.Char8 as P8
@@ -155,7 +155,7 @@ nonmembers :: [Word8] -> [Word8] -> Property
 nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
 
-tests :: [Test]
+tests :: [TestTree]
 tests = [
       testProperty "anyWord8" anyWord8
     , testProperty "endOfInput" endOfInput

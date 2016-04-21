@@ -89,6 +89,7 @@ test-suite tests
                   QC.Rechunked
                   QC.Simple
                   QC.Text
+                  QC.Text.FastSet
 
   ghc-options:
     -Wall -threaded -rtsopts
@@ -100,13 +101,12 @@ test-suite tests
     array,
     base >= 4 && < 5,
     bytestring,
-    containers,
     deepseq >= 1.1,
     QuickCheck >= 2.7,
     quickcheck-unicode,
     scientific,
-    test-framework >= 0.8.0.2,
-    test-framework-quickcheck2 >= 0.3.0.3,
+    tasty >= 0.11,
+    tasty-quickcheck >= 0.8,
     text,
     transformers,
     vector
@@ -136,7 +136,6 @@ benchmark benchmarks
     base == 4.*,
     bytestring >= 0.10.4.0,
     case-insensitive,
-    containers,
     criterion >= 1.0,
     deepseq >= 1.1,
     directory,

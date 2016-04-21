@@ -8,8 +8,8 @@ import Control.Applicative ((<*>), (<$>), (<*), (*>))
 import Data.Maybe (fromJust, isJust)
 import Data.Word (Word8)
 import QC.Common (Repack, parseBS, repackBS, toLazyBS)
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import qualified Data.Attoparsec.Combinator as C
@@ -43,7 +43,7 @@ match n (NonNegative x) (NonNegative y) rs =
             B8.replicate x 'x', B8.pack (show n), B8.replicate y 'y'
           ]
 
-tests :: [Test]
+tests :: [TestTree]
 tests = [
     testProperty "choice" choice
   , testProperty "count" count

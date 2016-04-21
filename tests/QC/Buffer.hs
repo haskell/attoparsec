@@ -8,8 +8,8 @@ import Control.Applicative ((<$>))
 import Data.Monoid (Monoid(mconcat))
 #endif
 import QC.Common ()
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.ByteString.Buffer as BB
 import qualified Data.Attoparsec.Text.Buffer as BT
@@ -82,7 +82,7 @@ t_dropWord16 (BP _ts t buf) = do
   i <- choose (0, T.lengthWord16 t)
   return $ T.dropWord16 i t === BT.dropWord16 i buf
 
-tests :: [Test]
+tests :: [TestTree]
 tests = [
     testProperty "b_unbuffer" b_unbuffer
   , testProperty "t_unbuffer" t_unbuffer

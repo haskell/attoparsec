@@ -6,11 +6,11 @@ import qualified QC.ByteString as ByteString
 import qualified QC.Combinator as Combinator
 import qualified QC.Simple as Simple
 import qualified QC.Text as Text
-import Test.Framework (defaultMain, testGroup)
+import Test.Tasty (defaultMain, testGroup)
 
 main = defaultMain tests
 
-tests = [
+tests = testGroup "tests" [
     testGroup "bs" ByteString.tests
   , testGroup "buf" Buffer.tests
   , testGroup "combinator" Combinator.tests

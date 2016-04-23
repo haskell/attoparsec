@@ -250,8 +250,6 @@ skipMany1 p = p *> skipMany p
 -- action @end@ succeeds, and returns the value returned by @end@.
 -- This complements @manyTill@ and can be used to find a specific
 -- pattern in a text.
---
--- The value returned by @p@ is forced to WHNF.
 skipTill :: Alternative f => f a -> f b -> f b
 skipTill p end = scan
     where scan = end <|> (p *> scan)
@@ -268,7 +266,8 @@ skipTill p end = scan
 -- The value returned by @p@ is forced to WHNF.
 skipTill' :: (MonadPlus m) => m a -> m b -> m b
 skipTill' p end = scan
-    where scan = end `mplus` (p *> scan)
+    where scan = end `mplus` (p !*> scan)
+          (!*>) !a0 a1 = a0 *> a1
 {-# SPECIALIZE skipTill' :: Parser ByteString a -> Parser ByteString b
                          -> Parser ByteString b #-}
 {-# SPECIALIZE skipTill' :: Parser Text a -> Parser Text b -> Parser Text b #-}

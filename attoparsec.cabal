@@ -21,6 +21,7 @@ extra-source-files:
     benchmarks/*.cabal
     benchmarks/*.hs
     benchmarks/*.txt
+    benchmarks/json-data/*.json
     benchmarks/Makefile
     benchmarks/med.txt.bz2
     changelog.md
@@ -122,6 +123,8 @@ benchmark benchmarks
     HeadersByteString.Atto
     HeadersText
     Links
+    Network.Wai.Handler.Warp.ReadInt
+    Network.Wai.Handler.Warp.RequestHeader
     Numbers
     Sets
     TextFastSet
@@ -136,6 +139,7 @@ benchmark benchmarks
     base == 4.*,
     bytestring >= 0.10.4.0,
     case-insensitive,
+    containers,
     criterion >= 1.0,
     deepseq >= 1.1,
     directory,

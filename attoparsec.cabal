@@ -91,6 +91,7 @@ test-suite tests
                   QC.Simple
                   QC.Text
                   QC.Text.FastSet
+                  QC.Text.Regressions
 
   ghc-options:
     -Wall -threaded -rtsopts

@@ -9,6 +9,7 @@ import Data.Int (Int64)
 import Prelude hiding (take, takeWhile)
 import QC.Common (liftOp, parseT)
 import qualified QC.Text.FastSet as FastSet
+import qualified QC.Text.Regressions as Regressions
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
@@ -190,4 +191,5 @@ tests = [
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers
     , testGroup "FastSet" FastSet.tests
+    , testGroup "Regressions" Regressions.tests
   ]

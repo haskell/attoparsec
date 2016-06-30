@@ -16,12 +16,6 @@ Master [git repository](https://github.com/bos/attoparsec):
 
 * `git clone git://github.com/bos/attoparsec.git`
 
-There's also a [Mercurial mirror](https://bitbucket.org/bos/attoparsec):
-
-* `hg clone https://bitbucket.org/bos/attoparsec`
-
-(You can create and contribute changes using either Mercurial or git.)
-
 Authors
 -------
 

@@ -158,6 +158,3 @@ source-repository head
   type:     git
   location: https://github.com/bos/attoparsec
 
-source-repository head
-  type:     mercurial
-  location: https://bitbucket.org/bos/attoparsec

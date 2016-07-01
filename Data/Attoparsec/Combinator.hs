@@ -267,7 +267,7 @@ skipTill p end = scan
 skipTill' :: (MonadPlus m) => m a -> m b -> m b
 skipTill' p end = scan
     where scan = end `mplus` (p !*> scan)
-          (!*>) !a0 a1 = a0 *> a1
+          (!*>) a0 a1 = fmap (\(!a) -> a) a0 *> a1
 {-# SPECIALIZE skipTill' :: Parser ByteString a -> Parser ByteString b
                          -> Parser ByteString b #-}
 {-# SPECIALIZE skipTill' :: Parser Text a -> Parser Text b -> Parser Text b #-}

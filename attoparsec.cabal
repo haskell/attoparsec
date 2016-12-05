@@ -69,7 +69,7 @@ library
                    Data.Attoparsec.Text.Lazy
                    Data.Attoparsec.Types
                    Data.Attoparsec.Zepto
-  other-modules:   Data.Attoparsec.ByteString.Buffer
+                   Data.Attoparsec.ByteString.Buffer
                    Data.Attoparsec.ByteString.FastSet
                    Data.Attoparsec.ByteString.Internal
                    Data.Attoparsec.Internal.Fhthagn

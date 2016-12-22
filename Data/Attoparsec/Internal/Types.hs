@@ -180,7 +180,7 @@ apP d e = do
 {-# INLINE apP #-}
 
 instance Applicative (Parser i) where
-    pure v = Parser $ \t pos more _lose succ -> succ t pos more v
+    pure v = Parser $ \t !pos more _lose succ -> succ t pos more v
     {-# INLINE pure #-}
     (<*>)  = apP
     {-# INLINE (<*>) #-}

@@ -98,6 +98,24 @@ test-suite tests
                   QC.Text.FastSet
                   QC.Text.Regressions
 
+  other-modules:  Data.Attoparsec.ByteString
+                  Data.Attoparsec.ByteString.Buffer
+                  Data.Attoparsec.ByteString.Char8
+                  Data.Attoparsec.ByteString.FastSet
+                  Data.Attoparsec.ByteString.Internal
+                  Data.Attoparsec.ByteString.Lazy
+                  Data.Attoparsec.Combinator
+                  Data.Attoparsec.Internal
+                  Data.Attoparsec.Internal.Fhthagn
+                  Data.Attoparsec.Internal.Types
+                  Data.Attoparsec.Number
+                  Data.Attoparsec.Text
+                  Data.Attoparsec.Text.Buffer
+                  Data.Attoparsec.Text.FastSet
+                  Data.Attoparsec.Text.Internal
+                  Data.Attoparsec.Text.Lazy
+                  Data.Attoparsec.Zepto
+
   ghc-options:
     -Wall -threaded -rtsopts
 
@@ -109,7 +127,7 @@ test-suite tests
     base >= 4 && < 5,
     bytestring,
     deepseq >= 1.1,
-    QuickCheck >= 2.7,
+    QuickCheck >= 2.7 && < 2.10,
     quickcheck-unicode,
     scientific,
     tasty >= 0.11,

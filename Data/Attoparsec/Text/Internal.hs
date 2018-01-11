@@ -75,7 +75,7 @@ import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import qualified Data.Attoparsec.Text.Buffer as Buf
 import Data.Attoparsec.Text.Buffer (Buffer, buffer)
-import Data.Char (chr, ord)
+import Data.Char (isAsciiUpper, isAsciiLower, toUpper, toLower)
 import Data.List (intercalate)
 import Data.String (IsString(..))
 import Data.Text.Internal (Text(..))
@@ -225,14 +225,15 @@ stringCI s = go 0
 
 -- | Satisfy a literal string, ignoring case for characters in the ASCII range.
 asciiCI :: Text -> Parser Text
-asciiCI s = string_ (stringSuspended asciiToLower) asciiToLower s
-  where
-    asciiToLower = T.map f
-      where
-        offset = ord 'a' - ord 'A'
-        f c | 'A' <= c && c <= 'Z' = chr (ord c + offset)
-            | otherwise            = c
+asciiCI s = fmap fst $ match $ T.foldr ((*>) . asciiCharCI) (pure ()) s
 {-# INLINE asciiCI #-}
+
+asciiCharCI :: Char -> Parser Char
+asciiCharCI c
+  | isAsciiUpper c = char c <|> char (toLower c)
+  | isAsciiLower c = char c <|> char (toUpper c)
+  | otherwise = char c
+{-# INLINE asciiCharCI #-}
 
 -- | Skip past input for as long as the predicate returns 'True'.
 skipWhile :: (Char -> Bool) -> Parser ()

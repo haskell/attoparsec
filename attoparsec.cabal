@@ -83,20 +83,42 @@ library
     ghc-options: -Werror
 
 test-suite tests
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: tests .
-  main-is:        QC.hs
-  other-modules:  QC.Buffer
-                  QC.ByteString
-                  QC.Combinator
-                  QC.Common
-                  QC.IPv6.Internal
-                  QC.IPv6.Types
-                  QC.Rechunked
-                  QC.Simple
-                  QC.Text
-                  QC.Text.FastSet
-                  QC.Text.Regressions
+  type:            exitcode-stdio-1.0
+  hs-source-dirs:  tests .
+  main-is:         QC.hs
+  other-modules:   QC.Buffer
+                   QC.ByteString
+                   QC.Combinator
+                   QC.Common
+                   QC.IPv6.Internal
+                   QC.IPv6.Types
+                   QC.Rechunked
+                   QC.Simple
+                   QC.Text
+                   QC.Text.FastSet
+                   QC.Text.Regressions
+
+                   Data.Attoparsec
+                   Data.Attoparsec.ByteString
+                   Data.Attoparsec.ByteString.Char8
+                   Data.Attoparsec.ByteString.Lazy
+                   Data.Attoparsec.Char8
+                   Data.Attoparsec.Combinator
+                   Data.Attoparsec.Internal
+                   Data.Attoparsec.Internal.Types
+                   Data.Attoparsec.Lazy
+                   Data.Attoparsec.Number
+                   Data.Attoparsec.Text
+                   Data.Attoparsec.Text.Lazy
+                   Data.Attoparsec.Types
+                   Data.Attoparsec.Zepto
+                   Data.Attoparsec.ByteString.Buffer
+                   Data.Attoparsec.ByteString.FastSet
+                   Data.Attoparsec.ByteString.Internal
+                   Data.Attoparsec.Internal.Fhthagn
+                   Data.Attoparsec.Text.Buffer
+                   Data.Attoparsec.Text.FastSet
+                   Data.Attoparsec.Text.Internal
 
   other-modules:  Data.Attoparsec.ByteString
                   Data.Attoparsec.ByteString.Buffer

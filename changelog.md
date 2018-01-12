@@ -1,3 +1,7 @@
+0.13.2.1
+
+* Improved performance of `Data.Attoparsec.Text.asciiCI`
+
 0.13.2.0
 
 * `pure` is now strict in `Position`

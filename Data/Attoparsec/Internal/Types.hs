@@ -207,8 +207,9 @@ instance Alternative (Parser i) where
     {-# INLINE (<|>) #-}
 
     many v = many_v
-        where many_v = some_v <|> pure []
-              some_v = (:) App.<$> v <*> many_v
+      where
+        many_v = some_v <|> pure []
+        some_v = (:) <$> v <*> many_v
     {-# INLINE many #-}
 
     some v = some_v

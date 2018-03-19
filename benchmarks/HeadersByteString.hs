@@ -18,7 +18,7 @@ headers = do
   return $ bgroup "headers" [
       bgroup "B" [
         bench "request" $ nf (B.parseOnly request) req
-      , bench "warp" $ nfIO (parseHeaderLines [req])
+      , bench "warp" $ nfIO (parseHeaderLines (B.split '\n' req))
       , bench "response" $ nf (B.parseOnly response) resp
       ]
     , bgroup "BL" [

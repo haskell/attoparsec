@@ -15,8 +15,16 @@ import qualified Data.ByteString.Char8 as B
 instance NFData HttpVersion where
     rnf !_ = ()
 
+isHeaderChar :: Char -> Bool
+isHeaderChar c =
+  (c >= 'a' && c <= 'z') ||
+  (c >= 'A' && c <= 'Z') ||
+  (c >= '0' && c <= '9') ||
+  (c == '_') ||
+  (c == '-')
+
 header = do
-  name <- B.takeWhile1 (B.inClass "a-zA-Z0-9_-") <* B.char ':' <* B.skipSpace
+  name <- B.takeWhile1 isHeaderChar <* B.char ':' <* B.skipSpace
   body <- bodyLine
   return (name, body)
 

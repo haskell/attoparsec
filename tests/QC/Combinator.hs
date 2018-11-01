@@ -32,7 +32,7 @@ lookAhead (NonEmpty xs) =
   let ys = B.pack xs
       withLookAheadThenConsume = (\x y -> (x, y)) <$> C.lookAhead (P.string ys) <*> P.string ys
       mr = parseBS withLookAheadThenConsume $ toLazyBS ys
-  in isJust mr && fst (fromJust mr) == snd (fromJust mr)
+  in isJust mr && uncurry (==) (fromJust mr)
 
 match :: Int -> NonNegative Int -> NonNegative Int -> Repack -> Bool
 match n (NonNegative x) (NonNegative y) rs =

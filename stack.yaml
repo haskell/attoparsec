@@ -1,0 +1,10 @@
+flags: {}
+nix:
+  packages:
+  - cabal-install
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- QuickCheck-2.9.2
+resolver: lts-12.2

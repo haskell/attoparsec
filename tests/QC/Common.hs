@@ -62,7 +62,7 @@ newtype ASCII a = ASCII { fromASCII :: a }
                   deriving (Eq, Ord, Show)
 
 instance Arbitrary (ASCII B.ByteString) where
-    arbitrary = (ASCII . B.pack) <$> listOf (choose (0,127))
+    arbitrary = ASCII . B.pack <$> listOf (choose (0,127))
     shrink = map (ASCII . B.pack) . shrink . B.unpack . fromASCII
 
 instance Arbitrary (ASCII BL.ByteString) where

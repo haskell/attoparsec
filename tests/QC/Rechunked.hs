@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE TupleSections #-}
 
 module QC.Rechunked (
       rechunkBS
@@ -45,7 +46,7 @@ fisherYates xs = (V.toList . V.backpermute v) `fmap` swapIndices (G.length v)
   where
     v = V.fromList xs
     swapIndices n0 = do
-        swaps <- forM [0..n] $ \i -> ((,) i) `fmap` choose (i,n)
+        swaps <- forM [0..n] $ \i -> (, i) `fmap` choose (i,n)
         return (runST (swapAll swaps))
       where
         n = n0 - 1

@@ -82,7 +82,7 @@ isIPv6Addr tks =
                 1 -> case lasttk of
                          IPv4Addr _ -> (lentks == 13 && cdctks == 0) || (lentks < 12 && cdctks == 1)
                          _          -> False
-                otherwise -> False))
+                _ -> False))
           where diffNext [] = False
                 diffNext [_] = True
                 diffNext (t:ts) = do
@@ -110,7 +110,7 @@ countIPv4Addr = foldr oneMoreIPv4Addr 0
   where
     oneMoreIPv4Addr t c = case t of
                               IPv4Addr _ -> c + 1
-                              otherwise  -> c
+                              _  -> c
 
 -- | This is the main function which returns 'Just' the list of a tokenized IPv6
 -- address text representation validated against RFC 4291 and canonized
@@ -236,7 +236,7 @@ toDoubleColon tks =
         let l = longestLengthZerosRun t
         in (firstLongestZerosRunIndex t l,l)
       where
-        firstLongestZerosRunIndex x y = sum . snd . unzip $ Prelude.takeWhile (/=(True,y)) x
+        firstLongestZerosRunIndex x y = sum . map snd $ Prelude.takeWhile (/=(True,y)) x
         longestLengthZerosRun x =
             maximum $ map longest x
           where longest t = case t of

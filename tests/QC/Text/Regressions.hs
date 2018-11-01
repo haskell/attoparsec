@@ -27,7 +27,7 @@ t_issue105 = expect issue105 "lowER" (A.Done "ER" "low")
 issue105 :: A.Parser Text
 issue105 = do
     (_, firstFourLowercaseLetters) <- A.runScanner "" f
-    return $ firstFourLowercaseLetters
+    return firstFourLowercaseLetters
 
   where
     f :: Text -> Char -> Maybe Text

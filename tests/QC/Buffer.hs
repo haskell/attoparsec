@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
+{-# LANGUAGE CPP, FlexibleInstances, OverloadedStrings,
     TypeSynonymInstances #-}
 
 module QC.Buffer (tests) where

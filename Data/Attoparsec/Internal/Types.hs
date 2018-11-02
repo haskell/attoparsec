@@ -39,7 +39,7 @@ import Data.ByteString.Internal (w2c)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Text.Unsafe (Iter(..))
-import Prelude hiding (getChar, succ)
+import Prelude hiding (succ)
 import qualified Data.Attoparsec.ByteString.Buffer as B
 import qualified Data.Attoparsec.Text.Buffer as T
 

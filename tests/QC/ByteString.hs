@@ -4,7 +4,7 @@ module QC.ByteString (tests) where
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<*>), (<$>))
 #endif
-import Data.Char (chr, ord, toUpper)
+import Data.Char (toUpper)
 import Data.Int (Int64)
 import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
@@ -26,9 +26,9 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 satisfy :: Word8 -> L.ByteString -> Property
 satisfy w s = parseBS (P.satisfy (<=w)) (L.cons w s) === Just w
 
-satisfyWith :: Char -> L.ByteString -> Property
-satisfyWith c s = parseBS (P.satisfyWith (chr . fromIntegral) (<=c))
-                         (L.cons (fromIntegral (ord c)) s) === Just c
+satisfyWith :: Word8 -> L.ByteString -> Property
+satisfyWith c s = parseBS (P.satisfyWith fromIntegral (<=c))
+                         (L.cons (fromIntegral c) s) === Just c
 
 word8 :: Word8 -> L.ByteString -> Property
 word8 w s = parseBS (P.word8 w) (L.cons w s) === Just w

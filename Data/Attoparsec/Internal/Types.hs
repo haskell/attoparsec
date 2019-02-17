@@ -173,10 +173,10 @@ instance Functor (Parser i) where
     {-# INLINE fmap #-}
 
 apP :: Parser i (a -> b) -> Parser i a -> Parser i b
-apP d e = do
-  b <- d
-  a <- e
-  return (b a)
+apP d e = Parser $ \t !pos more lose succ ->
+  let succ' t' !pos' more' f = runParser e t' pos' more' lose $
+        \t'' !pos'' more'' a -> succ t'' pos'' more'' (f a)
+  in runParser d t pos more lose succ'
 {-# INLINE apP #-}
 
 instance Applicative (Parser i) where

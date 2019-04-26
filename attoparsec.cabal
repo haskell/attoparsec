@@ -53,7 +53,7 @@ library
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && < 0.20
 
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.ByteString
@@ -139,7 +139,7 @@ test-suite tests
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && < 0.20
 
 benchmark benchmarks
   type: exitcode-stdio-1.0
@@ -185,7 +185,7 @@ benchmark benchmarks
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && < 0.20
 
 source-repository head
   type:     git

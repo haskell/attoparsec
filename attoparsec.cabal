@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.13.2.2
+version:         0.13.3
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -44,7 +44,7 @@ library
                  containers,
                  deepseq,
                  scientific >= 0.3.1 && < 0.4,
-                 transformers,
+                 transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
                  text >= 1.1.1.3
   if impl(ghc < 7.4)
     build-depends:
@@ -127,13 +127,13 @@ test-suite tests
     base >= 4 && < 5,
     bytestring,
     deepseq >= 1.1,
-    QuickCheck >= 2.7 && < 2.10,
+    QuickCheck >= 2.7 && < 2.14,
     quickcheck-unicode,
     scientific,
     tasty >= 0.11,
     tasty-quickcheck >= 0.8,
     text,
-    transformers,
+    transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
     vector
 
   if !impl(ghc >= 8.0)
@@ -178,7 +178,7 @@ benchmark benchmarks
     parsec >= 3.1.2,
     scientific,
     text >= 1.1.1.0,
-    transformers,
+    transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
     unordered-containers,
     vector
 

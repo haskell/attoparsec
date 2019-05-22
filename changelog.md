@@ -1,3 +1,11 @@
+0.13.2.3
+
+* GHC-8.8 support
+
+0.13.2.2
+
+* Fix build with GHC 7.8.4 and older
+
 0.13.2.1
 
 * Improved performance of `Data.Attoparsec.Text.asciiCI`

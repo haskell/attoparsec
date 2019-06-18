@@ -189,5 +189,5 @@ benchmark benchmarks
 
 source-repository head
   type:     git
-  location: https://github.com/bos/attoparsec
+  location: https://github.com/bgamari/attoparsec
 

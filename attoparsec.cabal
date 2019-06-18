@@ -1,12 +1,12 @@
 name:            attoparsec
-version:         0.13.2.2
+version:         0.13.2.3
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>, Ben Gamari <ben@smart-cactus.org>
 stability:       experimental
-tested-with:     GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2
+tested-with:     GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC ==8.4.4, GHC ==8.6.5, GHC==8.8.1
 synopsis:        Fast combinator parsing for bytestrings and text
 cabal-version:   >= 1.8
 homepage:        https://github.com/bos/attoparsec
@@ -44,7 +44,7 @@ library
                  containers,
                  deepseq,
                  scientific >= 0.3.1 && < 0.4,
-                 transformers,
+                 transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
                  text >= 1.1.1.3
   if impl(ghc < 7.4)
     build-depends:
@@ -53,7 +53,7 @@ library
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && <0.20
 
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.ByteString
@@ -133,13 +133,13 @@ test-suite tests
     tasty >= 0.11,
     tasty-quickcheck >= 0.8,
     text,
-    transformers,
+    transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
     vector
 
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && <0.20
 
 benchmark benchmarks
   type: exitcode-stdio-1.0
@@ -178,7 +178,7 @@ benchmark benchmarks
     parsec >= 3.1.2,
     scientific,
     text >= 1.1.1.0,
-    transformers,
+    transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
     unordered-containers,
     vector
 

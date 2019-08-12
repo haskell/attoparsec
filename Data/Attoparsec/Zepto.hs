@@ -92,8 +92,10 @@ instance Monad m => Monad (ZeptoT m) where
         Fail err -> return (Fail err)
     {-# INLINE (>>=) #-}
 
+#if !(MIN_VERSION_base(4,13,0))
     fail = Fail.fail
     {-# INLINE fail #-}
+#endif
 
 instance Monad m => Fail.MonadFail (ZeptoT m) where
     fail msg = Parser $ \_ -> return (Fail msg)

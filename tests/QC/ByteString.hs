@@ -26,9 +26,11 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 satisfy :: Word8 -> L.ByteString -> Property
 satisfy w s = parseBS (P.satisfy (<=w)) (L.cons w s) === Just w
 
-satisfyWith :: Char -> L.ByteString -> Property
-satisfyWith c s = parseBS (P.satisfyWith (chr . fromIntegral) (<=c))
+satisfyWith :: Word8 -> L.ByteString -> Property
+satisfyWith w s = parseBS (P.satisfyWith (chr . fromIntegral) (<=c))
                          (L.cons (fromIntegral (ord c)) s) === Just c
+  where
+    c = chr (fromIntegral w)
 
 word8 :: Word8 -> L.ByteString -> Property
 word8 w s = parseBS (P.word8 w) (L.cons w s) === Just w

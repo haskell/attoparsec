@@ -6,6 +6,7 @@ module QC.Text (tests) where
 import Control.Applicative ((<*>), (<$>))
 #endif
 import Data.Int (Int64)
+import Data.Word (Word8)
 import Prelude hiding (take, takeWhile)
 import QC.Common (liftOp, parseT)
 import qualified QC.Text.FastSet as FastSet
@@ -16,8 +17,10 @@ import Test.QuickCheck
 import qualified Data.Attoparsec.Text as P
 import qualified Data.Attoparsec.Text.Lazy as PL
 import qualified Data.Attoparsec.Text.FastSet as S
+import qualified Data.ByteString as BS
 import qualified Data.Char as Char
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as L
 
 -- Basic byte-level combinators.
@@ -70,9 +73,12 @@ strings s t u =
     === Just t'
   where t' = toStrict t
 
-stringCI :: T.Text -> Property
-stringCI s = P.parseOnly (P.stringCI fs) s === Right s
+-- | Note: "simple, and efficient" works for well formed input...
+-- i.e. e.g. Latin1 texts
+stringCI :: [Word8] -> Property
+stringCI ws = P.parseOnly (P.stringCI fs) s === Right s
   where fs = T.toCaseFold s
+        s  = TE.decodeLatin1 (BS.pack ws)
 
 asciiCI :: T.Text -> Gen Bool
 asciiCI x =
@@ -150,7 +156,9 @@ endOfLine s =
                      (c, fst <$> L.uncons s') === ('\r', Just '\n')
 
 scan :: L.Text -> Positive Int64 -> Property
-scan s (Positive k) = parseT p s === Just (toStrict $ L.take k s)
+-- for some reason, if counterexample is removed, this test fails?
+scan s (Positive k) = counterexample (show s)
+                    $ parseT p s === Just (toStrict $ L.take k s)
   where p = P.scan k $ \ n _ ->
             if n > 0 then let !n' = n - 1 in Just n' else Nothing
 

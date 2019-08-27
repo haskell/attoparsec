@@ -4,11 +4,10 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.3.20190804.2
+# version: 0.3.20190815
 #
 language: c
 dist: xenial
-sudo: required
 git:
   # whether to recursively clone submodules
   submodules: false
@@ -84,7 +83,7 @@ install:
   - ${CABAL} --version
   - echo "$(${HC} --version) [$(${HC} --print-project-git-commit-id 2> /dev/null || echo '?')]"
   - TEST=--enable-tests
-  - if [ $HCNUMVER -ge 70000 ] && [ $HCNUMVER -lt 70400 ] ; then TEST=--disable-tests ; fi
+  - if [ $HCNUMVER -lt 70400 ] ; then TEST=--disable-tests ; fi
   - BENCH=--enable-benchmarks
   - BENCH=--disable-benchmarks
   - HEADHACKAGE=false
@@ -149,7 +148,7 @@ script:
   # build & run tests, build benchmarks
   - ${CABAL} v2-build $WITHCOMPILER ${TEST} ${BENCH} all | color_cabal_output
   # Testing...
-  - if [ $HCNUMVER -ge 70400 ] && [ $HCNUMVER -lt 80802 ] ; then ${CABAL} v2-test $WITHCOMPILER ${TEST} ${BENCH} all | color_cabal_output ; fi
+  - if [ $HCNUMVER -ge 70400 ] ; then ${CABAL} v2-test $WITHCOMPILER ${TEST} ${BENCH} all | color_cabal_output ; fi
   # cabal check...
   - (cd ${PKGDIR_attoparsec} && ${CABAL} -vnormal check)
   # haddock...

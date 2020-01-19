@@ -280,7 +280,7 @@ takeWhileAcc p = go
 -- | Consume input until immediately after the predicate returns 'True', and return
 -- the consumed input.
 --
--- This parser must consume at least one Word8.
+-- This parser will consume at least one Word8 or fail.
 takeWhileIncluding :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhileIncluding p = do
   (s', t) <- B8.span p <$> get

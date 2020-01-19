@@ -6,7 +6,7 @@ category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>, Ben Gamari <ben@smart-cactus.org>
 stability:       experimental
-tested-with:     GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2
+tested-with:     GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.1
 synopsis:        Fast combinator parsing for bytestrings and text
 cabal-version:   >= 1.8
 homepage:        https://github.com/bos/attoparsec
@@ -39,7 +39,7 @@ Flag developer
 
 library
   build-depends: array,
-                 base >= 4.2 && < 5,
+                 base >= 4.3 && < 5,
                  bytestring,
                  containers,
                  deepseq,
@@ -53,7 +53,7 @@ library
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && <0.20
 
   exposed-modules: Data.Attoparsec
                    Data.Attoparsec.ByteString
@@ -124,10 +124,10 @@ test-suite tests
 
   build-depends:
     array,
-    base >= 4 && < 5,
+    base,
     bytestring,
     deepseq >= 1.1,
-    QuickCheck >= 2.7 && < 2.14,
+    QuickCheck >= 2.13.2 && < 2.14,
     quickcheck-unicode,
     scientific,
     tasty >= 0.11,
@@ -139,7 +139,7 @@ test-suite tests
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.19
+                   semigroups >=0.16.1 && <0.20
 
 benchmark benchmarks
   type: exitcode-stdio-1.0

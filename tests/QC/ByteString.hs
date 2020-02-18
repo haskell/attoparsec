@@ -131,6 +131,19 @@ takeTill w s =
 takeWhile1_empty :: Property
 takeWhile1_empty = parseBS (P.takeWhile1 undefined) L.empty === Nothing
 
+getChunk :: L.ByteString -> Property
+getChunk s =
+  maybe (property False) (=== L.toChunks s) $
+    parseBS getChunks s
+  where getChunks = go []
+        go res = do
+          mchunk <- P.getChunk
+          case mchunk of
+            Nothing -> return (reverse res)
+            Just chunk -> do
+              _ <- P.take (B.length chunk)
+              go (chunk:res)
+
 endOfInput :: L.ByteString -> Property
 endOfInput s = parseBS P.endOfInput s === if L.null s
                                           then Just ()
@@ -181,6 +194,7 @@ tests = [
     , testProperty "takeWhile" takeWhile
     , testProperty "takeWhile1" takeWhile1
     , testProperty "takeWhile1_empty" takeWhile1_empty
+    , testProperty "getChunk" getChunk
     , testProperty "word8" word8
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers

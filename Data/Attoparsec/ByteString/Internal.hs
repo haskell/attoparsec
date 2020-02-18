@@ -55,6 +55,7 @@ module Data.Attoparsec.ByteString.Internal
     , takeWhile1
     , takeWhileIncluding
     , takeTill
+    , getChunk
 
     -- ** Consume all remaining input
     , takeByteString
@@ -338,6 +339,17 @@ takeByteString = B.concat `fmap` takeRest
 -- | Consume all remaining input and return it as a single string.
 takeLazyByteString :: Parser L.ByteString
 takeLazyByteString = L.fromChunks `fmap` takeRest
+
+-- | Return the rest of the current chunk without consuming anything.
+--
+-- If the current chunk is empty, then ask for more input.
+-- If there is no more input, then return 'Nothing'
+getChunk :: Parser (Maybe ByteString)
+getChunk = do
+  input <- wantInput
+  if input
+    then Just <$> get
+    else return Nothing
 
 data T s = T {-# UNPACK #-} !Int s
 

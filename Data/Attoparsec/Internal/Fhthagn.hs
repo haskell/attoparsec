@@ -6,7 +6,7 @@ module Data.Attoparsec.Internal.Fhthagn
       inlinePerformIO
     ) where
 
-import GHC.Base (realWorld#)
+import GHC.Exts (realWorld#)
 import GHC.IO (IO(IO))
 
 -- | Just like unsafePerformIO, but we inline it. Big performance gains as

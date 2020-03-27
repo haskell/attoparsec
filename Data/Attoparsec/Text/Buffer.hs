@@ -48,7 +48,7 @@ import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import Data.Text.Unsafe (Iter(..))
 import Foreign.Storable (sizeOf)
-import GHC.Base (Int(..), indexIntArray#, unsafeCoerce#, writeIntArray#)
+import GHC.Exts (Int(..), indexIntArray#, unsafeCoerce#, writeIntArray#)
 import GHC.ST (ST(..), runST)
 import Prelude hiding (length)
 import qualified Data.Text.Array as A

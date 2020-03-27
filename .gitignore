@@ -1,6 +1,7 @@
 *.hi
 *.o
 /dist/
+/dist-newstyle/
 .cabal-sandbox
 cabal.sandbox.config
 *.sw[op]

@@ -26,6 +26,8 @@ before_cache:
   - rm -rfv $CABALHOME/packages/head.hackage
 matrix:
   include:
+    - compiler: ghc-8.10.1
+      addons: {"apt":{"sources":["hvr-ghc"],"packages":["ghc-8.10.1","cabal-install-3.2"]}}
     - compiler: ghc-8.8.1
       addons: {"apt":{"sources":["hvr-ghc"],"packages":["ghc-8.8.1","cabal-install-3.0"]}}
     - compiler: ghc-8.6.5

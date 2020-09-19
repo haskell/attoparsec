@@ -9,8 +9,8 @@ stability:       experimental
 tested-with:     GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.1, GHC==8.10.1
 synopsis:        Fast combinator parsing for bytestrings and text
 cabal-version:   >= 1.8
-homepage:        https://github.com/bos/attoparsec
-bug-reports:     https://github.com/bos/attoparsec/issues
+homepage:        https://github.com/bgamari/attoparsec
+bug-reports:     https://github.com/bgamari/attoparsec/issues
 build-type:      Simple
 description:
     A fast parser combinator library, aimed particularly at dealing
@@ -191,5 +191,5 @@ benchmark benchmarks
 
 source-repository head
   type:     git
-  location: https://github.com/bos/attoparsec
+  location: https://github.com/bgamari/attoparsec
 

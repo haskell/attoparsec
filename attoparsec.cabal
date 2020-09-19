@@ -40,12 +40,13 @@ Flag developer
 library
   build-depends: array,
                  base >= 4.3 && < 5,
-                 bytestring,
+                 bytestring <0.12,
                  containers,
                  deepseq,
                  scientific >= 0.3.1 && < 0.4,
                  transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
-                 text >= 1.1.1.3
+                 text >= 1.1.1.3,
+                 ghc-prim <0.7
   if impl(ghc < 7.4)
     build-depends:
       bytestring < 0.10.4.0
@@ -72,6 +73,7 @@ library
   other-modules:   Data.Attoparsec.ByteString.Buffer
                    Data.Attoparsec.ByteString.FastSet
                    Data.Attoparsec.ByteString.Internal
+                   Data.Attoparsec.Internal.Compat
                    Data.Attoparsec.Internal.Fhthagn
                    Data.Attoparsec.Text.Buffer
                    Data.Attoparsec.Text.FastSet

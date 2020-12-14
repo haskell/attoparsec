@@ -39,8 +39,6 @@ jobs:
           - ghc: 7.8.4
           - ghc: 7.6.3
           - ghc: 7.4.2
-          - ghc: 7.2.2
-          - ghc: 7.0.4
       fail-fast: false
     steps:
       - name: apt

@@ -56,6 +56,7 @@ module Data.Attoparsec.ByteString.Buffer
 import Control.Exception (assert)
 import Data.ByteString.Internal (ByteString(..), memcpy, nullForeignPtr)
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
+import Data.Attoparsec.Internal.Compat
 import Data.List (foldl1')
 import Data.Monoid as Mon (Monoid(..))
 import Data.Semigroup (Semigroup(..))
@@ -82,10 +83,10 @@ instance Show Buffer where
 -- copies in the (hopefully) common case of no further input being fed
 -- to us.
 buffer :: ByteString -> Buffer
-buffer (PS fp off len) = Buf fp off len len 0
+buffer bs = withPS bs $ \fp off len -> Buf fp off len len 0
 
 unbuffer :: Buffer -> ByteString
-unbuffer (Buf fp off len _ _) = PS fp off len
+unbuffer (Buf fp off len _ _) = mkPS fp off len
 
 instance Semigroup Buffer where
     (Buf _ _ _ 0 _) <> b                    = b
@@ -102,7 +103,7 @@ instance Monoid Buffer where
 
 pappend :: Buffer -> ByteString -> Buffer
 pappend (Buf _ _ _ 0 _) bs  = buffer bs
-pappend buf (PS fp off len) = append buf fp off len
+pappend buf             bs  = withPS bs $ \fp off len -> append buf fp off len
 
 append :: Buffer -> ForeignPtr a -> Int -> Int -> Buffer
 append (Buf fp0 off0 len0 cap0 gen0) !fp1 !off1 !len1 =
@@ -146,11 +147,11 @@ substring :: Int -> Int -> Buffer -> ByteString
 substring s l (Buf fp off len _ _) =
   assert (s >= 0 && s <= len) .
   assert (l >= 0 && l <= len-s) $
-  PS fp (off+s) l
+  mkPS fp (off+s) l
 {-# INLINE substring #-}
 
 unsafeDrop :: Int -> Buffer -> ByteString
 unsafeDrop s (Buf fp off len _ _) =
   assert (s >= 0 && s <= len) $
-  PS fp (off+s) (len-s)
+  mkPS fp (off+s) (len-s)
 {-# INLINE unsafeDrop #-}

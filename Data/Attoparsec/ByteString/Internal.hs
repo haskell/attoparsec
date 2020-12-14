@@ -75,6 +75,7 @@ import Data.Attoparsec.ByteString.Buffer (Buffer, buffer)
 import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal
+import Data.Attoparsec.Internal.Compat
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
 import Data.ByteString (ByteString)
@@ -303,7 +304,7 @@ scan_ :: (s -> [ByteString] -> Parser r) -> s -> (s -> Word8 -> Maybe s)
 scan_ f s0 p = go [] s0
  where
   go acc s1 = do
-    let scanner (B.PS fp off len) =
+    let scanner bs = withPS bs $ \fp off len ->
           withForeignPtr fp $ \ptr0 -> do
             let start = ptr0 `plusPtr` off
                 end   = start `plusPtr` len

@@ -121,6 +121,18 @@ takeWhile1 w s =
          PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
          _             -> property False
 
+takeWhileIncluding :: Word8 -> L.ByteString -> Property
+takeWhileIncluding w s =
+    let s'    = L.cons w $ L.snoc s (w+1)
+        (h_,t_) = L.span (<=w) s'
+        (h,t) =
+          case L.uncons t_ of
+            Nothing -> (h_, t_)
+            Just (n, nt) -> (h_ `L.snoc` n, nt)
+    in case PL.parse (P.takeWhileIncluding (<=w)) s' of
+         PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
+         _             -> property False
+
 takeTill :: Word8 -> L.ByteString -> Property
 takeTill w s =
     let (h,t) = L.break (==w) s
@@ -181,6 +193,7 @@ tests = [
     , testProperty "takeWhile" takeWhile
     , testProperty "takeWhile1" takeWhile1
     , testProperty "takeWhile1_empty" takeWhile1_empty
+    , testProperty "takeWhileIncluding" takeWhileIncluding
     , testProperty "word8" word8
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers

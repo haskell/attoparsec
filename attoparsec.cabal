@@ -6,11 +6,11 @@ category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>, Ben Gamari <ben@smart-cactus.org>
 stability:       experimental
-tested-with:     GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.1
+tested-with:     GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.1, GHC==8.10.1
 synopsis:        Fast combinator parsing for bytestrings and text
 cabal-version:   >= 1.8
-homepage:        https://github.com/bos/attoparsec
-bug-reports:     https://github.com/bos/attoparsec/issues
+homepage:        https://github.com/bgamari/attoparsec
+bug-reports:     https://github.com/bgamari/attoparsec/issues
 build-type:      Simple
 description:
     A fast parser combinator library, aimed particularly at dealing
@@ -40,12 +40,13 @@ Flag developer
 library
   build-depends: array,
                  base >= 4.3 && < 5,
-                 bytestring,
+                 bytestring <0.12,
                  containers,
                  deepseq,
                  scientific >= 0.3.1 && < 0.4,
                  transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
-                 text >= 1.1.1.3
+                 text >= 1.1.1.3,
+                 ghc-prim <0.7
   if impl(ghc < 7.4)
     build-depends:
       bytestring < 0.10.4.0
@@ -72,6 +73,7 @@ library
   other-modules:   Data.Attoparsec.ByteString.Buffer
                    Data.Attoparsec.ByteString.FastSet
                    Data.Attoparsec.ByteString.Internal
+                   Data.Attoparsec.Internal.Compat
                    Data.Attoparsec.Internal.Fhthagn
                    Data.Attoparsec.Text.Buffer
                    Data.Attoparsec.Text.FastSet
@@ -106,6 +108,7 @@ test-suite tests
                   Data.Attoparsec.ByteString.Lazy
                   Data.Attoparsec.Combinator
                   Data.Attoparsec.Internal
+                  Data.Attoparsec.Internal.Compat
                   Data.Attoparsec.Internal.Fhthagn
                   Data.Attoparsec.Internal.Types
                   Data.Attoparsec.Number
@@ -133,13 +136,13 @@ test-suite tests
     tasty >= 0.11,
     tasty-quickcheck >= 0.8,
     text,
-    transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
+    transformers,
     vector
 
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
-                   semigroups >=0.16.1 && <0.20
+                   semigroups >=0.16.1 && <0.19
 
 benchmark benchmarks
   type: exitcode-stdio-1.0
@@ -178,7 +181,7 @@ benchmark benchmarks
     parsec >= 3.1.2,
     scientific,
     text >= 1.1.1.0,
-    transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
+    transformers,
     unordered-containers,
     vector
 
@@ -189,5 +192,5 @@ benchmark benchmarks
 
 source-repository head
   type:     git
-  location: https://github.com/bos/attoparsec
+  location: https://github.com/bgamari/attoparsec
 

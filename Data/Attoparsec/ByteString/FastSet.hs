@@ -34,7 +34,7 @@ module Data.Attoparsec.ByteString.FastSet
 
 import Data.Bits ((.&.), (.|.))
 import Foreign.Storable (peekByteOff, pokeByteOff)
-import GHC.Base (Int(I#), iShiftRA#, narrow8Word#, shiftL#)
+import GHC.Exts (Int(I#), iShiftRA#, narrow8Word#, shiftL#)
 import GHC.Word (Word8(W8#))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8

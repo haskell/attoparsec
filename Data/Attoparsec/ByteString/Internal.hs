@@ -281,7 +281,7 @@ takeWhileAcc p = go
 -- | Consume input until immediately after the predicate returns 'True', and return
 -- the consumed input.
 --
--- This parser will consume at least one Word8 or fail.
+-- This parser will consume at least one 'Word8' or fail.
 takeWhileIncluding :: (Word8 -> Bool) -> Parser B.ByteString
 takeWhileIncluding p = do
   (s', t) <- B8.span p <$> get
@@ -291,14 +291,14 @@ takeWhileIncluding p = do
     Just (h, _) -> do
       let s = s' `B8.snoc` h
       advance (B8.length s)
-      pure s
+      return s
     -- The above isn't true so either we ran out of input or we need to process the next chunk.
     Nothing -> do
       continue <- inputSpansChunks (B8.length s')
       if continue
         then takeWhileIncAcc p [s']
         -- Our spec says that if we run out of input we fail.
-        else fail "takeWhileIncluding"
+        else fail "takeWhileIncluding reached end of input"
 {-# INLINE takeWhileIncluding #-}
 
 takeWhileIncAcc :: (Word8 -> Bool) -> [B.ByteString] -> Parser B.ByteString
@@ -310,12 +310,12 @@ takeWhileIncAcc p = go
        Just (h, _) -> do
          let s = s' `B8.snoc` h
          advance (B8.length s)
-         pure (concatReverse $ s:acc)
+         return (concatReverse $ s:acc)
        Nothing -> do
          continue <- inputSpansChunks (B8.length s')
          if continue
            then go (s':acc)
-           else fail "takeWhileIncAcc"
+           else fail "takeWhileIncAcc reached end of input"
 {-# INLINE takeWhileIncAcc #-}
 
 

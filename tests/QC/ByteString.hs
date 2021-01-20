@@ -129,7 +129,7 @@ takeWhileIncluding w s =
           case L.uncons t_ of
             Nothing -> (h_, t_)
             Just (n, nt) -> (h_ `L.snoc` n, nt)
-    in case PL.parse (P.takeWhileIncluding (<=w)) s' of
+    in w < 255 ==> case PL.parse (P.takeWhileIncluding (<=w)) s' of
          PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
          _             -> property False
 

@@ -1,5 +1,5 @@
 name:            attoparsec
-version:         0.13.2.4
+version:         0.13.2.5
 license:         BSD3
 license-file:    LICENSE
 category:        Text, Parsing
@@ -108,6 +108,7 @@ test-suite tests
                   Data.Attoparsec.ByteString.Lazy
                   Data.Attoparsec.Combinator
                   Data.Attoparsec.Internal
+                  Data.Attoparsec.Internal.Compat
                   Data.Attoparsec.Internal.Fhthagn
                   Data.Attoparsec.Internal.Types
                   Data.Attoparsec.Number
@@ -129,7 +130,7 @@ test-suite tests
     base,
     bytestring,
     deepseq >= 1.1,
-    QuickCheck >= 2.13.2 && < 2.14,
+    QuickCheck >= 2.13.2 && < 2.15,
     quickcheck-unicode,
     scientific,
     tasty >= 0.11,

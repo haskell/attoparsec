@@ -129,7 +129,7 @@ test-suite tests
     base,
     bytestring,
     deepseq >= 1.1,
-    QuickCheck >= 2.13.2 && < 2.14,
+    QuickCheck >= 2.13.2 && < 2.15,
     quickcheck-unicode,
     scientific,
     tasty >= 0.11,

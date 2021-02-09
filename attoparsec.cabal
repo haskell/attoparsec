@@ -108,6 +108,7 @@ test-suite tests
                   Data.Attoparsec.ByteString.Lazy
                   Data.Attoparsec.Combinator
                   Data.Attoparsec.Internal
+                  Data.Attoparsec.Internal.Compat
                   Data.Attoparsec.Internal.Fhthagn
                   Data.Attoparsec.Internal.Types
                   Data.Attoparsec.Number

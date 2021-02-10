@@ -8,7 +8,7 @@ maintainer:      Bryan O'Sullivan <bos@serpentine.com>, Ben Gamari <ben@smart-ca
 stability:       experimental
 tested-with:     GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.1, GHC==8.10.1
 synopsis:        Fast combinator parsing for bytestrings and text
-cabal-version:   >= 1.8
+cabal-version:   2.0
 homepage:        https://github.com/bgamari/attoparsec
 bug-reports:     https://github.com/bgamari/attoparsec/issues
 build-type:      Simple
@@ -80,6 +80,8 @@ library
                    Data.Attoparsec.Text.Internal
   ghc-options: -O2 -Wall
 
+  default-language: Haskell2010
+
   if flag(developer)
     ghc-prof-options: -auto-all
     ghc-options: -Werror
@@ -139,6 +141,8 @@ test-suite tests
     transformers,
     vector
 
+  default-language: Haskell2010
+
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
     build-depends: fail == 4.9.*,
@@ -184,6 +188,8 @@ benchmark benchmarks
     transformers,
     unordered-containers,
     vector
+
+  default-language: Haskell2010
 
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+

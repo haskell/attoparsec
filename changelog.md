@@ -1,3 +1,7 @@
+0.13.3
+
+* Added `takeWhileIncluding`
+
 0.13.2.1
 
 * Improved performance of `Data.Attoparsec.Text.asciiCI`

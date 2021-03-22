@@ -43,11 +43,12 @@ module Data.Attoparsec.Combinator
 import Control.Applicative (Applicative(..), (<$>))
 import Data.Monoid (Monoid(mappend))
 #endif
-import Control.Applicative (Alternative(..), empty, liftA2, many, (<|>))
+import Control.Applicative (Alternative(..), liftA2, many, (<|>))
 import Control.Monad (MonadPlus(..))
 import Data.Attoparsec.Internal.Types (Parser(..), IResult(..))
 import Data.Attoparsec.Internal (endOfInput, atEnd, satisfyElem)
 import Data.ByteString (ByteString)
+import Data.Foldable (asum)
 import Data.Text (Text)
 import qualified Data.Attoparsec.Zepto as Z
 import Prelude hiding (succ)
@@ -58,7 +59,7 @@ import Prelude hiding (succ)
 -- This combinator is provided for compatibility with Parsec.
 -- attoparsec parsers always backtrack on failure.
 try :: Parser i a -> Parser i a
-try p = p
+try = id
 {-# INLINE try #-}
 
 -- | Name the parser, in case failure occurs.
@@ -75,7 +76,7 @@ infix 0 <?>
 -- until one of them succeeds. Returns the value of the succeeding
 -- action.
 choice :: Alternative f => [f a] -> f a
-choice = foldr (<|>) empty
+choice = asum
 {-# SPECIALIZE choice :: [Parser ByteString a]
                       -> Parser ByteString a #-}
 {-# SPECIALIZE choice :: [Parser Text a] -> Parser Text a #-}

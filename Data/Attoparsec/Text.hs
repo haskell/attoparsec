@@ -360,30 +360,39 @@ rational :: Fractional a => Parser a
 {-# SPECIALIZE rational :: Parser Scientific #-}
 rational = scientifically realToFrac
 
--- | Parse a rational number.
+-- | Parse a 'Double'.
 --
 -- This parser accepts an optional leading sign character, followed by
--- at least one decimal digit.  The syntax similar to that accepted by
--- the 'read' function, with the exception that a trailing @\'.\'@ or
--- @\'e\'@ /not/ followed by a number is not consumed.
+-- at most one decimal digit.  The syntax is similar to that accepted by
+-- the 'read' function, with the exception that a trailing @\'.\'@ is
+-- consumed.
+--
+-- === Examples
+--
+-- These examples use this helper:
+--
+-- @
+-- r :: 'Parser' a -> 'Data.Text.Text' -> 'Data.Attoparsec.Text.Result' a
+-- r p s = 'feed' ('Data.Attoparsec.parse' p s) 'mempty'
+-- @
 --
 -- Examples with behaviour identical to 'read', if you feed an empty
 -- continuation to the first result:
 --
--- >rational "3"     == Done 3.0 ""
--- >rational "3.1"   == Done 3.1 ""
--- >rational "3e4"   == Done 30000.0 ""
--- >rational "3.1e4" == Done 31000.0, ""
+-- > r double "3"     == Done "" 3.0
+-- > r double "3.1"   == Done "" 3.1
+-- > r double "3e4"   == Done "" 30000.0
+-- > r double "3.1e4" == Done "" 31000.0
+-- > r double "3e"    == Done "e" 3.0
 --
 -- Examples with behaviour identical to 'read':
 --
--- >rational ".3"    == Fail "input does not start with a digit"
--- >rational "e3"    == Fail "input does not start with a digit"
+-- > r double ".3"    == Fail ".3" _ _
+-- > r double "e3"    == Fail "e3" _ _
 --
--- Examples of differences from 'read':
+-- Example of difference from 'read':
 --
--- >rational "3.foo" == Done 3.0 ".foo"
--- >rational "3e"    == Done 3.0 "e"
+-- > r double "3.foo" == Done "foo" 3.0
 --
 -- This function does not accept string representations of \"NaN\" or
 -- \"Infinity\".

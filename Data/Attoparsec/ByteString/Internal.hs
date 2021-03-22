@@ -319,7 +319,6 @@ takeWhileIncAcc p = go
            else fail "takeWhileIncAcc reached end of input"
 {-# INLINE takeWhileIncAcc #-}
 
-
 takeRest :: Parser [ByteString]
 takeRest = go []
  where

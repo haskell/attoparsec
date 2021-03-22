@@ -34,6 +34,7 @@ module Data.Attoparsec.Text.Lazy
     , module Data.Attoparsec.Text
     -- * Running parsers
     , parse
+    , parseOnly
     , parseTest
     -- ** Result conversion
     , maybeResult
@@ -47,7 +48,7 @@ import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.Attoparsec.Text as A
 import qualified Data.Text as T
 import Data.Attoparsec.Text hiding (IResult(..), Result, eitherResult,
-                                    maybeResult, parse, parseWith, parseTest)
+                                    maybeResult, parse, parseOnly, parseWith, parseTest)
 
 -- | The result of a parse.
 data Result r = Fail Text [String] String
@@ -99,3 +100,16 @@ eitherResult :: Result r -> Either String r
 eitherResult (Done _ r)        = Right r
 eitherResult (Fail _ [] msg)   = Left msg
 eitherResult (Fail _ ctxs msg) = Left (intercalate " > " ctxs ++ ": " ++ msg)
+
+-- | Run a parser that cannot be resupplied via a 'T.Partial' result.
+--
+-- This function does not force a parser to consume all of its input.
+-- Instead, any residual input will be discarded.  To force a parser
+-- to consume all of its input, use something like this:
+--
+-- @
+--'parseOnly' (myParser 'Control.Applicative.<*' 'endOfInput')
+-- @
+parseOnly :: A.Parser a -> Text -> Either String a
+parseOnly p = eitherResult . parse p
+{-# INLINE parseOnly #-}

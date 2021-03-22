@@ -1,8 +1,11 @@
+0.14.1
+
+* Added `Data.Attoparsec.ByteString.getChunk`.
+
 0.14.0
 
 * Added `Data.Attoparsec.ByteString.takeWhileIncluding`.
 * Make `Data.Attoparsec.{Text,ByteString}.Lazy.parseOnly` accept lazy input.
-* Added `Data.Attoparsec.ByteString.getChunk`.
 
 0.13.2.1
 

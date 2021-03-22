@@ -6,9 +6,9 @@ category:        Text, Parsing
 author:          Bryan O'Sullivan <bos@serpentine.com>
 maintainer:      Bryan O'Sullivan <bos@serpentine.com>, Ben Gamari <ben@smart-cactus.org>
 stability:       experimental
-tested-with:     GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.1, GHC==8.10.1
+tested-with:     GHC == 7.4.2, GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.2, GHC ==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.4, GHC==8.10.4, GHC == 9.0.1
 synopsis:        Fast combinator parsing for bytestrings and text
-cabal-version:   >= 1.8
+cabal-version:   2.0
 homepage:        https://github.com/bgamari/attoparsec
 bug-reports:     https://github.com/bgamari/attoparsec/issues
 build-type:      Simple
@@ -46,7 +46,7 @@ library
                  scientific >= 0.3.1 && < 0.4,
                  transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.6,
                  text >= 1.1.1.3,
-                 ghc-prim <0.7
+                 ghc-prim <0.8
   if impl(ghc < 7.4)
     build-depends:
       bytestring < 0.10.4.0
@@ -79,6 +79,8 @@ library
                    Data.Attoparsec.Text.FastSet
                    Data.Attoparsec.Text.Internal
   ghc-options: -O2 -Wall
+
+  default-language: Haskell2010
 
   if flag(developer)
     ghc-prof-options: -auto-all
@@ -130,7 +132,7 @@ test-suite tests
     base,
     bytestring,
     deepseq >= 1.1,
-    QuickCheck >= 2.13.2 && < 2.14,
+    QuickCheck >= 2.13.2 && < 2.15,
     quickcheck-unicode,
     scientific,
     tasty >= 0.11,
@@ -138,6 +140,8 @@ test-suite tests
     text,
     transformers,
     vector
+
+  default-language: Haskell2010
 
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
@@ -184,6 +188,8 @@ benchmark benchmarks
     transformers,
     unordered-containers,
     vector
+
+  default-language: Haskell2010
 
   if !impl(ghc >= 8.0)
     -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+

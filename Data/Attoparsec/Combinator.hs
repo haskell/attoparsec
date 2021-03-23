@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, CPP, TupleSections #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-} -- Imports internal modules
 #endif
@@ -25,12 +25,15 @@ module Data.Attoparsec.Combinator
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1
     , sepBy1'
     , skipMany
     , skipMany1
+    , skipTill
+    , skipTill'
     , eitherP
     , feed
     , satisfyElem
@@ -215,6 +218,20 @@ manyTill' p end = scan
 {-# SPECIALIZE manyTill' :: Parser Text a -> Parser Text b -> Parser Text [a] #-}
 {-# SPECIALIZE manyTill' :: Z.Parser a -> Z.Parser b -> Z.Parser [a] #-}
 
+-- | @till' p end@ applies action @p@ /zero/ or more times until
+-- action @end@ succeeds, and returns a tuple of the list of
+-- values returned by @p@, and @end@.
+--
+-- The value returned by @p@ is forced to WHNF.
+till' :: (MonadPlus m) => m a -> m b -> m ([a], b)
+till' p end = mapFst ($ []) <$> scan (id, undefined)
+  where scan (fp, e) = fmap (fp,) end `mplus` do !a <- p; scan (fp . (a:), e)
+        mapFst f (x, y) = (f x, y)
+{-# SPECIALIZE till' :: Parser ByteString a -> Parser ByteString b
+                         -> Parser ByteString ([a], b) #-}
+{-# SPECIALIZE till' :: Parser Text a -> Parser Text b -> Parser Text ([a], b) #-}
+{-# SPECIALIZE till' :: Z.Parser a -> Z.Parser b -> Z.Parser ([a], b) #-}
+
 -- | Skip zero or more instances of an action.
 skipMany :: Alternative f => f a -> f ()
 skipMany p = scan
@@ -229,6 +246,33 @@ skipMany1 p = p *> skipMany p
 {-# SPECIALIZE skipMany1 :: Parser ByteString a -> Parser ByteString () #-}
 {-# SPECIALIZE skipMany1 :: Parser Text a -> Parser Text () #-}
 {-# SPECIALIZE skipMany1 :: Z.Parser a -> Z.Parser () #-}
+
+-- | @skipTill p end@ applies action @p@ /zero/ or more times until
+-- action @end@ succeeds, and returns the value returned by @end@.
+-- This complements @manyTill@ and can be used to find a specific
+-- pattern in a text.
+skipTill :: Alternative f => f a -> f b -> f b
+skipTill p end = scan
+    where scan = end <|> (p *> scan)
+{-# SPECIALIZE skipTill :: Parser ByteString a -> Parser ByteString b
+                        -> Parser ByteString b #-}
+{-# SPECIALIZE skipTill :: Parser Text a -> Parser Text b -> Parser Text b #-}
+{-# SPECIALIZE skipTill :: Z.Parser a -> Z.Parser b -> Z.Parser b #-}
+
+-- | @skipTill' p end@ applies action @p@ /zero/ or more times until
+-- action @end@ succeeds, and returns the value returned by @end@.
+-- This complements @manyTill'@ and can be used to find a specific
+-- pattern in a text.
+--
+-- The value returned by @p@ is forced to WHNF.
+skipTill' :: (MonadPlus m) => m a -> m b -> m b
+skipTill' p end = scan
+    where scan = end `mplus` (p !*> scan)
+          (!*>) a0 a1 = fmap (\(!a) -> a) a0 *> a1
+{-# SPECIALIZE skipTill' :: Parser ByteString a -> Parser ByteString b
+                         -> Parser ByteString b #-}
+{-# SPECIALIZE skipTill' :: Parser Text a -> Parser Text b -> Parser Text b #-}
+{-# SPECIALIZE skipTill' :: Z.Parser a -> Z.Parser b -> Z.Parser b #-}
 
 -- | Apply the given action repeatedly, returning every result.
 count :: Monad m => Int -> m a -> m [a]

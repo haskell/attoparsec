@@ -110,7 +110,7 @@ eitherResult (Done _ r)        = Right r
 eitherResult (Fail _ [] msg)   = Left msg
 eitherResult (Fail _ ctxs msg) = Left (intercalate " > " ctxs ++ ": " ++ msg)
 
--- | Run a parser that cannot be resupplied via a 'T.Partial' result.
+-- | Run a parser and convert its 'Result' to an 'Either' value.
 --
 -- This function does not force a parser to consume all of its input.
 -- Instead, any residual input will be discarded.  To force a parser

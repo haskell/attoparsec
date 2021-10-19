@@ -32,10 +32,10 @@ module Data.Attoparsec.ByteString.FastSet
     , charClass
     ) where
 
-import Data.Bits ((.&.), (.|.))
+import Data.Bits ((.&.), (.|.), unsafeShiftL)
 import Foreign.Storable (peekByteOff, pokeByteOff)
-import GHC.Exts (Int(I#), iShiftRA#, narrow8Word#, shiftL#)
-import GHC.Word (Word8(W8#))
+import GHC.Exts (Int(I#), iShiftRA#)
+import GHC.Word (Word8)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Internal as I
@@ -67,11 +67,8 @@ data I = I {-# UNPACK #-} !Int {-# UNPACK #-} !Word8
 shiftR :: Int -> Int -> Int
 shiftR (I# x#) (I# i#) = I# (x# `iShiftRA#` i#)
 
-shiftL :: Word8 -> Int -> Word8
-shiftL (W8# x#) (I# i#) = W8# (narrow8Word# (x# `shiftL#` i#))
-
 index :: Int -> I
-index i = I (i `shiftR` 3) (1 `shiftL` (i .&. 7))
+index i = I (i `shiftR` 3) (1 `unsafeShiftL` (i .&. 7))
 {-# INLINE index #-}
 
 -- | Check the set for membership.

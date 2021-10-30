@@ -1,3 +1,7 @@
+0.14.2
+
+* Support for GHC 9.2.1
+
 0.14.1
 
 * Added `Data.Attoparsec.ByteString.getChunk`.

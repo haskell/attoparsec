@@ -100,6 +100,14 @@ takeWhile w s =
          PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
          _             -> property False
 
+takeWhileN :: Positive Int -> Word8 -> L.ByteString -> Property
+takeWhileN (Positive n) w s =
+    let h = L.take (fromIntegral n) $ L.takeWhile (==w) s
+        t = L.drop (L.length h) s
+    in case PL.parse (P.takeWhileN n (==w)) s of
+         PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
+         _             -> property False
+
 take :: Int -> L.ByteString -> Property
 take n s = maybe (property $ L.length s < fromIntegral n)
            (=== B.take n (toStrictBS s)) $
@@ -118,6 +126,15 @@ takeWhile1 w s =
     let s'    = L.cons w s
         (h,t) = L.span (<=w) s'
     in case PL.parse (P.takeWhile1 (<=w)) s' of
+         PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
+         _             -> property False
+
+takeWhile1N :: Positive Int -> Word8 -> L.ByteString -> Property
+takeWhile1N (Positive n) w s =
+    let s'    = L.cons w s
+        h = L.take (fromIntegral n) $ L.takeWhile (<=w) s'
+        t = L.drop (L.length h) s'
+    in case PL.parse (P.takeWhile1N n (<=w)) s' of
          PL.Done t' h' -> t === t' .&&. toStrictBS h === h'
          _             -> property False
 
@@ -182,6 +199,15 @@ nonmembers :: [Word8] -> [Word8] -> Property
 nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
 
+decimalN :: Positive Int -> Property
+decimalN (Positive n0) =
+  let n = n0 `mod` 8 + 1
+      s = "123456789"
+      (h, t) = B.splitAt n s
+  in case P.parse (P8.decimalN n :: P8.Parser Int) s of
+    P.Done t' x -> t' === t .&&. B8.pack (show x) === h
+    _ -> property False
+
 tests :: [TestTree]
 tests = [
       testProperty "anyWord8" anyWord8
@@ -204,11 +230,14 @@ tests = [
     , testProperty "takeLazyByteString" takeLazyByteString
     , testProperty "takeTill" takeTill
     , testProperty "takeWhile" takeWhile
+    , testProperty "takeWhileN" takeWhileN
     , testProperty "takeWhile1" takeWhile1
+    , testProperty "takeWhile1N" takeWhile1N
     , testProperty "takeWhile1_empty" takeWhile1_empty
     , testProperty "takeWhileIncluding" takeWhileIncluding
     , testProperty "getChunk" getChunk
     , testProperty "word8" word8
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers
+    , testProperty "decimalN" decimalN
   ]

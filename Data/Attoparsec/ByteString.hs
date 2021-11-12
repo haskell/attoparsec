@@ -65,7 +65,9 @@ module Data.Attoparsec.ByteString
     , I.scan
     , I.runScanner
     , I.takeWhile
+    , I.takeWhileN
     , I.takeWhile1
+    , I.takeWhile1N
     , I.takeWhileIncluding
     , I.takeTill
     , I.getChunk

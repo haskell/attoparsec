@@ -52,7 +52,9 @@ module Data.Attoparsec.ByteString.Internal
     , scan
     , runScanner
     , takeWhile
+    , takeWhileN
     , takeWhile1
+    , takeWhile1N
     , takeWhileIncluding
     , takeTill
     , getChunk
@@ -261,12 +263,36 @@ takeTill p = takeWhile (not . p)
 -- in an infinite loop.
 takeWhile :: (Word8 -> Bool) -> Parser ByteString
 takeWhile p = do
-    s <- B8.takeWhile p <$> get
-    continue <- inputSpansChunks (B.length s)
-    if continue
-      then takeWhileAcc p [s]
-      else return s
+  s <- B8.takeWhile p <$> get
+  continue <- inputSpansChunks (B.length s)
+  if continue
+    then takeWhileAcc p [s]
+    else return s
 {-# INLINE takeWhile #-}
+
+-- | Like 'takeWhile' but matches at most n times.
+--
+-- This will consume no more than @n@ bytes of input whereas
+-- (B.take n <$> takeWhile p) will return at most @n@ bytes
+-- but can advance the parser by more.
+--
+-- /Note/: see notes for 'takeWhile'.
+takeWhileN :: Int -> (Word8 -> Bool) -> Parser ByteString
+takeWhileN n p = do
+  s <- B8.take n . B8.takeWhile p <$> get
+  let len = B.length s
+  if len == n
+    then
+      -- already matched n times so we can safely advance and return
+      advance len >> return s
+    else do
+      -- matched less than n times, we may have ran out of input
+      -- and may need to prompt for more
+      continue <- inputSpansChunks len
+      if continue
+        then takeWhileAccN (n - len) p [s]
+        else return s
+{-# INLINE takeWhileN #-}
 
 takeWhileAcc :: (Word8 -> Bool) -> [ByteString] -> Parser ByteString
 takeWhileAcc p = go
@@ -278,6 +304,23 @@ takeWhileAcc p = go
       then go (s:acc)
       else return $ concatReverse (s:acc)
 {-# INLINE takeWhileAcc #-}
+
+takeWhileAccN :: Int -> (Word8 -> Bool) -> [ByteString] -> Parser ByteString
+takeWhileAccN n0 p = go n0
+  where
+    go n acc = do
+      s <- B8.take n . B8.takeWhile p <$> get
+      let len = B.length s
+      if len == n
+      then do
+        advance len
+        return $ concatReverse (s:acc)
+      else do
+        continue <- inputSpansChunks len
+        if continue
+          then go (n - len) (s:acc)
+          else return $ concatReverse (s:acc)
+{-# INLINE takeWhileAccN #-}
 
 -- | Consume input until immediately after the predicate returns 'True', and return
 -- the consumed input.
@@ -422,6 +465,24 @@ takeWhile1 p = do
         else return s
 {-# INLINE takeWhile1 #-}
 
+-- | Like 'takeWhile1' but matches at most n times.
+--
+-- @n@ must be greater or equal to @1@.
+takeWhile1N :: Int -> (Word8 -> Bool) -> Parser ByteString
+takeWhile1N n p = do
+  (`when` demandInput) =<< endOfChunk
+  s <- B8.take n . B8.takeWhile p <$> get
+  let len = B.length s
+  if len == 0
+    then fail "takeWhile1N"
+    else do
+      advance len
+      eoc <- endOfChunk
+      if eoc && n - len > 0
+        then takeWhileAccN (n - len) p [s]
+        else return s
+{-# INLINE takeWhile1N #-}
+
 -- | Match any byte in a set.
 --
 -- >vowel = inClass "aeiou"
@@ -537,6 +598,7 @@ endOfChunk = T.Parser $ \t pos more _lose succ ->
   succ t pos more (fromPos pos == Buf.length t)
 {-# INLINE endOfChunk #-}
 
+-- | Advance position, if exceeds end of buffer prompt for more input
 inputSpansChunks :: Int -> Parser Bool
 inputSpansChunks i = T.Parser $ \t pos_ more _lose succ ->
   let pos = pos_ + Pos i
@@ -547,6 +609,7 @@ inputSpansChunks i = T.Parser $ \t pos_ more _lose succ ->
           in prompt t pos more lose' succ'
 {-# INLINE inputSpansChunks #-}
 
+-- | Advance position, must not exceed end of buffer
 advance :: Int -> Parser ()
 advance n = T.Parser $ \t pos more _lose succ ->
   succ t (pos + Pos n) more ()

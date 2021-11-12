@@ -76,7 +76,9 @@ module Data.Attoparsec.ByteString.Char8
     , I.take
     , scan
     , takeWhile
+    , takeWhileN
     , takeWhile1
+    , takeWhile1N
     , takeTill
 
     -- ** String combinators
@@ -95,6 +97,7 @@ module Data.Attoparsec.ByteString.Char8
 
     -- * Numeric parsers
     , decimal
+    , decimalN
     , hexadecimal
     , signed
     , double
@@ -178,6 +181,10 @@ instance (a ~ B.ByteString) => IsString (Parser a) where
 takeWhile1 :: (Char -> Bool) -> Parser B.ByteString
 takeWhile1 p = I.takeWhile1 (p . w2c)
 {-# INLINE takeWhile1 #-}
+
+takeWhile1N :: Int -> (Char -> Bool) -> Parser B.ByteString
+takeWhile1N n p = I.takeWhile1N n (p . w2c)
+{-# INLINE takeWhile1N #-}
 
 -- | The parser @satisfy p@ succeeds for any byte for which the
 -- predicate @p@ returns 'True'. Returns the byte that is actually
@@ -331,6 +338,10 @@ takeWhile :: (Char -> Bool) -> Parser B.ByteString
 takeWhile p = I.takeWhile (p . w2c)
 {-# INLINE takeWhile #-}
 
+takeWhileN :: Int -> (Char -> Bool) -> Parser B.ByteString
+takeWhileN n p = I.takeWhileN n (p . w2c)
+{-# INLINE takeWhileN #-}
+
 -- | A stateful scanner.  The predicate consumes and transforms a
 -- state argument, and each transformed state is passed to successive
 -- invocations of the predicate on each byte of the input until one
@@ -421,6 +432,11 @@ isHorizontalSpace w = w == 32 || w == 9
 -- @\'a\'@ through @\'f\'@ may be upper or lower case.
 --
 -- This parser does not accept a leading @\"0x\"@ string.
+--
+-- /Note/: For fixed-width integer types, this function does not
+-- attempt to detect overflow, so a sufficiently long input may give
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type.
 hexadecimal :: (Integral a, Bits a) => Parser a
 hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
   where
@@ -443,6 +459,11 @@ hexadecimal = B8.foldl' step 0 `fmap` I.takeWhile1 isHexDigit
 {-# SPECIALISE hexadecimal :: Parser Word64 #-}
 
 -- | Parse and decode an unsigned decimal number.
+--
+-- /Note/: For fixed-width integer types, this function does not
+-- attempt to detect overflow, so a sufficiently long input may give
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type.
 decimal :: Integral a => Parser a
 decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDigit_w8
   where step a w = a * 10 + fromIntegral (w - 48)
@@ -457,6 +478,28 @@ decimal = B8.foldl' step 0 `fmap` I.takeWhile1 isDigit_w8
 {-# SPECIALISE decimal :: Parser Word16 #-}
 {-# SPECIALISE decimal :: Parser Word32 #-}
 {-# SPECIALISE decimal :: Parser Word64 #-}
+
+-- | Parse and decode an unsigned decimal number with at most n digits.
+--
+-- /Note/: For fixed-width integer types, this function does not
+-- attempt to detect overflow, so a sufficiently long input may give
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type or choose n so that the result
+-- is always small enough.
+decimalN :: Integral a => Int -> Parser a
+decimalN n = B8.foldl' step 0 `fmap` I.takeWhile1N n isDigit_w8
+  where step a w = a * 10 + fromIntegral (w - 48)
+{-# SPECIALISE decimalN :: Int -> Parser Int #-}
+{-# SPECIALISE decimalN :: Int -> Parser Int8 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Int16 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Int32 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Int64 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Integer #-}
+{-# SPECIALISE decimalN :: Int -> Parser Word #-}
+{-# SPECIALISE decimalN :: Int -> Parser Word8 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Word16 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Word32 #-}
+{-# SPECIALISE decimalN :: Int -> Parser Word64 #-}
 
 -- | Parse a number with an optional leading @\'+\'@ or @\'-\'@ sign
 -- character.

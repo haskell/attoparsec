@@ -51,7 +51,7 @@ b_length :: BPB -> Property
 b_length (BP _ts t buf) = B.length t === BB.length buf
 
 t_length :: BPT -> Property
-t_length (BP _ts t buf) = T.lengthWord16 t === BT.length buf
+t_length (BP _ts t buf) = BT.lengthCodeUnits t === BT.length buf
 
 b_unsafeIndex :: BPB -> Gen Property
 b_unsafeIndex (BP _ts t buf) = do
@@ -61,14 +61,14 @@ b_unsafeIndex (BP _ts t buf) = do
 
 t_iter :: BPT -> Gen Property
 t_iter (BP _ts t buf) = do
-  let l = T.lengthWord16 t
+  let l = BT.lengthCodeUnits t
   i <- choose (0,l-1)
   let it (T.Iter c q) = (c,q)
   return $ l === 0 .||. it (T.iter t i) === it (BT.iter buf i)
 
 t_iter_ :: BPT -> Gen Property
 t_iter_ (BP _ts t buf) = do
-  let l = T.lengthWord16 t
+  let l = BT.lengthCodeUnits t
   i <- choose (0,l-1)
   return $ l === 0 .||. T.iter_ t i === BT.iter_ buf i
 
@@ -77,10 +77,16 @@ b_unsafeDrop (BP _ts t buf) = do
   i <- choose (0, B.length t)
   return $ B.unsafeDrop i t === BB.unsafeDrop i buf
 
-t_dropWord16 :: BPT -> Gen Property
-t_dropWord16 (BP _ts t buf) = do
-  i <- choose (0, T.lengthWord16 t)
-  return $ T.dropWord16 i t === BT.dropWord16 i buf
+t_dropCodeUnits :: BPT -> Gen Property
+t_dropCodeUnits (BP _ts t buf) = do
+  i <- choose (0, BT.lengthCodeUnits t)
+  return $ dropCodeUnits i t === BT.dropCodeUnits i buf
+  where
+#if MIN_VERSION_text(2,0,0)
+    dropCodeUnits = T.dropWord8
+#else
+    dropCodeUnits = T.dropWord16
+#endif
 
 tests :: [TestTree]
 tests = [
@@ -92,5 +98,5 @@ tests = [
   , testProperty "t_iter" t_iter
   , testProperty "t_iter_" t_iter_
   , testProperty "b_unsafeDrop" b_unsafeDrop
-  , testProperty "t_dropWord16" t_dropWord16
+  , testProperty "t_dropCodeUnits" t_dropCodeUnits
   ]

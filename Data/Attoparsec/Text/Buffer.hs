@@ -34,7 +34,8 @@ module Data.Attoparsec.Text.Buffer
     , iter
     , iter_
     , substring
-    , dropWord16
+    , lengthCodeUnits
+    , dropCodeUnits
     ) where
 
 import Control.Exception (assert)
@@ -44,8 +45,14 @@ import Data.Monoid as Mon (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text ()
 import Data.Text.Internal (Text(..))
+#if MIN_VERSION_text(2,0,0)
+import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader)
+import Data.Text.Unsafe (iterArray, lengthWord8)
+#else
 import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)
+import Data.Text.Unsafe (lengthWord16)
+#endif
 import Data.Text.Unsafe (Iter(..))
 import Foreign.Storable (sizeOf)
 import GHC.Exts (Int(..), indexIntArray#, unsafeCoerce#, writeIntArray#)
@@ -108,7 +115,11 @@ append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do
       let newgen = gen + 1
       marr <- unsafeThaw arr0
       writeGen marr newgen
+#if MIN_VERSION_text(2,0,0)
+      A.copyI newlen marr (off0+len0) arr1 off1
+#else
       A.copyI marr (off0+len0) arr1 off1 (off0+newlen)
+#endif
       arr2 <- A.unsafeFreeze marr
       return (Buf arr2 off0 newlen cap0 newgen)
     else do
@@ -116,8 +127,13 @@ append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do
           newgen = 1
       marr <- A.new (newcap + woff)
       writeGen marr newgen
+#if MIN_VERSION_text(2,0,0)
+      A.copyI len0 marr woff arr0 off0
+      A.copyI newlen marr (woff+len0) arr1 off1
+#else
       A.copyI marr woff arr0 off0 (woff+len0)
       A.copyI marr (woff+len0) arr1 off1 (woff+newlen)
+#endif
       arr2 <- A.unsafeFreeze marr
       return (Buf arr2 woff newlen newcap newgen)
 
@@ -132,11 +148,52 @@ substring s l (Buf arr off len _ _) =
   Text arr (off+s) l
 {-# INLINE substring #-}
 
-dropWord16 :: Int -> Buffer -> Text
-dropWord16 s (Buf arr off len _ _) =
+#if MIN_VERSION_text(2,0,0)
+
+lengthCodeUnits :: Text -> Int
+lengthCodeUnits = lengthWord8
+
+dropCodeUnits :: Int -> Buffer -> Text
+dropCodeUnits s (Buf arr off len _ _) =
   assert (s >= 0 && s <= len) $
   Text arr (off+s) (len-s)
-{-# INLINE dropWord16 #-}
+{-# INLINE dropCodeUnits #-}
+
+-- | /O(1)/ Iterate (unsafely) one step forwards through a UTF-8
+-- array, returning the current character and the delta to add to give
+-- the next offset to iterate at.
+iter :: Buffer -> Int -> Iter
+iter (Buf arr off _ _ _) i = iterArray arr (off + i)
+{-# INLINE iter #-}
+
+-- | /O(1)/ Iterate one step through a UTF-8 array, returning the
+-- delta to add to give the next offset to iterate at.
+iter_ :: Buffer -> Int -> Int
+iter_ (Buf arr off _ _ _) i = utf8LengthByLeader $ A.unsafeIndex arr (off+i)
+{-# INLINE iter_ #-}
+
+unsafeThaw :: A.Array -> ST s (A.MArray s)
+unsafeThaw (A.ByteArray a) = ST $ \s# ->
+                          (# s#, A.MutableByteArray (unsafeCoerce# a) #)
+
+readGen :: A.Array -> Int
+readGen (A.ByteArray a) = case indexIntArray# a 0# of r# -> I# r#
+
+writeGen :: A.MArray s -> Int -> ST s ()
+writeGen (A.MutableByteArray a) (I# gen#) = ST $ \s0# ->
+  case writeIntArray# a 0# gen# s0# of
+    s1# -> (# s1#, () #)
+
+#else
+
+lengthCodeUnits :: Text -> Int
+lengthCodeUnits = lengthWord16
+
+dropCodeUnits :: Int -> Buffer -> Text
+dropCodeUnits s (Buf arr off len _ _) =
+  assert (s >= 0 && s <= len) $
+  Text arr (off+s) (len-s)
+{-# INLINE dropCodeUnits #-}
 
 -- | /O(1)/ Iterate (unsafely) one step forwards through a UTF-16
 -- array, returning the current character and the delta to add to give
@@ -170,3 +227,5 @@ writeGen :: A.MArray s -> Int -> ST s ()
 writeGen a (I# gen#) = ST $ \s0# ->
   case writeIntArray# (A.maBA a) 0# gen# s0# of
     s1# -> (# s1#, () #)
+
+#endif

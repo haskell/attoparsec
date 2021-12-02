@@ -39,7 +39,7 @@ Flag developer
 
 library
   build-depends: array,
-                 base >= 4.3 && < 5,
+                 base >= 4.5 && < 5,
                  bytestring <0.12,
                  containers,
                  deepseq,

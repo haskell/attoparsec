@@ -77,7 +77,9 @@ memberWord8 w (Table t)  =
     let I byte bit = index (fromIntegral w)
     in  U.unsafeIndex t byte .&. bit /= 0
 memberWord8 w (Sorted s) = search 0 (B.length s - 1)
-    where search lo hi
+    where
+        {-# INLINE search #-} 
+        search lo hi
               | hi < lo = False
               | otherwise =
                   let mid = (lo + hi) `quot` 2
@@ -85,6 +87,7 @@ memberWord8 w (Sorted s) = search 0 (B.length s - 1)
                        GT -> search (mid + 1) hi
                        LT -> search lo (mid - 1)
                        _ -> True
+{-# INLINE memberWord8 #-}
 
 -- | Check the set for membership.  Only works with 8-bit characters:
 -- characters above code point 255 will give wrong answers.

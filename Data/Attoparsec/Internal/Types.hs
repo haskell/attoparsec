@@ -146,6 +146,7 @@ instance Monad (Parser i) where
 
     m >>= k = Parser $ \t !pos more lose succ ->
         let succ' t' !pos' more' a = runParser (k a) t' pos' more' lose succ
+            {-# INLINE succ' #-}
         in runParser m t pos more lose succ'
     {-# INLINE (>>=) #-}
 
@@ -171,6 +172,7 @@ instance MonadPlus (Parser i) where
 instance Functor (Parser i) where
     fmap f p = Parser $ \t pos more lose succ ->
       let succ' t' pos' more' a = succ t' pos' more' (f a)
+          {-# INLINE succ' #-}
       in runParser p t pos more lose succ'
     {-# INLINE fmap #-}
 

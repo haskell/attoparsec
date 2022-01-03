@@ -18,8 +18,6 @@ description:
     file formats.
 extra-source-files:
     README.markdown
-    benchmarks/*.cabal
-    benchmarks/*.hs
     benchmarks/*.txt
     benchmarks/json-data/*.json
     benchmarks/Makefile
@@ -142,13 +140,15 @@ test-suite attoparsec-tests
     build-depends: fail == 4.9.*,
                    semigroups >=0.16.1 && <0.19
 
-benchmark benchmarks
+benchmark attoparsec-benchmarks
   type: exitcode-stdio-1.0
-  hs-source-dirs: benchmarks benchmarks/warp-3.0.1.1 .
+  hs-source-dirs: benchmarks benchmarks/warp-3.0.1.1
   ghc-options: -O2 -Wall -rtsopts
   main-is: Benchmarks.hs
   other-modules:
+    Aeson
     Common
+    Genome
     HeadersByteString
     HeadersByteString.Atto
     HeadersText
@@ -166,11 +166,12 @@ benchmark benchmarks
 
   build-depends:
     array,
+    attoparsec,
+    attoparsec-internal,
     base == 4.*,
     bytestring >= 0.10.4.0,
     case-insensitive,
     containers,
-    criterion >= 1.0,
     deepseq >= 1.1,
     directory,
     filepath,
@@ -178,6 +179,7 @@ benchmark benchmarks
     http-types,
     parsec >= 3.1.2,
     scientific,
+    tasty-bench >= 0.3,
     text >= 1.1.1.0,
     transformers,
     unordered-containers,
@@ -193,4 +195,3 @@ benchmark benchmarks
 source-repository head
   type:     git
   location: https://github.com/bgamari/attoparsec
-

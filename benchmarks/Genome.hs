@@ -6,7 +6,7 @@ module Genome
     ) where
 
 import Control.Applicative
-import Criterion.Main
+import Test.Tasty.Bench
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy.Char8 as L8

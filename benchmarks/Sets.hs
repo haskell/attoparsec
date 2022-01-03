@@ -1,6 +1,6 @@
 module Sets (benchmarks) where
 
-import Criterion
+import Test.Tasty.Bench
 import Data.Char (ord)
 import qualified Data.Attoparsec.Text.FastSet as FastSet
 import qualified TextFastSet

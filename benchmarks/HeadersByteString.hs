@@ -1,8 +1,7 @@
 module HeadersByteString (headers) where
 
 import Common (pathTo, rechunkBS)
-import Criterion.Main (bench, bgroup, nf, nfIO)
-import Criterion.Types (Benchmark)
+import Test.Tasty.Bench (Benchmark, bench, bgroup, nf, nfIO)
 import HeadersByteString.Atto (request, response)
 import Network.Wai.Handler.Warp.RequestHeader (parseHeaderLines)
 import qualified Data.Attoparsec.ByteString.Char8 as B

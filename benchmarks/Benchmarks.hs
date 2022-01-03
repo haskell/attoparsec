@@ -2,7 +2,7 @@
 
 import Common ()
 import Control.Applicative (many)
-import Criterion.Main (bench, bgroup, defaultMain, nf)
+import Test.Tasty.Bench (bench, bgroup, defaultMain, nf)
 import Data.Bits
 import Data.Char (isAlpha)
 import Data.Word (Word32)

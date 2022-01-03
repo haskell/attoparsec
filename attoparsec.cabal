@@ -28,9 +28,6 @@ extra-source-files:
     examples/*.c
     examples/*.hs
     examples/Makefile
-    tests/*.hs
-    tests/QC/*.hs
-    tests/QC/IPv6/*.hs
 
 Flag developer
   Description: Whether to build the library in development mode
@@ -100,9 +97,9 @@ library
     ghc-prof-options: -auto-all
     ghc-options: -Werror
 
-test-suite tests
+test-suite attoparsec-tests
   type:           exitcode-stdio-1.0
-  hs-source-dirs: tests .
+  hs-source-dirs: tests
   main-is:        QC.hs
   other-modules:  QC.Buffer
                   QC.ByteString
@@ -116,25 +113,6 @@ test-suite tests
                   QC.Text.FastSet
                   QC.Text.Regressions
 
-  other-modules:  Data.Attoparsec.ByteString
-                  Data.Attoparsec.ByteString.Buffer
-                  Data.Attoparsec.ByteString.Char8
-                  Data.Attoparsec.ByteString.FastSet
-                  Data.Attoparsec.ByteString.Internal
-                  Data.Attoparsec.ByteString.Lazy
-                  Data.Attoparsec.Combinator
-                  Data.Attoparsec.Internal
-                  Data.Attoparsec.Internal.Compat
-                  Data.Attoparsec.Internal.Fhthagn
-                  Data.Attoparsec.Internal.Types
-                  Data.Attoparsec.Number
-                  Data.Attoparsec.Text
-                  Data.Attoparsec.Text.Buffer
-                  Data.Attoparsec.Text.FastSet
-                  Data.Attoparsec.Text.Internal
-                  Data.Attoparsec.Text.Lazy
-                  Data.Attoparsec.Zepto
-
   ghc-options:
     -Wall -threaded -rtsopts
 
@@ -143,6 +121,8 @@ test-suite tests
 
   build-depends:
     array,
+    attoparsec,
+    attoparsec-internal,
     base,
     bytestring,
     deepseq >= 1.1,

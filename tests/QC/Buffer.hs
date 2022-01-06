@@ -47,6 +47,14 @@ b_unbuffer (BP _ts t buf) = t === BB.unbuffer buf
 t_unbuffer :: BPT -> Property
 t_unbuffer (BP _ts t buf) = t === BT.unbuffer buf
 
+-- This test triggers both branches in Data.Attoparsec.Text.Buffer.append
+-- and checks that Data.Text.Array.copyI manipulations are correct.
+t_unbuffer_three :: Property
+t_unbuffer_three = t_unbuffer $ toBP BT.buffer [t, t, t]
+  where
+    -- Make it long enough to increase chances of a segmentation fault
+    t = T.replicate 1000 "\0"
+
 b_length :: BPB -> Property
 b_length (BP _ts t buf) = B.length t === BB.length buf
 
@@ -92,6 +100,7 @@ tests :: [TestTree]
 tests = [
     testProperty "b_unbuffer" b_unbuffer
   , testProperty "t_unbuffer" t_unbuffer
+  , testProperty "t_unbuffer_three" t_unbuffer_three
   , testProperty "b_length" b_length
   , testProperty "t_length" t_length
   , testProperty "b_unsafeIndex" b_unsafeIndex

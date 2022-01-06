@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE BangPatterns #-}
@@ -41,7 +42,11 @@ data Table = Table !Addr#
 
 {-# NOINLINE mhDigitToInt #-}
 mhDigitToInt :: Word8 -> Int
+#if MIN_VERSION_base(4,16,0)
+mhDigitToInt (W8# i) = I# (word2Int# (word8ToWord# (indexWord8OffAddr# addr (word2Int# (word8ToWord# i)))))
+#else
 mhDigitToInt (W8# i) = I# (word2Int# (indexWord8OffAddr# addr (word2Int# i)))
+#endif
   where
     !(Table addr) = table
     table :: Table

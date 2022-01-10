@@ -1,3 +1,9 @@
+# 0.14.4
+
+* Fix a segmentation fault when built against `text-2.0`
+* Restructure project to allow more convenient usage of benchmark suite
+* Allow benchmarks to build with GHC 9.2
+
 # 0.14.3
 
 * Support for GHC 9.2.1

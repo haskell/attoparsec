@@ -39,7 +39,6 @@ module Data.Attoparsec.Text.Buffer
     ) where
 
 import Control.Exception (assert)
-import Data.Bits (shiftR)
 import Data.List (foldl1')
 import Data.Monoid as Mon (Monoid(..))
 import Data.Semigroup (Semigroup(..))
@@ -49,6 +48,7 @@ import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader)
 import Data.Text.Unsafe (iterArray, lengthWord8)
 #else
+import Data.Bits (shiftR)
 import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import Data.Text.Unsafe (lengthWord16)
@@ -107,7 +107,11 @@ pappend buf (Text arr off len) = append buf arr off len
 
 append :: Buffer -> A.Array -> Int -> Int -> Buffer
 append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do
+#if MIN_VERSION_text(2,0,0)
+  let woff    = sizeOf (0::Int)
+#else
   let woff    = sizeOf (0::Int) `shiftR` 1
+#endif
       newlen  = len0 + len1
       !gen    = if gen0 == 0 then 0 else readGen arr0
   if gen == gen0 && newlen <= cap0
@@ -116,7 +120,7 @@ append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do
       marr <- unsafeThaw arr0
       writeGen marr newgen
 #if MIN_VERSION_text(2,0,0)
-      A.copyI newlen marr (off0+len0) arr1 off1
+      A.copyI len1 marr (off0+len0) arr1 off1
 #else
       A.copyI marr (off0+len0) arr1 off1 (off0+newlen)
 #endif
@@ -129,7 +133,7 @@ append (Buf arr0 off0 len0 cap0 gen0) !arr1 !off1 !len1 = runST $ do
       writeGen marr newgen
 #if MIN_VERSION_text(2,0,0)
       A.copyI len0 marr woff arr0 off0
-      A.copyI newlen marr (woff+len0) arr1 off1
+      A.copyI len1 marr (woff+len0) arr1 off1
 #else
       A.copyI marr woff arr0 off0 (woff+len0)
       A.copyI marr (woff+len0) arr1 off1 (woff+newlen)

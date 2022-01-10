@@ -2,8 +2,7 @@
 
 module Warp (benchmarks) where
 
-import Criterion.Main (bench, bgroup, nf)
-import Criterion.Types (Benchmark)
+import Test.Tasty.Bench (Benchmark, bench, bgroup, nf)
 import Data.ByteString (ByteString)
 import Network.Wai.Handler.Warp.ReadInt (readInt)
 import qualified Data.Attoparsec.ByteString.Char8 as B

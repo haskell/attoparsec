@@ -3,8 +3,7 @@
 
 module Numbers (numbers) where
 
-import Criterion.Main (bench, bgroup, nf)
-import Criterion.Types (Benchmark)
+import Test.Tasty.Bench (Benchmark, bench, bgroup, nf)
 import Data.Scientific (Scientific(..))
 import Text.Parsec.Text ()
 import Text.Parsec.Text.Lazy ()

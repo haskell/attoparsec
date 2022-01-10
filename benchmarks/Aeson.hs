@@ -39,7 +39,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.HashMap.Strict as H
-import Criterion.Main
+import Test.Tasty.Bench
 
 #define BACKSLASH 92
 #define CLOSE_CURLY 125

@@ -1,0 +1,11 @@
+constraint-set text-1
+  constraints: text < 2
+  ghc: < 8.4
+  tests: True
+  run-tests: True
+
+constraint-set text-2
+  constraints: text >= 2
+  ghc: >= 8.4 && < 9.4
+  tests: True
+  run-tests: True

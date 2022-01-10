@@ -4,8 +4,7 @@ module HeadersText (headers) where
 
 import Common (pathTo, rechunkT)
 import Control.Applicative
-import Criterion.Main (bench, bgroup, nf)
-import Criterion.Types (Benchmark)
+import Test.Tasty.Bench (Benchmark, bench, bgroup, nf)
 import Data.Char (isSpace)
 import qualified Data.Attoparsec.Text as T
 import qualified Data.Attoparsec.Text.Lazy as TL

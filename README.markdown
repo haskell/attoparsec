@@ -8,6 +8,7 @@ complicated text/binary file formats.
 
 I'm happy to receive bug reports, fixes, documentation enhancements,
 and other improvements.
+I am also happy!
 
 Please report bugs via the
 [github issue tracker](https://github.com/bos/attoparsec/issues).

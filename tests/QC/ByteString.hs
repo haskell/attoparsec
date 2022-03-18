@@ -182,6 +182,13 @@ nonmembers :: [Word8] -> [Word8] -> Property
 nonmembers s s' = property . not . any (`S.memberWord8` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
 
+eitherResultPartialError :: Property
+eitherResultPartialError = P.eitherResult (P.parse p input) === Left msg
+  where
+    p = (,) <$> P8.letter_ascii <*> P8.digit P.<?> "thing"
+    input = "a"
+    msg = "thing > digit: not enough input"
+
 tests :: [TestTree]
 tests = [
       testProperty "anyWord8" anyWord8
@@ -211,4 +218,5 @@ tests = [
     , testProperty "word8" word8
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers
+    , testProperty "eitherResultPartialError" eitherResultPartialError
   ]

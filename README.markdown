@@ -19,5 +19,5 @@ Master [git repository](https://github.com/bos/attoparsec):
 Authors
 -------
 
-This library is written and maintained by Bryan O'Sullivan,
-<bos@serpentine.com>.
+This library was written by Bryan O'Sullivan <bos@serpentine.com>
+and is maintained by Ben Gamari <ben@smart-cactus.org>.

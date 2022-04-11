@@ -17,7 +17,7 @@ description:
     efficiently with network protocols and complicated text/binary
     file formats.
 extra-source-files:
-    README.markdown
+    README.md
     benchmarks/*.txt
     benchmarks/json-data/*.json
     benchmarks/Makefile

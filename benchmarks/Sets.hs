@@ -2,7 +2,7 @@ module Sets (benchmarks) where
 
 import Test.Tasty.Bench
 import Data.Char (ord)
-import qualified Data.Attoparsec.Text.FastSet as FastSet
+import qualified Data.Attoparsec.Internal.Text.FastSet as FastSet
 import qualified TextFastSet
 import qualified Data.HashSet as HashSet
 import qualified Data.IntSet as IntSet

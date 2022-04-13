@@ -65,12 +65,12 @@ library
                    Data.Attoparsec.Text.Lazy
                    Data.Attoparsec.Types
                    Data.Attoparsec.Zepto
-                   Data.Attoparsec.ByteString.Buffer
-                   Data.Attoparsec.ByteString.FastSet
+                   Data.Attoparsec.Internal.ByteString.Buffer
+                   Data.Attoparsec.Internal.ByteString.FastSet
                    Data.Attoparsec.Internal.Compat
                    Data.Attoparsec.Internal.Fhthagn
-                   Data.Attoparsec.Text.Buffer
-                   Data.Attoparsec.Text.FastSet
+                   Data.Attoparsec.Internal.Text.Buffer
+                   Data.Attoparsec.Internal.Text.FastSet
   other-modules:   Data.Attoparsec.ByteString.Internal
                    Data.Attoparsec.Text.Internal
   ghc-options: -O2 -Wall

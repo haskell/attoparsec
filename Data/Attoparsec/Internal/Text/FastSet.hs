@@ -2,7 +2,7 @@
 
 ------------------------------------------------------------------------------
 -- |
--- Module      :  Data.Attoparsec.FastSet
+-- Module      :  Data.Attoparsec.Internal.Text.FastSet
 -- Copyright   :  Felipe Lessa 2010, Bryan O'Sullivan 2007-2015
 -- License     :  BSD3
 --
@@ -17,7 +17,7 @@
 --
 --
 -----------------------------------------------------------------------------
-module Data.Attoparsec.Text.FastSet
+module Data.Attoparsec.Internal.Text.FastSet
     (
     -- * Data type
       FastSet

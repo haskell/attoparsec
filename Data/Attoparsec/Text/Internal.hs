@@ -70,15 +70,15 @@ import Control.Monad (when)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Types hiding (Parser, Failure, Success)
-import qualified Data.Attoparsec.Text.Buffer as Buf
-import Data.Attoparsec.Text.Buffer (Buffer, buffer)
+import qualified Data.Attoparsec.Internal.Text.Buffer as Buf
+import Data.Attoparsec.Internal.Text.Buffer (Buffer, buffer)
 import Data.Char (isAsciiUpper, isAsciiLower, toUpper, toLower)
 import Data.List (intercalate)
 import Data.String (IsString(..))
 import Data.Text.Internal (Text(..))
 import Prelude hiding (getChar, succ, take, takeWhile)
 import qualified Data.Attoparsec.Internal.Types as T
-import qualified Data.Attoparsec.Text.FastSet as Set
+import qualified Data.Attoparsec.Internal.Text.FastSet as Set
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Unsafe as T

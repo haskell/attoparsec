@@ -133,7 +133,7 @@ import Data.Word (Word)
 #endif
 import Control.Applicative ((<|>))
 import Control.Monad (void, when)
-import Data.Attoparsec.ByteString.FastSet (charClass, memberChar)
+import Data.Attoparsec.Internal.ByteString.FastSet (charClass, memberChar)
 import Data.Attoparsec.ByteString.Internal (Parser)
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Number (Number(..))

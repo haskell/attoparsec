@@ -16,7 +16,7 @@ import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
 import qualified Data.Attoparsec.Text as P
 import qualified Data.Attoparsec.Text.Lazy as PL
-import qualified Data.Attoparsec.Text.FastSet as S
+import qualified Data.Attoparsec.Internal.Text.FastSet as S
 import qualified Data.ByteString as BS
 import qualified Data.Char as Char
 import qualified Data.Text as T

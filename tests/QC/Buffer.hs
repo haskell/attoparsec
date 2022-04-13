@@ -11,8 +11,8 @@ import QC.Common ()
 import Test.Tasty (TestTree)
 import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
-import qualified Data.Attoparsec.ByteString.Buffer as BB
-import qualified Data.Attoparsec.Text.Buffer as BT
+import qualified Data.Attoparsec.Internal.ByteString.Buffer as BB
+import qualified Data.Attoparsec.Internal.Text.Buffer as BT
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text as T
@@ -47,7 +47,7 @@ b_unbuffer (BP _ts t buf) = t === BB.unbuffer buf
 t_unbuffer :: BPT -> Property
 t_unbuffer (BP _ts t buf) = t === BT.unbuffer buf
 
--- This test triggers both branches in Data.Attoparsec.Text.Buffer.append
+-- This test triggers both branches in Data.Attoparsec.Internal.Text.Buffer.append
 -- and checks that Data.Text.Array.copyI manipulations are correct.
 t_unbuffer_three :: Property
 t_unbuffer_three = t_unbuffer $ toBP BT.buffer [t, t, t]

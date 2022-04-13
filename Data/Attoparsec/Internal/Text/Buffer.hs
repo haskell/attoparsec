@@ -2,7 +2,7 @@
     UnboxedTuples #-}
 
 -- |
--- Module      :  Data.Attoparsec.Text.Buffer
+-- Module      :  Data.Attoparsec.Internal.Text.Buffer
 -- Copyright   :  Bryan O'Sullivan 2007-2015
 -- License     :  BSD3
 --
@@ -23,7 +23,7 @@
 -- Once we run out of space at the end of a Buffer, we do the usual
 -- doubling of the buffer size.
 
-module Data.Attoparsec.Text.Buffer
+module Data.Attoparsec.Internal.Text.Buffer
     (
       Buffer
     , buffer

@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 -- |
--- Module      :  Data.Attoparsec.ByteString.Buffer
+-- Module      :  Data.Attoparsec.Internal.ByteString.Buffer
 -- Copyright   :  Bryan O'Sullivan 2007-2015
 -- License     :  BSD3
 --
@@ -41,7 +41,7 @@
 -- once; we lack a linear type system that could enforce this; and
 -- there's only so far we should go to accommodate broken uses.
 
-module Data.Attoparsec.ByteString.Buffer
+module Data.Attoparsec.Internal.ByteString.Buffer
     (
       Buffer
     , buffer

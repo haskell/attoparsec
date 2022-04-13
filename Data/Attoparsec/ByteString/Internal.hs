@@ -73,8 +73,8 @@ import Control.Applicative ((<$>))
 #endif
 import Control.Applicative ((<|>))
 import Control.Monad (when)
-import Data.Attoparsec.ByteString.Buffer (Buffer, buffer)
-import Data.Attoparsec.ByteString.FastSet (charClass, memberWord8)
+import Data.Attoparsec.Internal.ByteString.Buffer (Buffer, buffer)
+import Data.Attoparsec.Internal.ByteString.FastSet (charClass, memberWord8)
 import Data.Attoparsec.Combinator ((<?>))
 import Data.Attoparsec.Internal
 import Data.Attoparsec.Internal.Compat
@@ -87,7 +87,7 @@ import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (castPtr, minusPtr, plusPtr)
 import Foreign.Storable (Storable(peek, sizeOf))
 import Prelude hiding (getChar, succ, take, takeWhile)
-import qualified Data.Attoparsec.ByteString.Buffer as Buf
+import qualified Data.Attoparsec.Internal.ByteString.Buffer as Buf
 import qualified Data.Attoparsec.Internal.Types as T
 import qualified Data.ByteString as B8
 import qualified Data.ByteString.Char8 as B

@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, GADTs, OverloadedStrings,
-    Rank2Types, RecordWildCards, TypeFamilies, TypeSynonymInstances #-}
+    Rank2Types, RecordWildCards, TypeFamilies, TypeOperators, 
+    TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module      :  Data.Attoparsec.Text.Internal

@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, FlexibleInstances, TypeFamilies,
-    TypeSynonymInstances, GADTs #-}
+    TypeOperators, TypeSynonymInstances, GADTs #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-} -- Imports internal modules
 #endif

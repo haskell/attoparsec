@@ -165,7 +165,7 @@ arrayValues val = do
 -- requirement of RFC 4627.
 --
 -- In particular, be careful in using this function if you think your
--- code might interoperate with Javascript.  A na&#xef;ve Javascript
+-- code might interoperate with Javascript.  A naïve Javascript
 -- library that parses JSON data using @eval@ is vulnerable to attack
 -- unless the encoded data represents an object or an array.  JSON
 -- implementations in other languages conform to that same restriction

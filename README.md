@@ -10,11 +10,11 @@ I'm happy to receive bug reports, fixes, documentation enhancements,
 and other improvements.
 
 Please report bugs via the
-[github issue tracker](https://github.com/bos/attoparsec/issues).
+[github issue tracker](https://github.com/haskell/attoparsec/issues).
 
-Master [git repository](https://github.com/bos/attoparsec):
+Master [git repository](https://github.com/haskell/attoparsec):
 
-* `git clone git://github.com/bos/attoparsec.git`
+* `git clone https://github.com/haskell/attoparsec.git`
 
 Authors
 -------

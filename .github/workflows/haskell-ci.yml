@@ -268,3 +268,5 @@ jobs:
           if [ $((HCNUMVER < 80400)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER --enable-tests --disable-benchmarks --constraint='text < 2' --dependencies-only -j2 all ; fi
           if [ $((HCNUMVER < 80400)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER --enable-tests --disable-benchmarks --constraint='text < 2' all ; fi
           if [ $((HCNUMVER < 80400)) -ne 0 ] ; then $CABAL v2-test $ARG_COMPILER --enable-tests --disable-benchmarks --constraint='text < 2' all ; fi
+          
+          

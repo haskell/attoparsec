@@ -1,3 +1,5 @@
+branches: master
+
 constraint-set text-1
   constraints: text < 2
   ghc: < 8.4
@@ -9,3 +11,27 @@ constraint-set text-2
   ghc: >= 8.4 && < 9.4
   tests: True
   run-tests: True
+
+constraint-set bytestring-0.12
+  -- bytestring-0.12 requires base >=4.9 (GHC 8.0)
+  ghc: >= 8.0
+  constraints: bytestring >= 0.12
+  --
+  -- The following is silently ignored here:
+  --
+  -- raw-project
+  --   allow-newer: bytestring
+  --
+  tests: True
+  run-tests: True
+
+-- The following is meant to be for constraint-set bytestring-0.12 only,
+-- but there is currently no way to enable `allow-newer: bytestring`
+-- just for the constraint set.
+--
+-- Since core library `bytestring` is constrained to `installed`,
+-- it is not harmful to allow newer `bytestring` in the default runs
+-- as well---it will have no effect there.
+--
+raw-project
+  allow-newer: bytestring

@@ -120,8 +120,8 @@ append (Buf fp0 off0 len0 cap0 gen0) !fp1 !off1 !len1 =
           let newgen = gen + 1
           poke (castPtr ptr0) newgen
           copyBytes (ptr0 `plusPtr` (off0+len0))
-                 (ptr1 `plusPtr` off1)
-                 (fromIntegral len1)
+                    (ptr1 `plusPtr` off1)
+                    (fromIntegral len1)
           return (Buf fp0 off0 newlen cap0 newgen)
         else do
           let newcap = newlen * 2
@@ -132,7 +132,7 @@ append (Buf fp0 off0 len0 cap0 gen0) !fp1 !off1 !len1 =
             poke (castPtr ptr_) newgen
             copyBytes ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
             copyBytes (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
-                   (fromIntegral len1)
+                      (fromIntegral len1)
             return (Buf fp genSize newlen newcap newgen)
 
 length :: Buffer -> Int

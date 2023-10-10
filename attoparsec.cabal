@@ -18,8 +18,9 @@ description:
     file formats.
 
 tested-with:
-  GHC == 9.6.2
-  GHC == 9.4.5
+  GHC == 9.8.1
+  GHC == 9.6.3
+  GHC == 9.4.7
   GHC == 9.2.8
   GHC == 9.0.2
   GHC == 8.10.7
@@ -29,9 +30,9 @@ tested-with:
   GHC == 8.2.2
   GHC == 8.0.2
   GHC == 7.10.3
-  GHC == 7.8.4
-  GHC == 7.6.3
-  GHC == 7.4.2
+  -- GHC == 7.8.4
+  -- GHC == 7.6.3
+  -- GHC == 7.4.2
 
 extra-source-files:
     benchmarks/*.txt
@@ -79,7 +80,7 @@ library
                  scientific >= 0.3.1 && < 0.4,
                  transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.7,
                  text >= 1.1.1.3,
-                 ghc-prim < 0.11,
+                 ghc-prim < 0.12,
                  attoparsec-internal
   if impl(ghc < 7.4)
     build-depends:

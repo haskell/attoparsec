@@ -170,6 +170,13 @@ nonmembers :: String -> String -> Property
 nonmembers s s' = property . not . any (`S.member` set) $ filter (not . (`elem` s)) s'
     where set = S.fromList s
 
+eitherResultPartialError :: Property
+eitherResultPartialError = P.eitherResult (P.parse p input) === Left msg
+  where
+    input = "a"
+    p = (,) <$> P.letter <*> P.digit P.<?> "thing"
+    msg = "thing > digit: not enough input"
+
 tests :: [TestTree]
 tests = [
       testProperty "anyChar" anyChar
@@ -198,6 +205,7 @@ tests = [
     , testProperty "takeWhile1_empty" takeWhile1_empty
     , testProperty "members" members
     , testProperty "nonmembers" nonmembers
+    , testProperty "eitherResultPartialError" eitherResultPartialError
     , testGroup "FastSet" FastSet.tests
     , testGroup "Regressions" Regressions.tests
   ]

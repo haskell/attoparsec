@@ -33,6 +33,7 @@ module Data.Attoparsec.ByteString.FastSet
     ) where
 
 import Data.Bits ((.&.), (.|.), unsafeShiftL)
+import Foreign.Marshal.Utils (fillBytes)
 import Foreign.Storable (peekByteOff, pokeByteOff)
 import GHC.Exts (Int(I#), iShiftRA#)
 import GHC.Word (Word8)
@@ -94,7 +95,7 @@ memberChar c = memberWord8 (I.c2w c)
 
 mkTable :: B.ByteString -> B.ByteString
 mkTable s = I.unsafeCreate 32 $ \t -> do
-            _ <- I.memset t 0 32
+            fillBytes t 0 32
             U.unsafeUseAsCStringLen s $ \(p, l) ->
               let loop n | n == l = return ()
                          | otherwise = do

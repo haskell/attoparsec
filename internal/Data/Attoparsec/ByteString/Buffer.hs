@@ -54,7 +54,7 @@ module Data.Attoparsec.ByteString.Buffer
     ) where
 
 import Control.Exception (assert)
-import Data.ByteString.Internal (ByteString(..), memcpy, nullForeignPtr)
+import Data.ByteString.Internal (ByteString(..), nullForeignPtr)
 import Data.Attoparsec.Internal.Fhthagn (inlinePerformIO)
 import Data.Attoparsec.Internal.Compat
 import Data.List (foldl1')
@@ -62,6 +62,7 @@ import Data.Monoid as Mon (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.Word (Word8)
 import Foreign.ForeignPtr (ForeignPtr, withForeignPtr)
+import Foreign.Marshal.Utils (copyBytes)
 import Foreign.Ptr (castPtr, plusPtr)
 import Foreign.Storable (peek, peekByteOff, poke, sizeOf)
 import GHC.ForeignPtr (mallocPlainForeignPtrBytes)
@@ -118,9 +119,9 @@ append (Buf fp0 off0 len0 cap0 gen0) !fp1 !off1 !len1 =
         then do
           let newgen = gen + 1
           poke (castPtr ptr0) newgen
-          memcpy (ptr0 `plusPtr` (off0+len0))
-                 (ptr1 `plusPtr` off1)
-                 (fromIntegral len1)
+          copyBytes (ptr0 `plusPtr` (off0+len0))
+                    (ptr1 `plusPtr` off1)
+                    (fromIntegral len1)
           return (Buf fp0 off0 newlen cap0 newgen)
         else do
           let newcap = newlen * 2
@@ -129,9 +130,9 @@ append (Buf fp0 off0 len0 cap0 gen0) !fp1 !off1 !len1 =
             let ptr    = ptr_ `plusPtr` genSize
                 newgen = 1
             poke (castPtr ptr_) newgen
-            memcpy ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
-            memcpy (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
-                   (fromIntegral len1)
+            copyBytes ptr (ptr0 `plusPtr` off0) (fromIntegral len0)
+            copyBytes (ptr `plusPtr` len0) (ptr1 `plusPtr` off1)
+                      (fromIntegral len1)
             return (Buf fp genSize newlen newcap newgen)
 
 length :: Buffer -> Int

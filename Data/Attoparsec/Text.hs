@@ -113,12 +113,15 @@ module Data.Attoparsec.Text
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1
     , sepBy1'
     , skipMany
     , skipMany1
+    , skipTill
+    , skipTill'
     , eitherP
     , I.match
     -- * State observation and manipulation functions

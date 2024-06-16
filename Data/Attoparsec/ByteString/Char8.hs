@@ -114,12 +114,15 @@ module Data.Attoparsec.ByteString.Char8
     , many1'
     , manyTill
     , manyTill'
+    , till'
     , sepBy
     , sepBy'
     , sepBy1
     , sepBy1'
     , skipMany
     , skipMany1
+    , skipTill
+    , skipTill'
     , eitherP
     , I.match
     -- * State observation and manipulation functions

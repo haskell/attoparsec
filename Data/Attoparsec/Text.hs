@@ -266,10 +266,11 @@ maybeResult _            = Nothing
 -- | Convert a 'Result' value to an 'Either' value. A 'Partial' result
 -- is treated as failure.
 eitherResult :: Result r -> Either String r
-eitherResult (T.Done _ r)        = Right r
-eitherResult (T.Fail _ [] msg)   = Left msg
-eitherResult (T.Fail _ ctxs msg) = Left (intercalate " > " ctxs ++ ": " ++ msg)
-eitherResult _                   = Left "Result: incomplete input"
+eitherResult result = case feed result T.empty of
+    T.Done _ r        -> Right r
+    T.Fail _ [] msg   -> Left msg
+    T.Fail _ ctxs msg -> Left (intercalate " > " ctxs ++ ": " ++ msg)
+    T.Partial _       -> error "eitherResult: Partial"
 
 -- | A predicate that matches either a carriage return @\'\\r\'@ or
 -- newline @\'\\n\'@ character.
